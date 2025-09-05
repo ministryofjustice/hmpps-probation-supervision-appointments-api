@@ -1,10 +1,10 @@
 info.app:
-  name: HMPPS Template Kotlin
+  name: HMPPS Probation Supervision Appointments Api
   version: 1.0
 
 spring:
   application:
-    name: hmpps-template-kotlin
+    name: hmpps-probation-supervision-appointments-api
   codec:
     max-in-memory-size: 10MB
 

@@ -13,7 +13,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 
 @RestController
 @Tag(name = "Outlook Calendar", description = "Outlook Calendar API")
-@RequestMapping("/event")
+@RequestMapping("/calendar")
 @PreAuthorize("hasRole('ROLE_PROBATION_API__PROBATION_SUPERVISION_APPOINTMENTS__EVENTS')")
 class OutlookCalendarController(val calendarService: CalendarService) {
 

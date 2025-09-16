@@ -57,12 +57,12 @@ class MsGraphMockServer :
     )
 
     stubFor(
-      post(urlPathMatching("/v1\\.0/users/[^/]+/calendar/events"))
+      post(urlPathMatching("/v1.0/users/[^/]+/calendar/events"))
         .willReturn(
           aResponse()
             .withStatus(201)
             .withHeader("Content-Type", "application/json")
-            .withBody(Json.write(body)), // <-- guarantees valid JSON string
+            .withBody(Json.write(body)),
         ),
     )
   }

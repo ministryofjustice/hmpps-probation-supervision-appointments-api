@@ -8,9 +8,6 @@ management.endpoint:
 hmpps-auth:
   url: "http://localhost:8090/auth"
 
-graph:
-  base-url: http://localhost:8091/v1.0
-
 graph-client:
   client-id: id
   client-secret: secret

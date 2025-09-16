@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock
 
 import com.microsoft.graph.serviceclient.GraphServiceClient
-import com.microsoft.kiota.RequestInformation
 import com.microsoft.kiota.authentication.AuthenticationProvider
 import okhttp3.OkHttpClient
 import org.springframework.boot.test.context.TestConfiguration
@@ -14,14 +13,8 @@ class MsGraphTestConfig {
   @Bean
   @Primary
   fun testGraphServiceClient(): GraphServiceClient {
-    val auth = object : AuthenticationProvider {
-      override fun authenticateRequest(
-        request: RequestInformation,
-        additionalAuthenticationContext: MutableMap<String, Any>?,
-      ) {
-        request.headers.add("Authorization", "Bearer dummy-token")
-      }
-    }
+    val auth =
+      AuthenticationProvider { request, additionalAuthenticationContext -> request.headers.add("Authorization", "Bearer dummy-token") }
 
     val ok = OkHttpClient.Builder()
       .addInterceptor { chain ->

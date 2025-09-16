@@ -10,11 +10,12 @@ import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 
 @Service
 class CalendarService(val graphServiceClient: GraphServiceClient) {
 
-  fun sendEvent(eventRequest: EventRequest) {
+  fun sendEvent(eventRequest: EventRequest): EventResponse {
     val eventTimezone = "Europe/London"
 
     val eventStart = DateTimeTimeZone().apply {
@@ -50,11 +51,22 @@ class CalendarService(val graphServiceClient: GraphServiceClient) {
       body = eventBody
     }
 
-    graphServiceClient
+    val response = graphServiceClient
       .users()
       .byUserId(eventRequest.fromEmail)
       .calendar()
       .events()
       .post(event)
+
+    val e = response.attendees
+    return response.toEventResponse()
   }
 }
+
+fun Event.toEventResponse(): EventResponse = EventResponse(
+  id,
+  subject,
+  start.dateTime,
+  end.dateTime,
+  attendees.map { it.emailAddress.address },
+)

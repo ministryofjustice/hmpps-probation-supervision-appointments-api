@@ -27,7 +27,7 @@ generic-service:
 
   namespace_secrets:
     hmpps-probation-supervision-appointments-api:
-      GRAPH_CLIENT_CLIENT-ID: GRAPH_CLIENT_ID
+      GRAPH_CLIENT_CLIENT_ID: GRAPH_CLIENT_ID
       GRAPH_CLIENT_CLIENT_SECRET: GRAPH_CLIENT_SECRET
       GRAPH_CLIENT_TENANT_ID: GRAPH_TENANT_ID
     hmpps-probation-supervision-appointments-api-application-insights:

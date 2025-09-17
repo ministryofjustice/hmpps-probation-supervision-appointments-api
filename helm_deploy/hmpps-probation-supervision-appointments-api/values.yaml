@@ -12,7 +12,7 @@ generic-service:
   ingress:
     enabled: true
     host: app-hostname.local # override per environment
-    tlsSecretName: hmpps-probation-supervision-appointments-api-cert
+    tlsSecretName: probation-supervision-appointments-api-cert
 
   # Environment variables to load into the deployment
   env:

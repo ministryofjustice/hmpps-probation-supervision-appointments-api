@@ -14,6 +14,9 @@ services:
       - SERVER_PORT=8080
       - HMPPS_AUTH_URL=http://hmpps-auth:8080/auth
       - SPRING_PROFILES_ACTIVE=dev
+      - GRAPH_CLIENT_CLIENT_ID=${GRAPH_CLIENT_ID} #get value from 1password and populate .env
+      - GRAPH_CLIENT_CLIENT_SECRET=${GRAPH_CLIENT_SECRET} #get value from 1password and populate .env
+      - GRAPH_CLIENT_TENANT_ID=${GRAPH_TENANT_ID} #get value from 1password and populate .env
 
   hmpps-auth:
     image: quay.io/hmpps/hmpps-auth:latest

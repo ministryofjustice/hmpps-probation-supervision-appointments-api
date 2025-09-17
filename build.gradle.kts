@@ -11,6 +11,8 @@ dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.5.0")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.11")
+  implementation("com.microsoft.graph:microsoft-graph:6.20.0")
+  implementation("com.azure:azure-identity:1.13.3")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.5.0")
   testImplementation("org.wiremock:wiremock-standalone:3.13.1")

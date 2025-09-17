@@ -7,3 +7,10 @@ management.endpoint:
 
 hmpps-auth:
   url: "http://localhost:8090/auth"
+
+graph-client:
+  client-id: id
+  client-secret: secret
+  tenant-id: id
+
+

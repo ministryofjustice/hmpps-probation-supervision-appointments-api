@@ -32,5 +32,16 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - APPLICATION_AUTHENTICATION_UI_ALLOWLIST=0.0.0.0/0
 
+  probation-supervision-db:
+    image: postgres:16
+    networks:
+      - hmpps
+    container_name: probation-supervision-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=probation-supervision
 networks:
   hmpps:

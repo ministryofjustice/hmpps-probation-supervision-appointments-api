@@ -16,6 +16,7 @@ dependencies {
   implementation("com.microsoft.graph:microsoft-graph:6.20.0")
   implementation("com.azure:azure-identity:1.13.3")
 
+  runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.5.0")

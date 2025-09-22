@@ -17,6 +17,9 @@ services:
       - GRAPH_CLIENT_CLIENT_ID=${GRAPH_CLIENT_ID} #get value from 1password and populate .env
       - GRAPH_CLIENT_CLIENT_SECRET=${GRAPH_CLIENT_SECRET} #get value from 1password and populate .env
       - GRAPH_CLIENT_TENANT_ID=${GRAPH_TENANT_ID} #get value from 1password and populate .env
+      - DATABASE_PASSWORD=password
+      - DATABASE_URL=jdbc:postgresql://probation-supervision-db:5432/probation-supervision
+      - DATABASE_USERNAME=postgres
 
   hmpps-auth:
     image: quay.io/hmpps/hmpps-auth:latest
@@ -32,5 +35,16 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - APPLICATION_AUTHENTICATION_UI_ALLOWLIST=0.0.0.0/0
 
+  probation-supervision-db:
+    image: postgres:16
+    networks:
+      - hmpps
+    container_name: probation-supervision-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=probation-supervision
 networks:
   hmpps:

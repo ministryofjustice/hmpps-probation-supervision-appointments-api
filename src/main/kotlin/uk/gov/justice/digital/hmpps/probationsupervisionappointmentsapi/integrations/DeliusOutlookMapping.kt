@@ -11,6 +11,8 @@ import org.hibernate.annotations.Immutable
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
+import org.springframework.data.jpa.repository.JpaRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import java.time.Instant
 
 @Immutable
@@ -20,7 +22,7 @@ import java.time.Instant
 class DeliusOutlookMapping(
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  val id: Long,
+  val id: Long = 0,
 
   @Column(nullable = false)
   val deliusExternalReference: String,
@@ -37,3 +39,9 @@ class DeliusOutlookMapping(
   @Column(nullable = false)
   var updatedAt: Instant = Instant.now()
 }
+
+interface DeliusOutlookMappingRepository : JpaRepository<DeliusOutlookMapping, Long> {
+  fun findByDeliusExternalReference(deliusExternalReference: String): DeliusOutlookMapping?
+}
+
+fun DeliusOutlookMappingRepository.getByDeliusExternalReference(deliusExternalReference: String) = findByDeliusExternalReference(deliusExternalReference) ?: throw NotFoundException("DeliusOutlookMapping", "deliusExternalReference", deliusExternalReference)

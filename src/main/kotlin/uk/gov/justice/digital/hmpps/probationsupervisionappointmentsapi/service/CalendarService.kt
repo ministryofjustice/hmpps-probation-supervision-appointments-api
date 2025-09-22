@@ -11,9 +11,14 @@ import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 
 @Service
-class CalendarService(val graphServiceClient: GraphServiceClient) {
+class CalendarService(
+  val graphServiceClient: GraphServiceClient,
+  val deliusOutlookMappingRepository: DeliusOutlookMappingRepository,
+) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse {
     val eventTimezone = "Europe/London"
@@ -58,7 +63,10 @@ class CalendarService(val graphServiceClient: GraphServiceClient) {
       .events()
       .post(event)
 
-    val e = response.attendees
+    deliusOutlookMappingRepository.save(
+      DeliusOutlookMapping(deliusExternalReference = eventRequest.deliusExternalReference, outlookId = response.id.toString()),
+    )
+
     return response.toEventResponse()
   }
 }

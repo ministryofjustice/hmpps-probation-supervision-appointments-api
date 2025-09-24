@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.EventNotFoundException
 
 @Service
 class CalendarService(
@@ -69,6 +70,24 @@ class CalendarService(
 
     return response.toEventResponse()
   }
+
+  fun getEventFromDatabase(externalRef: String?, outlookId: String?): EventResponse {
+    val event = when {
+      !externalRef.isNullOrBlank() && !outlookId.isNullOrBlank() ->
+        eventRepository.findByExternalRefAndOutlookId(externalRef, outlookId)
+
+      !externalRef.isNullOrBlank() ->
+        eventRepository.findByExternalRef(externalRef)
+
+      !outlookId.isNullOrBlank() ->
+        eventRepository.findByOutlookId(outlookId)
+
+      else -> throw IllegalArgumentException("At least one identifier must be provided")
+    } ?: throw EventNotFoundException("Event not found for provided identifiers")
+
+    return event.toEventResponse()
+  }
+
 }
 
 fun Event.toEventResponse(): EventResponse = EventResponse(

@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
@@ -9,7 +11,8 @@ import java.nio.file.Paths
 
 @Configuration
 @Profile("h2-mem")
-class DevWireMockConfig {
+@EnableConfigurationProperties(WireMockProps::class)
+class DevWireMockConfig(private val props: WireMockProps) {
 
   @Bean(initMethod = "start", destroyMethod = "stop")
   fun wireMockServer(): WireMockServer {
@@ -20,9 +23,14 @@ class DevWireMockConfig {
 
     return WireMockServer(
       WireMockConfiguration.options()
-        .port(8091)
+        .port(props.port)
         .usingFilesUnderDirectory(stubsPath.toFile().absolutePath)
         .templatingEnabled(true),
     )
   }
 }
+
+@ConfigurationProperties(prefix = "wiremock")
+data class WireMockProps(
+  var port: Int
+)

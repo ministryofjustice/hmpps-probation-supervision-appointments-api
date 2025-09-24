@@ -1,5 +1,8 @@
+wiremock:
+  port: 9090
+
 hmpps-auth:
-  url: "http://localhost:8091/auth"
+  url: "http://localhost:${wiremock.port}/auth"
 
 spring:
   h2:

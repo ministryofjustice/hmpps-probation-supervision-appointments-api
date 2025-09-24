@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrat
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.MsGraphApiExtension
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.MsGraphApiExtension.Companion.msGraph
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.MsGraphTestConfig
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @ExtendWith(HmppsAuthApiExtension::class, MsGraphApiExtension::class)
@@ -26,6 +27,9 @@ abstract class IntegrationTestBase {
 
   @Autowired
   protected lateinit var jwtAuthHelper: JwtAuthorisationHelper
+
+  @Autowired
+  protected lateinit var deliusOutlookMappingRepository: DeliusOutlookMappingRepository
 
   internal fun setAuthorisation(
     username: String? = "AUTH_ADM",

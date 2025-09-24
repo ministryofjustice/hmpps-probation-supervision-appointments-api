@@ -21,7 +21,8 @@ class DevWireMockConfig {
     return WireMockServer(
       WireMockConfiguration.options()
         .port(8091)
-        .usingFilesUnderDirectory(stubsPath.toFile().absolutePath),
+        .usingFilesUnderDirectory(stubsPath.toFile().absolutePath)
+        .templatingEnabled(true),
     )
   }
 }

@@ -27,7 +27,7 @@ dependencies {
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
 
-  compileOnly("org.wiremock:wiremock-standalone:3.13.1")
+  compileOnly("org.wiremock:wiremock-standalone:3.9.1")
   developmentOnly("org.wiremock:wiremock-standalone:3.9.1")
   developmentOnly("com.h2database:h2")
 

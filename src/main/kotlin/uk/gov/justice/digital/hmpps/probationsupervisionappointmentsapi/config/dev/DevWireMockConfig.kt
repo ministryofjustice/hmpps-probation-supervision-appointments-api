@@ -19,8 +19,6 @@ class DevWireMockConfig(private val props: WireMockProps) {
     val projectRoot = Paths.get(System.getProperty("user.dir")).normalize()
     val stubsPath = projectRoot.resolve("src/wiremock-stubs").normalize()
 
-    println(">>> WireMock: loading stubs from $stubsPath")
-
     return WireMockServer(
       WireMockConfiguration.options()
         .port(props.port)

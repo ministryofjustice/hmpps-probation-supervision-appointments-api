@@ -38,7 +38,6 @@ class DevSecurityConfig {
       .authorizeHttpRequests {
         it
           .requestMatchers("/h2-console/**", "/health").permitAll()
-//          .requestMatchers("/admin/**").hasRole("ADMIN")
           .requestMatchers("/calendar/**").hasAnyRole("PROBATION_API__PROBATION_SUPERVISION_APPOINTMENTS__EVENTS")
           .anyRequest().authenticated()
       }

@@ -32,5 +32,5 @@ class DevWireMockConfig(private val props: WireMockProps) {
 
 @ConfigurationProperties(prefix = "wiremock")
 data class WireMockProps(
-  var port: Int
+  var port: Int,
 )

@@ -2,6 +2,13 @@ plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.0.0"
   id("org.jetbrains.kotlin.plugin.jpa") version "2.2.10"
   kotlin("plugin.spring") version "2.2.10"
+  id("idea")
+}
+
+idea {
+  module {
+    resourceDirs.add(file("src/wiremock-stubs"))
+  }
 }
 
 configurations {
@@ -19,6 +26,10 @@ dependencies {
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
+
+  compileOnly("org.wiremock:wiremock-standalone:3.13.1")
+  developmentOnly("org.wiremock:wiremock-standalone:3.9.1")
+  developmentOnly("com.h2database:h2")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.5.0")
   testImplementation("com.h2database:h2")

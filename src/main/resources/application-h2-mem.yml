@@ -1,0 +1,32 @@
+hmpps-auth:
+  url: "http://localhost:8091/auth"
+
+spring:
+  h2:
+    console:
+      enabled: true
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+logging:
+  level:
+    org:
+      flywaydb: DEBUG
+      springframework.boot.autoconfigure.flyway: DEBUG
+#      springframework.security: DEBUG
+#      springframework.security.web.access.intercept: DEBUG
+#      springframework.security.web.FilterChainProxy: DEBUG
+
+graph-client:
+  client-id: id
+  client-secret: secret
+  tenant-id: id

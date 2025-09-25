@@ -1,9 +1,16 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.0.0"
-  id("org.jetbrains.kotlin.plugin.jpa") version "2.2.10"
-  kotlin("plugin.spring") version "2.2.10"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.1.1"
+  id("org.jetbrains.kotlin.plugin.jpa") version "2.2.20"
+  kotlin("plugin.spring") version "2.2.20"
   id("idea")
 }
+
+val hmppsSpringBootStarterVersion = "1.7.0"
+val azureIdentityVersion = "1.18.0"
+val microsoftGraphVersion = "6.53.0"
+val wiremockVersion = "3.13.1"
+val swaggerParserVersion = "2.1.34"
+val springdocVersion = "2.8.13"
 
 idea {
   module {
@@ -16,25 +23,25 @@ configurations {
 }
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.5.0")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:$hmppsSpringBootStarterVersion")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.11")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.flywaydb:flyway-core")
-  implementation("com.microsoft.graph:microsoft-graph:6.20.0")
-  implementation("com.azure:azure-identity:1.13.3")
+  implementation("com.microsoft.graph:microsoft-graph:$microsoftGraphVersion")
+  implementation("com.azure:azure-identity:$azureIdentityVersion")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
 
-  compileOnly("org.wiremock:wiremock-standalone:3.9.1")
-  developmentOnly("org.wiremock:wiremock-standalone:3.9.1")
+  compileOnly("org.wiremock:wiremock-standalone:$wiremockVersion")
+  developmentOnly("org.wiremock:wiremock-standalone:$wiremockVersion")
   developmentOnly("com.h2database:h2")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.5.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:$hmppsSpringBootStarterVersion")
   testImplementation("com.h2database:h2")
-  testImplementation("org.wiremock:wiremock-standalone:3.13.1")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.32") {
+  testImplementation("org.wiremock:wiremock-standalone:$wiremockVersion")
+  testImplementation("io.swagger.parser.v3:swagger-parser:$swaggerParserVersion") {
     exclude(group = "io.swagger.core.v3")
   }
 }

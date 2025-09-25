@@ -5,14 +5,9 @@ plugins {
   id("idea")
 }
 
-val hmppsStarterVersion = "1.7.0"
-val springCoreVersion = "6.2.11"
-val springSecurityCoreVersion = "6.5.4"
+val hmppsSpringBootStarterVersion = "1.7.0"
 val azureIdentityVersion = "1.18.0"
 val microsoftGraphVersion = "6.53.0"
-val commonsLangVersion = "3.18.0"
-val nettyCodecVersion = "4.1.125.Final"
-val nettyCompressionVersion = "4.2.5.Final"
 val wiremockVersion = "3.13.1"
 val swaggerParserVersion = "2.1.34"
 val springdocVersion = "2.8.13"
@@ -24,32 +19,17 @@ idea {
 }
 
 configurations {
-  testImplementation {
-    exclude(group = "org.junit.vintage")
-  }
-}
-
-configurations.all {
-  resolutionStrategy {
-    force("io.netty:netty-codec:$nettyCodecVersion")
-    force("io.netty:netty-codec-compression:$nettyCompressionVersion")
-    force("org.apache.commons:commons-lang3:$commonsLangVersion")
-  }
+  testImplementation { exclude(group = "org.junit.vintage") }
 }
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:$hmppsStarterVersion")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:$hmppsSpringBootStarterVersion")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-  implementation("org.springframework:spring-core:$springCoreVersion")
-  implementation("org.springframework.security:spring-security-core:$springSecurityCoreVersion")
   implementation("org.flywaydb:flyway-core")
   implementation("com.microsoft.graph:microsoft-graph:$microsoftGraphVersion")
   implementation("com.azure:azure-identity:$azureIdentityVersion")
-  implementation("org.apache.commons:commons-lang3:$commonsLangVersion")
-  implementation("io.netty:netty-codec:$nettyCodecVersion")
-  implementation("io.netty:netty-codec-compression:$nettyCompressionVersion")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
@@ -58,7 +38,7 @@ dependencies {
   developmentOnly("org.wiremock:wiremock-standalone:$wiremockVersion")
   developmentOnly("com.h2database:h2")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:$hmppsStarterVersion")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:$hmppsSpringBootStarterVersion")
   testImplementation("com.h2database:h2")
   testImplementation("org.wiremock:wiremock-standalone:$wiremockVersion")
   testImplementation("io.swagger.parser.v3:swagger-parser:$swaggerParserVersion") {
@@ -70,6 +50,8 @@ kotlin {
   jvmToolchain(21)
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-  compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+tasks {
+  withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+  }
 }

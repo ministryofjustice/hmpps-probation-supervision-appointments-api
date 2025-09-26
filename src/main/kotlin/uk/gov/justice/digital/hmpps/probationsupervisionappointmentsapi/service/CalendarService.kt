@@ -10,7 +10,9 @@ import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 
@@ -64,10 +66,28 @@ class CalendarService(
       .post(event)
 
     deliusOutlookMappingRepository.save(
-      DeliusOutlookMapping(deliusExternalReference = eventRequest.deliusExternalReference, outlookId = response.id.toString()),
+      DeliusOutlookMapping(
+        supervisionAppointmentUrn = eventRequest.supervisionAppointmentUrn,
+        outlookId = response.id.toString(),
+      ),
     )
 
     return response.toEventResponse()
+  }
+
+  fun getEventDetailsMappings(supervisionAppointmentUrn: String?): DeliusOutlookMappingsResponse {
+    val mappings = when {
+      !supervisionAppointmentUrn.isNullOrBlank() ->
+        deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn)
+
+      else -> throw IllegalArgumentException("SupervisionAppointmentUrn must be provided")
+    }
+
+    if (mappings.isEmpty()) {
+      throw NotFoundException("No DeliusOutlookMapping found for provided supervisionAppointmentUrn")
+    }
+
+    return DeliusOutlookMappingsResponse(mappings)
   }
 }
 

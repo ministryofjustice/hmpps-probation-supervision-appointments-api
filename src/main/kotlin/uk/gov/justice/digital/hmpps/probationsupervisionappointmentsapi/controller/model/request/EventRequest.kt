@@ -9,7 +9,7 @@ data class EventRequest(
   val subject: String,
   val start: LocalDateTime,
   val duration: Long,
-  val deliusExternalReference: String,
+  val supervisionAppointmentUrn: String,
 )
 
 data class Recipient(

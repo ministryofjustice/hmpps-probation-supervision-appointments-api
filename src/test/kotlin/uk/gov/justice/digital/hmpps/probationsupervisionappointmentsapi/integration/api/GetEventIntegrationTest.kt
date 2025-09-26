@@ -17,7 +17,7 @@ class GetEventIntegrationTest : IntegrationTestBase() {
   @Test
   fun `test successful retrieval of event mapping`() {
     val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7931"
-    val outlookId = "mock-event-id-123"
+    val outlookId = "mock-event-id-1234"
 
     // Insert test data into the repository
     deliusOutlookMappingRepository.save(

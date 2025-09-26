@@ -23,8 +23,8 @@ class GetEventIntegrationTest : IntegrationTestBase() {
     deliusOutlookMappingRepository.save(
       uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping(
         supervisionAppointmentUrn = supervisionAppointmentUrn,
-        outlookId = outlookId
-      )
+        outlookId = outlookId,
+      ),
     )
 
     webTestClient.get()

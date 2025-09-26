@@ -3,5 +3,5 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.control
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 
 data class DeliusOutlookMappingsResponse(
-  val mappings: List<DeliusOutlookMapping>
+  val mappings: List<DeliusOutlookMapping>,
 )

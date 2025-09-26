@@ -44,6 +44,5 @@ interface DeliusOutlookMappingRepository : JpaRepository<DeliusOutlookMapping, L
   fun findBySupervisionAppointmentUrn(supervisionAppointmentUrn: String): List<DeliusOutlookMapping>
 }
 
-fun DeliusOutlookMappingRepository.getBySupervisionAppointmentUrn(supervisionAppointmentUrn: String) =
-  findBySupervisionAppointmentUrn(supervisionAppointmentUrn).takeIf { it.isNotEmpty() }
-    ?: throw NotFoundException("DeliusOutlookMapping", "supervisionAppointmentUrn", supervisionAppointmentUrn)
+fun DeliusOutlookMappingRepository.getBySupervisionAppointmentUrn(supervisionAppointmentUrn: String) = findBySupervisionAppointmentUrn(supervisionAppointmentUrn).takeIf { it.isNotEmpty() }
+  ?: throw NotFoundException("DeliusOutlookMapping", "supervisionAppointmentUrn", supervisionAppointmentUrn)

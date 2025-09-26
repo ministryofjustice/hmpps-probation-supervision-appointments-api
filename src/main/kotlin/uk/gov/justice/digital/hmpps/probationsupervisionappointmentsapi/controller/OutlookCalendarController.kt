@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CalendarService
 
 @RestController
@@ -27,10 +27,8 @@ class OutlookCalendarController(val calendarService: CalendarService) {
   @GetMapping("/event")
   @ResponseStatus(HttpStatus.OK)
   fun getEventDetails(
-    @RequestParam(required = false) externalRef: String?,
-    @RequestParam(required = false) outlookId: String?
-  ): EventResponse {
-    return calendarService.getEventFromDatabase(externalRef, outlookId)
+    @RequestParam(required = false) supervisionAppointmentUrn: String?): DeliusOutlookMappingsResponse {
+    return calendarService.getEventDetailsMappings(supervisionAppointmentUrn)
   }
 
 }

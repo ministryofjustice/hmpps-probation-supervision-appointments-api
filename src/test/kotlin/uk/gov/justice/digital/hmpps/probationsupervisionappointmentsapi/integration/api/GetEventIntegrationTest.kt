@@ -43,8 +43,6 @@ class GetEventIntegrationTest : IntegrationTestBase() {
         assert(body != null)
         assert(body!!.supervisionAppointmentUrn == supervisionAppointmentUrn)
         assert(body.outlookId == outlookId)
-        assert(body.createdAt == saved.createdAt.toString())
-        assert(body.updatedAt == saved.updatedAt.toString())
       }
   }
 

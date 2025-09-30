@@ -75,19 +75,12 @@ class CalendarService(
     return response.toEventResponse()
   }
 
-  fun getEventDetailsMappings(supervisionAppointmentUrn: String?): DeliusOutlookMappingsResponse {
-    val mappings = when {
-      !supervisionAppointmentUrn.isNullOrBlank() ->
-        deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn)
+  fun getEventDetailsMappings(supervisionAppointmentUrn: String): DeliusOutlookMappingsResponse {
+    val mapping = deliusOutlookMappingRepository
+      .findBySupervisionAppointmentUrn(supervisionAppointmentUrn)
+      ?: throw NotFoundException("DeliusOutlookMapping", "supervisionAppointmentUrn", supervisionAppointmentUrn)
 
-      else -> throw IllegalArgumentException("SupervisionAppointmentUrn must be provided")
-    }
-
-    if (mappings.isEmpty()) {
-      throw NotFoundException("No DeliusOutlookMapping found for provided supervisionAppointmentUrn")
-    }
-
-    return DeliusOutlookMappingsResponse(mappings)
+    return mapping.toDeliusOutlookMappingsResponse()
   }
 }
 
@@ -97,4 +90,11 @@ fun Event.toEventResponse(): EventResponse = EventResponse(
   start.dateTime,
   end.dateTime,
   attendees.map { it.emailAddress.address },
+)
+
+fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse = DeliusOutlookMappingsResponse(
+  supervisionAppointmentUrn,
+  outlookId,
+  createdAt.toString(),
+  updatedAt.toString(),
 )

@@ -16,11 +16,11 @@ class GetEventIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `test successful retrieval of event mapping`() {
-    val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7931"
+    val supervisionAppointmentUrn =
+      "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7931"
     val outlookId = "mock-event-id-1234"
 
-    // Insert test data into the repository
-    deliusOutlookMappingRepository.save(
+    val saved = deliusOutlookMappingRepository.save(
       uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping(
         supervisionAppointmentUrn = supervisionAppointmentUrn,
         outlookId = outlookId,
@@ -39,10 +39,48 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody(DeliusOutlookMappingsResponse::class.java)
       .consumeWith { response ->
-        val mappings = response.responseBody?.mappings
-        assert(mappings?.size == 1)
-        assert(mappings?.first()?.supervisionAppointmentUrn == supervisionAppointmentUrn)
-        assert(mappings?.first()?.outlookId == outlookId)
+        val body = response.responseBody
+        assert(body != null)
+        assert(body!!.supervisionAppointmentUrn == supervisionAppointmentUrn)
+        assert(body.outlookId == outlookId)
+        assert(body.createdAt == saved.createdAt.toString())
+        assert(body.updatedAt == saved.updatedAt.toString())
+      }
+  }
+
+  @Test
+  fun `bad request when supervisionAppointmentUrn is blank`() {
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/calendar/event")
+          .queryParam("supervisionAppointmentUrn", "")
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody()
+      .jsonPath("$.userMessage").isEqualTo("Validation failure: Validation failure")
+  }
+
+  @Test
+  fun `not found when supervisionAppointmentUrn does not exist`() {
+    val nonexistentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:nonexistent-urn"
+
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/calendar/event")
+          .queryParam("supervisionAppointmentUrn", nonexistentUrn)
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isNotFound
+      .expectBody()
+      .jsonPath("$.userMessage").value<String> { message ->
+        assert(message.contains("DeliusOutlookMapping with supervisionAppointmentUrn of"))
       }
   }
 }

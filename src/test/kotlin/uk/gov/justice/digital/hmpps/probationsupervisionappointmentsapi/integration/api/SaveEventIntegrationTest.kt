@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getBySupervisionAppointmentUrn
 
 class SaveEventIntegrationTest : IntegrationTestBase() {
 
@@ -22,7 +21,7 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
     stubGraphCreateEvent(email)
 
     val durationMinutes: Long = 30
-    val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7931"
+    val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7932"
 
     val body = mapOf(
       "fromEmail" to email,
@@ -44,8 +43,8 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
       .expectBody(EventResponse::class.java)
       .isEqualTo(expected)
 
-    val mapping = deliusOutlookMappingRepository.getBySupervisionAppointmentUrn(supervisionAppointmentUrn)
+    val response = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn)
 
-    assertEquals(body["supervisionAppointmentUrn"], mapping[0].supervisionAppointmentUrn)
+    assertEquals(body["supervisionAppointmentUrn"], response?.supervisionAppointmentUrn)
   }
 }

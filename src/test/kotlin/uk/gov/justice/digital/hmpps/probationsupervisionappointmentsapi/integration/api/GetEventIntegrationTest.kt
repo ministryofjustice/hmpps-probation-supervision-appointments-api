@@ -53,9 +53,10 @@ class GetEventIntegrationTest : IntegrationTestBase() {
     strings = [
       "urn:uk:gov:hmpps:manage-supervision-service:appointment:nonexistent-urn",
       "",
+      "     ",
     ],
   )
-  fun `bad request when supervisionAppointmentUrn is nonexistent or blank`(urn: String) {
+  fun `supervisionAppointmentUrn not found`(urn: String) {
     webTestClient.get()
       .uri { uriBuilder ->
         uriBuilder.path("/calendar/event")

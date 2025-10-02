@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller
 
 import io.swagger.v3.oas.annotations.tags.Tag
-import jakarta.validation.constraints.NotBlank
 import org.springframework.http.HttpStatus
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -28,6 +27,6 @@ class OutlookCalendarController(val calendarService: CalendarService) {
   @GetMapping("/event")
   @ResponseStatus(HttpStatus.OK)
   fun getEventDetails(
-    @NotBlank @RequestParam supervisionAppointmentUrn: String,
+    @RequestParam supervisionAppointmentUrn: String,
   ): DeliusOutlookMappingsResponse = calendarService.getEventDetailsMappings(supervisionAppointmentUrn)
 }

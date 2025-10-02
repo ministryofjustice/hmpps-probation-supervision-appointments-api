@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config
 
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
@@ -11,7 +10,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-import org.springframework.web.method.annotation.HandlerMethodValidationException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
@@ -29,26 +27,12 @@ class ProbationSupervisionAppointmentsApiExceptionHandler {
       ),
     ).also { log.info("Validation exception: {}", e.message) }
 
-  @ExceptionHandler(HandlerMethodValidationException::class)
-  fun handleHandlerMethodValidationException(e: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
-    val detail = e.body.detail ?: "Validation failure"
-    return ResponseEntity
-      .status(BAD_REQUEST)
-      .body(
-        ErrorResponse(
-          status = BAD_REQUEST,
-          userMessage = "Validation failure: $detail",
-          developerMessage = e.message,
-        ),
-      ).also { log.info("Handler method validation exception: {}", detail) }
-  }
-
   @ExceptionHandler(NotFoundException::class)
   fun handleNotFoundException(e: NotFoundException): ResponseEntity<ErrorResponse> = ResponseEntity
-    .status(HttpStatus.NOT_FOUND)
+    .status(NOT_FOUND)
     .body(
       ErrorResponse(
-        status = HttpStatus.NOT_FOUND.value(),
+        status = NOT_FOUND.value(),
         userMessage = "Not found: ${e.message}",
         developerMessage = e.message,
       ),

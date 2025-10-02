@@ -57,9 +57,11 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       .headers(setAuthorisation())
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
-      .expectStatus().isBadRequest
+      .expectStatus().isNotFound
       .expectBody()
-      .jsonPath("$.userMessage").isEqualTo("Validation failure: Validation failure")
+      .jsonPath("$.userMessage").value<String> { message ->
+        assert(message.contains("DeliusOutlookMapping with supervisionAppointmentUrn of"))
+      }
   }
 
   @Test

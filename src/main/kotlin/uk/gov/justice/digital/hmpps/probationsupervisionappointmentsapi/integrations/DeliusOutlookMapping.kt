@@ -25,7 +25,7 @@ class DeliusOutlookMapping(
   val id: Long = 0,
 
   @Column(nullable = false)
-  val deliusExternalReference: String,
+  val supervisionAppointmentUrn: String,
 
   @Column(nullable = false)
   val outlookId: String,
@@ -41,7 +41,7 @@ class DeliusOutlookMapping(
 }
 
 interface DeliusOutlookMappingRepository : JpaRepository<DeliusOutlookMapping, Long> {
-  fun findByDeliusExternalReference(deliusExternalReference: String): DeliusOutlookMapping?
+  fun findBySupervisionAppointmentUrn(supervisionAppointmentUrn: String): DeliusOutlookMapping?
 }
 
-fun DeliusOutlookMappingRepository.getByDeliusExternalReference(deliusExternalReference: String) = findByDeliusExternalReference(deliusExternalReference) ?: throw NotFoundException("DeliusOutlookMapping", "deliusExternalReference", deliusExternalReference)
+fun DeliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn: String) = findBySupervisionAppointmentUrn(supervisionAppointmentUrn) ?: throw NotFoundException("DeliusOutlookMapping", "supervisionAppointmentUrn", supervisionAppointmentUrn)

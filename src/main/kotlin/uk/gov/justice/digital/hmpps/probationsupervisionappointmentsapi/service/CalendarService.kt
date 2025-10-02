@@ -10,9 +10,11 @@ import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
 
 @Service
 class CalendarService(
@@ -64,10 +66,19 @@ class CalendarService(
       .post(event)
 
     deliusOutlookMappingRepository.save(
-      DeliusOutlookMapping(deliusExternalReference = eventRequest.deliusExternalReference, outlookId = response.id.toString()),
+      DeliusOutlookMapping(
+        supervisionAppointmentUrn = eventRequest.supervisionAppointmentUrn,
+        outlookId = response.id.toString(),
+      ),
     )
 
     return response.toEventResponse()
+  }
+
+  fun getEventDetailsMappings(supervisionAppointmentUrn: String): DeliusOutlookMappingsResponse {
+    val mapping = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn)
+
+    return mapping.toDeliusOutlookMappingsResponse()
   }
 }
 
@@ -77,4 +88,11 @@ fun Event.toEventResponse(): EventResponse = EventResponse(
   start.dateTime,
   end.dateTime,
   attendees.map { it.emailAddress.address },
+)
+
+fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse = DeliusOutlookMappingsResponse(
+  supervisionAppointmentUrn,
+  outlookId,
+  createdAt.toString(),
+  updatedAt.toString(),
 )

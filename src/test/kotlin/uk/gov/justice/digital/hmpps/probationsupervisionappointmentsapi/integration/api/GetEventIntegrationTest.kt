@@ -71,5 +71,4 @@ class GetEventIntegrationTest : IntegrationTestBase() {
         assert(message.contains("DeliusOutlookMapping with supervisionAppointmentUrn of"))
       }
   }
-
 }

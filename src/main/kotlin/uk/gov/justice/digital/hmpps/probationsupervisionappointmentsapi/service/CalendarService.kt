@@ -12,9 +12,9 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
 
 @Service
 class CalendarService(
@@ -76,9 +76,7 @@ class CalendarService(
   }
 
   fun getEventDetailsMappings(supervisionAppointmentUrn: String): DeliusOutlookMappingsResponse {
-    val mapping = deliusOutlookMappingRepository
-      .findBySupervisionAppointmentUrn(supervisionAppointmentUrn)
-      ?: throw NotFoundException("DeliusOutlookMapping", "supervisionAppointmentUrn", supervisionAppointmentUrn)
+    val mapping = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn)
 
     return mapping.toDeliusOutlookMappingsResponse()
   }

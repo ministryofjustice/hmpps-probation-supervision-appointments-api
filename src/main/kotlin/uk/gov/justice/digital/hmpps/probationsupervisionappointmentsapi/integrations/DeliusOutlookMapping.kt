@@ -12,6 +12,7 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.data.jpa.repository.JpaRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import java.time.Instant
 
 @Immutable
@@ -42,3 +43,5 @@ class DeliusOutlookMapping(
 interface DeliusOutlookMappingRepository : JpaRepository<DeliusOutlookMapping, Long> {
   fun findBySupervisionAppointmentUrn(supervisionAppointmentUrn: String): DeliusOutlookMapping?
 }
+
+fun DeliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn: String) = findBySupervisionAppointmentUrn(supervisionAppointmentUrn) ?: throw NotFoundException("DeliusOutlookMapping", "supervisionAppointmentUrn", supervisionAppointmentUrn)

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 
 class GetEventIntegrationTest : IntegrationTestBase() {
 
@@ -20,8 +21,8 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7931"
     val outlookId = "mock-event-id-1234"
 
-    val saved = deliusOutlookMappingRepository.save(
-      uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping(
+    deliusOutlookMappingRepository.save(
+      DeliusOutlookMapping(
         supervisionAppointmentUrn = supervisionAppointmentUrn,
         outlookId = outlookId,
       ),
@@ -39,9 +40,8 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody(DeliusOutlookMappingsResponse::class.java)
       .consumeWith { response ->
-        val body = response.responseBody
-        assert(body != null)
-        assert(body!!.supervisionAppointmentUrn == supervisionAppointmentUrn)
+        val body = response.responseBody!!
+        assert(body.supervisionAppointmentUrn == supervisionAppointmentUrn)
         assert(body.outlookId == outlookId)
       }
   }

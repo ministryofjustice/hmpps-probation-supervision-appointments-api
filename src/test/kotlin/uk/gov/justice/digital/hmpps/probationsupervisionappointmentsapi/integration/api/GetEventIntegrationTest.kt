@@ -69,7 +69,7 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       .expectStatus().isNotFound
       .expectBody()
       .jsonPath("$.userMessage").value<String> { message ->
-        assert(message.contains("DeliusOutlookMapping with supervisionAppointmentUrn of"))
+        assert(message.equals("Not found: DeliusOutlookMapping with supervisionAppointmentUrn of $urn not found"))
       }
   }
 }

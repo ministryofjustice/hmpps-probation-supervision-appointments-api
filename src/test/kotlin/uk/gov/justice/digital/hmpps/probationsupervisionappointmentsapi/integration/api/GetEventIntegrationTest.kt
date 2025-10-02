@@ -1,6 +1,8 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.api
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
@@ -46,12 +48,18 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       }
   }
 
-  @Test
-  fun `bad request when supervisionAppointmentUrn is blank`() {
+  @ParameterizedTest
+  @ValueSource(
+    strings = [
+      "urn:uk:gov:hmpps:manage-supervision-service:appointment:nonexistent-urn",
+      "",
+    ],
+  )
+  fun `bad request when supervisionAppointmentUrn is nonexistent or blank`(urn: String) {
     webTestClient.get()
       .uri { uriBuilder ->
         uriBuilder.path("/calendar/event")
-          .queryParam("supervisionAppointmentUrn", "")
+          .queryParam("supervisionAppointmentUrn", urn)
           .build()
       }
       .headers(setAuthorisation())
@@ -64,23 +72,4 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       }
   }
 
-  @Test
-  fun `not found when supervisionAppointmentUrn does not exist`() {
-    val nonexistentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:nonexistent-urn"
-
-    webTestClient.get()
-      .uri { uriBuilder ->
-        uriBuilder.path("/calendar/event")
-          .queryParam("supervisionAppointmentUrn", nonexistentUrn)
-          .build()
-      }
-      .headers(setAuthorisation())
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isNotFound
-      .expectBody()
-      .jsonPath("$.userMessage").value<String> { message ->
-        assert(message.contains("DeliusOutlookMapping with supervisionAppointmentUrn of"))
-      }
-  }
 }

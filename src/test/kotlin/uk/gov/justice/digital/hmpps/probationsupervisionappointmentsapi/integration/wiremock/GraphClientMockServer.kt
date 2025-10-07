@@ -2,9 +2,11 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integra
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
 import com.github.tomakehurst.wiremock.common.Json
@@ -63,6 +65,20 @@ class MsGraphMockServer :
             .withStatus(201)
             .withHeader("Content-Type", "application/json")
             .withBody(Json.write(body)),
+        ),
+    )
+  }
+
+  fun stubUserCount() {
+    stubFor(
+      get(urlPathEqualTo("/v1.0/users/\$count"))
+        .withHeader("ConsistencyLevel", equalTo("eventual"))
+        .withQueryParam("\$filter", equalTo("accountEnabled eq true and userType eq 'Member'"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "text/plain")
+            .withBody("1"),
         ),
     )
   }

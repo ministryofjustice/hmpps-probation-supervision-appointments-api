@@ -2,9 +2,13 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integra
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.absent
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.matching
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
 import com.github.tomakehurst.wiremock.common.Json
@@ -63,6 +67,84 @@ class MsGraphMockServer :
             .withStatus(201)
             .withHeader("Content-Type", "application/json")
             .withBody(Json.write(body)),
+        ),
+    )
+  }
+
+  fun stubUserSearch() {
+    val usersJson = """
+        {
+          "value": [
+            {
+              "id": "1",
+              "displayName": "User One",
+              "mail": "user.one@test.com",
+              "userPrincipalName": "user.one@test.com",
+              "jobTitle": "Developer"
+            },
+            {
+              "id": "2",
+              "displayName": "User Two",
+              "mail": "user.two@test.com",
+              "userPrincipalName": "user.two@test.com"
+            }            
+          ]
+        }
+    """.trimIndent()
+
+    stubFor(
+      get(urlPathEqualTo("/v1.0/users"))
+        .withHeader("ConsistencyLevel", equalTo("eventual")) // you always send it
+        // Important: WireMock matches on **decoded** query param names/values
+        .withQueryParam(
+          "\$filter",
+          equalTo("accountEnabled eq true and userType eq 'Member'"),
+        )
+        .withQueryParam(
+          "\$select",
+          equalTo("id,displayName,mail,userPrincipalName,jobTitle"),
+        )
+        .withQueryParam("\$search", absent()) // explicitly absent
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(usersJson),
+        ),
+    )
+
+    stubFor(
+      get(urlPathEqualTo("/v1.0/users"))
+        .withHeader("ConsistencyLevel", equalTo("eventual"))
+        .withQueryParam(
+          "\$filter",
+          equalTo("accountEnabled eq true and userType eq 'Member'"),
+        )
+        .withQueryParam(
+          "\$select",
+          equalTo("id,displayName,mail,userPrincipalName,jobTitle"),
+        )
+        // Graph $search typically looks like: "\"term\"" (quoted). Accept anything non-empty.
+        .withQueryParam("\$search", matching(".+"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(usersJson),
+        ),
+    )
+  }
+
+  fun stubUserCount() {
+    stubFor(
+      get(urlPathEqualTo("/v1.0/users/\$count"))
+        .withHeader("ConsistencyLevel", equalTo("eventual"))
+        .withQueryParam("\$filter", equalTo("accountEnabled eq true and userType eq 'Member'"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "text/plain")
+            .withBody("1"),
         ),
     )
   }

@@ -44,4 +44,12 @@ abstract class IntegrationTestBase {
   protected fun stubGraphCreateEvent(email: String) {
     msGraph.stubCreateEvent(email)
   }
+
+  protected fun stubGraphUserCount() {
+    msGraph.stubUserCount()
+  }
+
+  protected fun stubGraphGetUsers() {
+    msGraph.stubUserSearch()
+  }
 }

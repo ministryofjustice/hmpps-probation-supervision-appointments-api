@@ -48,4 +48,8 @@ abstract class IntegrationTestBase {
   protected fun stubGraphUserCount() {
     msGraph.stubUserCount()
   }
+
+  protected fun stubGraphGetUsers() {
+    msGraph.stubUserSearch()
+  }
 }

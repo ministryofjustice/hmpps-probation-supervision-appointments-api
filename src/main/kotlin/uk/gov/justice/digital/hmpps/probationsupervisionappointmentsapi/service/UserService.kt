@@ -2,11 +2,12 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.FilteredUsers
 
 @Service
 class UserService(val graphServiceClient: GraphServiceClient) {
 
-  fun getUsers(query: String?): List<String?> {
+  fun getUsers(query: String?): FilteredUsers {
     val searchClause = query
       ?.takeIf { it.isNotBlank() }
       ?.let { q ->
@@ -38,7 +39,7 @@ class UserService(val graphServiceClient: GraphServiceClient) {
 
     val usersWithMail = users.filter { it.mail != null }
 
-    return usersWithMail.map { "${it.userPrincipalName}, ${it.jobTitle}" }
+    return FilteredUsers(usersWithMail.map { listOfNotNull(it.userPrincipalName, it.jobTitle).joinToString(separator = " - ") })
   }
 
   fun countNumberOfUser(): Int = graphServiceClient.users().count()[

@@ -22,16 +22,15 @@ private const val EVENTTIMEZONE = "Europe/London"
 
 @Service
 class CalendarService(
-  val microsoftGraphCalendarClient: MicrosoftGraphCalendarClient,
+  val graphClient: GraphServiceClient,
   val deliusOutlookMappingRepository: DeliusOutlookMappingRepository,
   @Value("\${calendar-from-email}")
   private val fromEmail: String,
 ) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse {
-
     val event = buildEvent(eventRequest)
-    val response = microsoftGraphCalendarClient.createEvent(fromEmail, event)
+    val response = createEvent(fromEmail, event)
     deliusOutlookMappingRepository.save(
       DeliusOutlookMapping(
         supervisionAppointmentUrn = eventRequest.supervisionAppointmentUrn,
@@ -59,16 +58,14 @@ class CalendarService(
     }
   }
 
-  fun getAttendees(recipients: List<Recipient>)  =
-    recipients.map {
-      Attendee().apply {
-        emailAddress = EmailAddress().apply {
-          address = it.emailAddress
-          name = it.name
-        }
-        type = AttendeeType.Required
+  fun getAttendees(recipients: List<Recipient>) = recipients.map {
+    Attendee().apply {
+      emailAddress = EmailAddress().apply {
+        address = it.emailAddress
+        name = it.name
       }
-
+      type = AttendeeType.Required
+    }
   }
 
   fun getEventDetailsMappings(supervisionAppointmentUrn: String): DeliusOutlookMappingsResponse {
@@ -76,6 +73,13 @@ class CalendarService(
 
     return mapping.toDeliusOutlookMappingsResponse()
   }
+
+  fun createEvent(userEmail: String, event: Event) = graphClient
+    .users()
+    .byUserId(userEmail)
+    .calendar()
+    .events()
+    .post(event)
 }
 
 fun Event.toEventResponse(): EventResponse = EventResponse(

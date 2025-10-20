@@ -7,18 +7,15 @@ import org.springframework.stereotype.Service
 @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
 @Service
 class MicrosoftGraphCalendarClient(
-  private val graphClient: GraphServiceClient
+  private val graphClient: GraphServiceClient,
 ) : CalendarClient {
-  override fun createEvent(userEmail: String, event: Event): Event {
-    return graphClient
-      .users()
-      .byUserId(userEmail)
-      .calendar()
-      .events()
-      .post(event)
-  }
+  override fun createEvent(userEmail: String, event: Event): Event = graphClient
+    .users()
+    .byUserId(userEmail)
+    .calendar()
+    .events()
+    .post(event)
 }
-
 
 interface CalendarClient {
   fun createEvent(userEmail: String, event: Event): Event

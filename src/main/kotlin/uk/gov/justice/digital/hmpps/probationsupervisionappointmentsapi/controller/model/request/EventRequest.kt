@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.control
 import java.time.LocalDateTime
 
 data class EventRequest(
-  val fromEmail: String,
   val recipients: List<Recipient>,
   val message: String,
   val subject: String,

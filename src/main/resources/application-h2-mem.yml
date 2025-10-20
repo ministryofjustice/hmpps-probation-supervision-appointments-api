@@ -30,3 +30,5 @@ graph-client:
   client-id: id
   client-secret: secret
   tenant-id: id
+
+calendar-from-email: test@test.com

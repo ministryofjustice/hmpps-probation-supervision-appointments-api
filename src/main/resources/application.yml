@@ -5,8 +5,6 @@ info.app:
 spring:
   application:
     name: hmpps-probation-supervision-appointments-api
-  codec:
-    max-in-memory-size: 10MB
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
@@ -33,6 +31,9 @@ spring:
         provider:
           hmpps-auth:
             token-uri: ${hmpps-auth.url}/oauth/token
+  http:
+    codecs:
+      max-in-memory-size: 10MB
 
 server:
   port: 8080

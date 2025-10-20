@@ -1,14 +1,13 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request
 
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 data class EventRequest(
-  val fromEmail: String,
   val recipients: List<Recipient>,
   val message: String,
   val subject: String,
-  val start: LocalDateTime,
-  val duration: Long,
+  val start: ZonedDateTime,
+  val durationInMinutes: Long,
   val supervisionAppointmentUrn: String,
 )
 

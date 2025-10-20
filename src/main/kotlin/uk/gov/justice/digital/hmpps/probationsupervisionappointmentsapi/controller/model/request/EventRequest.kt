@@ -7,7 +7,7 @@ data class EventRequest(
   val message: String,
   val subject: String,
   val start: ZonedDateTime,
-  val duration: Long,
+  val durationInMinutes: Long,
   val supervisionAppointmentUrn: String,
 )
 

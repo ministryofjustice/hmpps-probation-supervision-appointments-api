@@ -48,7 +48,7 @@ class CalendarService(
       dateTime = eventRequest.start.toString()
     }
     end = DateTimeTimeZone().apply {
-      dateTime = eventRequest.start.plusMinutes(eventRequest.duration).toString()
+      dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
       timeZone = EVENTTIMEZONE
     }
     attendees = getAttendees(eventRequest.recipients)

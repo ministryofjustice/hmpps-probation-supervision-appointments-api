@@ -28,12 +28,12 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
       "recipients" to listOf(mapOf("emailAddress" to "attendee@example.com", "name" to "Attendee")),
       "message" to "Meeting with Jon",
       "subject" to "3 Way Meeting (Non NS) with Jon Smith",
-      "start" to "2025-09-16T10:00:00",
+      "start" to "2025-09-16T10:00:00Z",
       "duration" to durationMinutes,
       "supervisionAppointmentUrn" to supervisionAppointmentUrn,
     )
 
-    val expected = EventResponse("mock-event-id-123", "3 Way Meeting (Non NS) with Jon Smith", "2025-09-16T10:00:00", "2025-09-16T10:30:00", listOf("test@test.com"))
+    val expected = EventResponse("mock-event-id-123", "3 Way Meeting (Non NS) with Jon Smith", "2025-09-16T10:00:00Z", "2025-09-16T10:30:00Z", listOf("test@test.com"))
     webTestClient.post().uri("/calendar/event")
       .headers(setAuthorisation())
       .contentType(MediaType.APPLICATION_JSON)

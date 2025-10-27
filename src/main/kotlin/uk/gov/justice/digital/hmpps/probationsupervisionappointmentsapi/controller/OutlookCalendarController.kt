@@ -29,4 +29,10 @@ class OutlookCalendarController(val calendarService: CalendarService) {
   fun getEventDetails(
     @RequestParam supervisionAppointmentUrn: String,
   ): DeliusOutlookMappingsResponse = calendarService.getEventDetailsMappings(supervisionAppointmentUrn)
+
+  @GetMapping("/event/by-outlook-id")
+  @ResponseStatus(HttpStatus.OK)
+  fun getEventDetailsByOutlookId(
+    @RequestParam outlookId: String,
+  ): DeliusOutlookMappingsResponse = calendarService.getEventDetails(outlookId)
 }

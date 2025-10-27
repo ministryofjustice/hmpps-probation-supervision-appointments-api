@@ -16,9 +16,10 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getByOutlookId
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
 
-private const val EVENTTIMEZONE = "Europe/London"
+private const val EVENT_TIMEZONE = "Europe/London"
 
 @Service
 class CalendarService(
@@ -44,12 +45,12 @@ class CalendarService(
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
     subject = eventRequest.subject
     start = DateTimeTimeZone().apply {
-      timeZone = EVENTTIMEZONE
+      timeZone = EVENT_TIMEZONE
       dateTime = eventRequest.start.toString()
     }
     end = DateTimeTimeZone().apply {
       dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
-      timeZone = EVENTTIMEZONE
+      timeZone = EVENT_TIMEZONE
     }
     attendees = getAttendees(eventRequest.recipients)
     body = ItemBody().apply {
@@ -80,6 +81,11 @@ class CalendarService(
     .calendar()
     .events()
     .post(event)
+
+  fun getEventDetails(outlookId: String): DeliusOutlookMappingsResponse {
+    val deliusOutlookMapping = deliusOutlookMappingRepository.getByOutlookId(outlookId)
+    return deliusOutlookMapping.toDeliusOutlookMappingsResponse()
+  }
 }
 
 fun Event.toEventResponse(): EventResponse = EventResponse(

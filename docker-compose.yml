@@ -37,7 +37,7 @@ services:
       - APPLICATION_AUTHENTICATION_UI_ALLOWLIST=0.0.0.0/0
 
   probation-supervision-db:
-    image: postgres:16
+    image: postgres:18
     networks:
       - hmpps
     container_name: probation-supervision-db

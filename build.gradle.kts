@@ -5,7 +5,7 @@ plugins {
   id("idea")
 }
 
-val hmppsSpringBootStarterVersion = "1.7.0"
+val hmppsSpringBootStarterVersion = "1.8.1"
 val azureIdentityVersion = "1.18.1"
 val microsoftGraphVersion = "6.55.0"
 val wiremockVersion = "3.13.1"

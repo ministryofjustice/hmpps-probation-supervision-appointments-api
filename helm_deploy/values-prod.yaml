@@ -2,6 +2,7 @@
 # Per environment values which override defaults in hmpps-probation-supervision-appointments-api/values.yaml
 
 generic-service:
+  replicaCount: 2
   ingress:
     host: probation-supervision-appointments-api.hmpps.service.justice.gov.uk
 

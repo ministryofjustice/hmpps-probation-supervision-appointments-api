@@ -42,6 +42,9 @@ class DeliusOutlookMapping(
 
 interface DeliusOutlookMappingRepository : JpaRepository<DeliusOutlookMapping, Long> {
   fun findBySupervisionAppointmentUrn(supervisionAppointmentUrn: String): DeliusOutlookMapping?
+  fun findByOutlookId(outlookId: String): DeliusOutlookMapping?
 }
 
 fun DeliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn: String) = findBySupervisionAppointmentUrn(supervisionAppointmentUrn) ?: throw NotFoundException("DeliusOutlookMapping", "supervisionAppointmentUrn", supervisionAppointmentUrn)
+fun DeliusOutlookMappingRepository.getByOutlookId(outlookId: String) = findByOutlookId(outlookId)
+  ?: throw NotFoundException("DeliusOutlookMapping", "outlookId", outlookId)

@@ -47,16 +47,11 @@ dependencies {
 }
 
 kotlin {
-  jvmToolchain(25)
-}
-
-java {
-  sourceCompatibility = JavaVersion.VERSION_24
-  targetCompatibility = JavaVersion.VERSION_24
+  jvmToolchain(21)
 }
 
 tasks {
   withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_24
+    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
   }
 }

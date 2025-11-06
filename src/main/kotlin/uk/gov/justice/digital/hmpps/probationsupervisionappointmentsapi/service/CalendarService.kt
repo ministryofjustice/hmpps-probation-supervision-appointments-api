@@ -12,12 +12,14 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getByOutlookId
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
+import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
 
@@ -40,6 +42,45 @@ class CalendarService(
     )
 
     return response.toEventResponse()
+  }
+
+  fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse {
+    val mapping = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(rescheduleEventRequest.oldSupervisionAppointmentUrn)
+    val now = ZonedDateTime.now()
+    val eventRequest = rescheduleEventRequest.rescheduledEventRequest
+    val newStart = eventRequest.start
+
+    if (newStart.isAfter(now)) {
+      deleteOutlookEventAndMapping(mapping, fromEmail, graphClient)
+      return sendEvent(eventRequest)
+    }
+
+    if (newStart.isBefore(now)) {
+      deleteOutlookEventAndMapping(mapping, fromEmail, graphClient)
+      return EventResponse(
+        id = null,
+        subject = eventRequest.subject,
+        startDate = eventRequest.start.toString(),
+        endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
+        attendees = eventRequest.recipients.map { it.emailAddress },
+      )
+    }
+    // --- Edge Case: New start is exactly 'now' or some other unhandled scenario ---
+    return EventResponse(
+      id = null,
+      subject = eventRequest.subject,
+      startDate = eventRequest.start.toString(),
+      endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
+      attendees = eventRequest.recipients.map { it.emailAddress },
+    )
+  }
+
+  fun deleteOutlookEventAndMapping(mapping: DeliusOutlookMapping?, fromEmail: String, graphClient: GraphServiceClient) {
+    if (mapping != null) {
+      graphClient.users().byUserId(fromEmail).calendar().events().byEventId(mapping.outlookId).delete()
+      // Need to decide if DB mapping should be deleted or need to add action column
+      // deliusOutlookMappingRepository.delete(mapping)
+    }
   }
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {

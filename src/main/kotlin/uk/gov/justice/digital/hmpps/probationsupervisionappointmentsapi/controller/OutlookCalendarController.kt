@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CalendarService
 
@@ -23,6 +24,10 @@ class OutlookCalendarController(val calendarService: CalendarService) {
   @PostMapping("/event")
   @ResponseStatus(HttpStatus.CREATED)
   fun saveEvent(@RequestBody event: EventRequest) = calendarService.sendEvent(event)
+
+  @PostMapping("/event/reschedule")
+  @ResponseStatus(HttpStatus.OK)
+  fun rescheduleEvent(@RequestBody rescheduledEvent: RescheduleEventRequest) = calendarService.rescheduleEvent(rescheduledEvent)
 
   @GetMapping("/event")
   @ResponseStatus(HttpStatus.OK)

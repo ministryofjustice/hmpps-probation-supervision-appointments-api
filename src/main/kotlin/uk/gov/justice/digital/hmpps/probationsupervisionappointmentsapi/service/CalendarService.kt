@@ -45,13 +45,12 @@ class CalendarService(
   }
 
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
-    deleteExistingOutlookEvent(rescheduleEventRequest.oldSupervisionAppointmentUrn, fromEmail, graphClient)
+    deleteExistingOutlookEvent(rescheduleEventRequest.oldSupervisionAppointmentUrn)
 
     val now = ZonedDateTime.now()
     val eventRequest = rescheduleEventRequest.rescheduledEventRequest
-    val newEventStartDateTime = eventRequest.start
 
-    if (!newEventStartDateTime.isBefore(now)) {
+    if (!eventRequest.start.isBefore(now)) {
       return sendEvent(eventRequest)
     }
     return EventResponse(
@@ -63,13 +62,23 @@ class CalendarService(
     )
   }
 
-  fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String, fromEmail: String, graphClient: GraphServiceClient) {
-    val outlookMapping =
-      deliusOutlookMappingRepository.getSupervisionAppointmentUrn(oldSupervisionAppointmentUrn)
+  fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
 
-    val user = graphClient.users().byUserId(fromEmail)
-    val events = user.calendar().events()
-    events.byEventId(outlookMapping.outlookId).delete()
+    val event = getEventDetails(oldSupervisionAppointmentUrn)
+
+    event?.let {
+      val now = ZonedDateTime.now()
+
+      if (event.startDate >= now.toString()) {
+        graphClient.users()
+          .byUserId(fromEmail)
+          .calendar()
+          .events()
+          .byEventId(it.id)
+          .delete()
+      }
+    }
+
   }
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
@@ -112,9 +121,23 @@ class CalendarService(
     .events()
     .post(event)
 
-  fun getEventDetails(outlookId: String): DeliusOutlookMappingsResponse {
-    val deliusOutlookMapping = deliusOutlookMappingRepository.getByOutlookId(outlookId)
-    return deliusOutlookMapping.toDeliusOutlookMappingsResponse()
+  fun getEventDetails(supervisionAppointmentUrn: String): EventResponse? {
+    val outlookId = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn).outlookId
+
+    //user may have deleted their outlook event
+    val event = graphClient
+      .users()
+      .byUserId("MPoP-Digital-Team@justice.gov.uk")
+      .calendar()
+      .events()
+      .byEventId(outlookId)[{ requestConfiguration ->
+      requestConfiguration.queryParameters.select = arrayOf(
+        "subject", "body", "bodyPreview", "organizer", "attendees", "start", "end", "location"
+      )
+      requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
+    }]
+
+    return event?.toEventResponse()
   }
 }
 

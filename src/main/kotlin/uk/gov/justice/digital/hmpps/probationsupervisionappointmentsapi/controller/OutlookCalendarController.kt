@@ -29,15 +29,15 @@ class OutlookCalendarController(val calendarService: CalendarService) {
   @ResponseStatus(HttpStatus.OK)
   fun rescheduleEvent(@RequestBody rescheduledEvent: RescheduleEventRequest) = calendarService.rescheduleEvent(rescheduledEvent)
 
+  @GetMapping("/event-mapping")
+  @ResponseStatus(HttpStatus.OK)
+  fun getEventMapping(
+    @RequestParam supervisionAppointmentUrn: String,
+  ) = calendarService.getEventDetailsMappings(supervisionAppointmentUrn)
+
   @GetMapping("/event")
   @ResponseStatus(HttpStatus.OK)
-  fun getEventDetails(
+  fun getOutlookEvent(
     @RequestParam supervisionAppointmentUrn: String,
-  ): DeliusOutlookMappingsResponse = calendarService.getEventDetailsMappings(supervisionAppointmentUrn)
-
-  @GetMapping("/event/by-outlook-id")
-  @ResponseStatus(HttpStatus.OK)
-  fun getEventDetailsByOutlookId(
-    @RequestParam outlookId: String,
-  ): DeliusOutlookMappingsResponse = calendarService.getEventDetails(outlookId)
+  ) = calendarService.getEventDetails(supervisionAppointmentUrn)
 }

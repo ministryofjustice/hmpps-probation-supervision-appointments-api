@@ -44,28 +44,16 @@ class CalendarService(
     return response.toEventResponse()
   }
 
-  fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse {
-    val mapping = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(rescheduleEventRequest.oldSupervisionAppointmentUrn)
+  fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
+    deleteExistingOutlookEvent(rescheduleEventRequest.oldSupervisionAppointmentUrn, fromEmail, graphClient)
+
     val now = ZonedDateTime.now()
     val eventRequest = rescheduleEventRequest.rescheduledEventRequest
-    val newStart = eventRequest.start
+    val newEventStartDateTime = eventRequest.start
 
-    if (newStart.isAfter(now)) {
-      deleteOutlookEventAndMapping(mapping, fromEmail, graphClient)
+    if (!newEventStartDateTime.isBefore(now)) {
       return sendEvent(eventRequest)
     }
-
-    if (newStart.isBefore(now)) {
-      deleteOutlookEventAndMapping(mapping, fromEmail, graphClient)
-      return EventResponse(
-        id = null,
-        subject = eventRequest.subject,
-        startDate = eventRequest.start.toString(),
-        endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
-        attendees = eventRequest.recipients.map { it.emailAddress },
-      )
-    }
-    // --- Edge Case: New start is exactly 'now' or some other unhandled scenario ---
     return EventResponse(
       id = null,
       subject = eventRequest.subject,
@@ -75,12 +63,13 @@ class CalendarService(
     )
   }
 
-  fun deleteOutlookEventAndMapping(mapping: DeliusOutlookMapping?, fromEmail: String, graphClient: GraphServiceClient) {
-    if (mapping != null) {
-      graphClient.users().byUserId(fromEmail).calendar().events().byEventId(mapping.outlookId).delete()
-      // Need to decide if DB mapping should be deleted or need to add action column
-      // deliusOutlookMappingRepository.delete(mapping)
-    }
+  fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String, fromEmail: String, graphClient: GraphServiceClient) {
+    val outlookMapping =
+      deliusOutlookMappingRepository.getSupervisionAppointmentUrn(oldSupervisionAppointmentUrn)
+
+    val user = graphClient.users().byUserId(fromEmail)
+    val events = user.calendar().events()
+    events.byEventId(outlookMapping.outlookId).delete()
   }
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {

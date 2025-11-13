@@ -106,7 +106,6 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
 
     val durationMinutes: Long = 45
     val expectedEndDateTime = pastStartDateTime.plusMinutes(durationMinutes).toString()
-
     val requestBody = mapOf(
       "oldSupervisionAppointmentUrn" to oldSupervisionAppointmentUrn,
       "rescheduledEventRequest" to mapOf(
@@ -118,7 +117,6 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
         "supervisionAppointmentUrn" to newSupervisionAppointmentUrn,
       ),
     )
-
     val expected = EventResponse(
       id = null,
       subject = "Past Reschedule Subject",

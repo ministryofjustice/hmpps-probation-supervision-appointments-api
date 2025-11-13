@@ -198,44 +198,6 @@ class CalendarServiceTest {
     }
 
     @Test
-    fun `should not attempt delete but still send new event if no mapping is found`() {
-      val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
-      val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
-      val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
-
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn)).thenReturn(null)
-
-      val newOutlookId = "new-outlook-id-123"
-      val mockGraphEventResponse = Event().apply {
-        id = newOutlookId
-        subject = futureEventRequest.subject
-        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEventRequest.start.toString() }
-        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEndDateTime.toString() }
-        attendees = listOf(
-          com.microsoft.graph.models.Attendee().apply {
-            emailAddress = com.microsoft.graph.models.EmailAddress()
-              .apply { address = futureEventRequest.recipients.first().emailAddress }
-          },
-        )
-      }
-      `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
-
-      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
-        .thenReturn(DeliusOutlookMapping(supervisionAppointmentUrn = newUrn, outlookId = newOutlookId))
-
-      val result = calendarService.rescheduleEvent(rescheduleRequest)
-
-      verify(eventsRequestBuilder, never()).byEventId(anyString())
-      verify(eventItemRequestBuilder, never()).delete()
-      verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
-
-      verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
-      assertEquals(newUrn, mappingCaptor.value.supervisionAppointmentUrn)
-      assertEquals(newOutlookId, mappingCaptor.value.outlookId)
-      assertEquals(newOutlookId, result.id)
-    }
-
-    @Test
     fun `should throw exception and not call post if delete fails and new start is in the future`() {
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)

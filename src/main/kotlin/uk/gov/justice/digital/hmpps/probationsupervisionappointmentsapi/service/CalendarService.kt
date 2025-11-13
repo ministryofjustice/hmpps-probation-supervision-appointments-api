@@ -17,7 +17,6 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getByOutlookId
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
 import java.time.ZonedDateTime
 
@@ -63,7 +62,6 @@ class CalendarService(
   }
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
-
     val event = getEventDetails(oldSupervisionAppointmentUrn)
 
     event?.let {
@@ -78,7 +76,6 @@ class CalendarService(
           .delete()
       }
     }
-
   }
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
@@ -124,18 +121,27 @@ class CalendarService(
   fun getEventDetails(supervisionAppointmentUrn: String): EventResponse? {
     val outlookId = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn).outlookId
 
-    //user may have deleted their outlook event
+    // user may have deleted their outlook event
     val event = graphClient
       .users()
       .byUserId("MPoP-Digital-Team@justice.gov.uk")
       .calendar()
       .events()
-      .byEventId(outlookId)[{ requestConfiguration ->
-      requestConfiguration.queryParameters.select = arrayOf(
-        "subject", "body", "bodyPreview", "organizer", "attendees", "start", "end", "location"
-      )
-      requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
-    }]
+      .byEventId(outlookId)[
+      { requestConfiguration ->
+        requestConfiguration.queryParameters.select = arrayOf(
+          "subject",
+          "body",
+          "bodyPreview",
+          "organizer",
+          "attendees",
+          "start",
+          "end",
+          "location",
+        )
+        requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
+      },
+    ]
 
     return event?.toEventResponse()
   }

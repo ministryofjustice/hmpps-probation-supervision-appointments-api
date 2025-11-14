@@ -7,10 +7,10 @@ plugins {
 
 val hmppsSpringBootStarterVersion = "1.8.1"
 val azureIdentityVersion = "1.18.1"
-val microsoftGraphVersion = "6.55.0"
-val wiremockVersion = "3.13.1"
+val microsoftGraphVersion = "6.56.0"
+val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.35"
-val springdocVersion = "2.8.13"
+val springdocVersion = "2.8.14"
 
 idea {
   module {

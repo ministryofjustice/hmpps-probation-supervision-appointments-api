@@ -12,12 +12,13 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getByOutlookId
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
+import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
 
@@ -40,6 +41,40 @@ class CalendarService(
     )
 
     return response.toEventResponse()
+  }
+
+  fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
+    deleteExistingOutlookEvent(rescheduleEventRequest.oldSupervisionAppointmentUrn)
+
+    val now = ZonedDateTime.now()
+    val eventRequest = rescheduleEventRequest.rescheduledEventRequest
+
+    if (eventRequest.start.isAfter(now) || eventRequest.start.isEqual(now)) {
+      return sendEvent(eventRequest)
+    }
+    return EventResponse(
+      id = null,
+      subject = eventRequest.subject,
+      startDate = eventRequest.start.toString(),
+      endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
+      attendees = eventRequest.recipients.map { it.emailAddress },
+    )
+  }
+
+  fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
+    getEventDetails(oldSupervisionAppointmentUrn)?.let {
+      val eventStart = ZonedDateTime.parse(it.startDate)
+      val now = ZonedDateTime.now()
+
+      if (eventStart.isAfter(now) || eventStart.isEqual(now)) {
+        graphClient.users()
+          .byUserId(fromEmail)
+          .calendar()
+          .events()
+          .byEventId(it.id)
+          .delete()
+      }
+    }
   }
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
@@ -82,9 +117,29 @@ class CalendarService(
     .events()
     .post(event)
 
-  fun getEventDetails(outlookId: String): DeliusOutlookMappingsResponse {
-    val deliusOutlookMapping = deliusOutlookMappingRepository.getByOutlookId(outlookId)
-    return deliusOutlookMapping.toDeliusOutlookMappingsResponse()
+  fun getEventDetails(supervisionAppointmentUrn: String): EventResponse? {
+    val outlookId = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn).outlookId
+
+    // user may have deleted their outlook event
+    val event = graphClient
+      .users()
+      .byUserId("MPoP-Digital-Team@justice.gov.uk")
+      .calendar()
+      .events()
+      .byEventId(outlookId)[
+      { requestConfiguration ->
+        requestConfiguration.queryParameters.select = arrayOf(
+          "subject",
+          "organizer",
+          "attendees",
+          "start",
+          "end",
+        )
+        requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
+      },
+    ]
+
+    return event?.toEventResponse()
   }
 }
 

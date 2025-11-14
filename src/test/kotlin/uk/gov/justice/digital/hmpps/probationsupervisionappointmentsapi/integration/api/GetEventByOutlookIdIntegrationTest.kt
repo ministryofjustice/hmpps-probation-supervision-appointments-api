@@ -12,13 +12,13 @@ class GetEventByOutlookIdIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `unauthorized status returned`() {
-    webTestClient.get().uri("/calendar/event/by-outlook-id")
+    webTestClient.get().uri("/calendar/event")
       .exchange()
       .expectStatus().isUnauthorized
   }
 
   @Test
-  fun `test successful retrieval of event mapping by outlookId`() {
+  fun `test successful retrieval of event mapping by supervisionAppointmentUrn`() {
     val supervisionAppointmentUrn =
       "urn:uk:gov:hmpps:manage-supervision-service:appointment:a9bf7a2c-b713-43e3-a8b7-62e31526a001"
     val outlookId = "mock-outlook-id-5678"
@@ -32,8 +32,8 @@ class GetEventByOutlookIdIntegrationTest : IntegrationTestBase() {
 
     webTestClient.get()
       .uri { uriBuilder ->
-        uriBuilder.path("/calendar/event/by-outlook-id")
-          .queryParam("outlookId", outlookId)
+        uriBuilder.path("/calendar/event-mapping")
+          .queryParam("supervisionAppointmentUrn", supervisionAppointmentUrn)
           .build()
       }
       .headers(setAuthorisation())
@@ -52,15 +52,16 @@ class GetEventByOutlookIdIntegrationTest : IntegrationTestBase() {
   @ValueSource(
     strings = [
       "nonexistent-outlook-id",
-      "",
-      "     ",
+      "urn:uk:gov:hmpps:manage-supervision-service:appointment:00000000-0000-0000-0000-000000000000",
     ],
   )
-  fun `outlookId not found`(outlookId: String) {
+  fun `supervisionAppointmentUrn not found`(supervisionAppointmentUrn: String) {
+    val trimmed = supervisionAppointmentUrn.trim()
+
     webTestClient.get()
       .uri { uriBuilder ->
-        uriBuilder.path("/calendar/event/by-outlook-id")
-          .queryParam("outlookId", outlookId)
+        uriBuilder.path("/calendar/event-mapping")
+          .queryParam("supervisionAppointmentUrn", supervisionAppointmentUrn)
           .build()
       }
       .headers(setAuthorisation())
@@ -69,7 +70,7 @@ class GetEventByOutlookIdIntegrationTest : IntegrationTestBase() {
       .expectStatus().isNotFound
       .expectBody()
       .jsonPath("$.userMessage").value<String> { message ->
-        assert(message == "Not found: DeliusOutlookMapping with outlookId of $outlookId not found")
+        assert(message == "Not found: DeliusOutlookMapping with supervisionAppointmentUrn of $trimmed not found")
       }
   }
 }

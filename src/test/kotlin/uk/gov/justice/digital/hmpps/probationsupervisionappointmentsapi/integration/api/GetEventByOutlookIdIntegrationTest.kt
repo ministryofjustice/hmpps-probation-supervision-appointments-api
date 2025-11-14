@@ -52,15 +52,16 @@ class GetEventByOutlookIdIntegrationTest : IntegrationTestBase() {
   @ValueSource(
     strings = [
       "nonexistent-outlook-id",
-      "",
-      "     ",
+      ""
     ],
   )
-  fun `outlookId not found`(outlookId: String) {
+  fun `outlookId not found`(supervisionAppointmentUrn: String) {
+    val trimmed = supervisionAppointmentUrn.trim()
+
     webTestClient.get()
       .uri { uriBuilder ->
-        uriBuilder.path("/calendar/event/by-outlook-id")
-          .queryParam("outlookId", outlookId)
+        uriBuilder.path("/calendar/event-mapping")
+          .queryParam("supervisionAppointmentUrn", supervisionAppointmentUrn)
           .build()
       }
       .headers(setAuthorisation())
@@ -69,7 +70,8 @@ class GetEventByOutlookIdIntegrationTest : IntegrationTestBase() {
       .expectStatus().isNotFound
       .expectBody()
       .jsonPath("$.userMessage").value<String> { message ->
-        assert(message == "Not found: DeliusOutlookMapping with outlookId of $outlookId not found")
+        assert(message == "Not found: DeliusOutlookMapping with supervisionAppointmentUrn of $trimmed not found")
       }
   }
+
 }

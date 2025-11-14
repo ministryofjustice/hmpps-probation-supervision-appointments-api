@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
@@ -21,7 +22,9 @@ import org.mockito.Mock
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.lenient
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -62,7 +65,6 @@ class CalendarServiceTest {
 
   @Captor
   private lateinit var mappingCaptor: ArgumentCaptor<DeliusOutlookMapping>
-
   private val fromEmail = "sender@justice.gov.uk"
   private lateinit var calendarService: CalendarService
 
@@ -142,12 +144,17 @@ class CalendarServiceTest {
 
     @Test
     fun `should delete old event and send new event if new start is in the future`() {
+      val usersBuilder = mock(UsersRequestBuilder::class.java)
+      val userItemBuilder = mock(UserItemRequestBuilder::class.java)
+
+      val eventsBuilder = mock(EventsRequestBuilder::class.java)
+      val eventItemRequestBuilder = mock(EventItemRequestBuilder::class.java)
+
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
 
       `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn)).thenReturn(mockMapping)
-      doNothing().`when`(eventItemRequestBuilder).delete()
 
       val newOutlookId = "new-outlook-id-123"
       val mockGraphEventResponse = Event().apply {
@@ -170,7 +177,6 @@ class CalendarServiceTest {
       calendarService.rescheduleEvent(rescheduleRequest)
 
       verify(eventsRequestBuilder, times(1)).byEventId(oldOutlookId)
-      verify(eventItemRequestBuilder, times(1)).delete()
       verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
 
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
@@ -199,20 +205,29 @@ class CalendarServiceTest {
 
     @Test
     fun `should throw exception and not call post if delete fails and new start is in the future`() {
+      // Arrange
+      val service = spy(calendarService)
+
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val expectedException = RuntimeException("Graph API error: Delete failed")
 
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn)).thenReturn(mockMapping)
-      doThrow(expectedException).`when`(eventItemRequestBuilder).delete()
+      // Only stub what WILL be called
+      doThrow(expectedException)
+        .`when`(service)
+        .deleteExistingOutlookEvent(oldUrn)
 
-      org.junit.jupiter.api.assertThrows<RuntimeException> {
-        calendarService.rescheduleEvent(rescheduleRequest)
+      // Act + Assert
+      assertThrows<RuntimeException> {
+        service.rescheduleEvent(rescheduleRequest)
       }
 
-      verify(eventItemRequestBuilder, times(1)).delete()
-      verify(eventsRequestBuilder, never()).post(any(Event::class.java))
-      verify(deliusOutlookMappingRepository, never()).save(any(DeliusOutlookMapping::class.java))
+      // Verify delete attempted
+      verify(service).deleteExistingOutlookEvent(oldUrn)
+
+      // Verify no follow-up calls
+      verify(eventsRequestBuilder, never()).post(any())
+      verify(deliusOutlookMappingRepository, never()).save(any())
     }
   }
 

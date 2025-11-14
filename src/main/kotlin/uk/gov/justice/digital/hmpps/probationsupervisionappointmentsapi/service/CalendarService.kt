@@ -49,7 +49,7 @@ class CalendarService(
     val now = ZonedDateTime.now()
     val eventRequest = rescheduleEventRequest.rescheduledEventRequest
 
-    if (!eventRequest.start.isBefore(now)) {
+    if (eventRequest.start.isAfter(now) || eventRequest.start.isEqual(now)) {
       return sendEvent(eventRequest)
     }
     return EventResponse(
@@ -62,12 +62,11 @@ class CalendarService(
   }
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
-    val event = getEventDetails(oldSupervisionAppointmentUrn)
-
-    event?.let {
+    getEventDetails(oldSupervisionAppointmentUrn)?.let {
+      val eventStart = ZonedDateTime.parse(it.startDate)
       val now = ZonedDateTime.now()
 
-      if (event.startDate >= now.toString()) {
+      if (eventStart.isAfter(now) || eventStart.isEqual(now)) {
         graphClient.users()
           .byUserId(fromEmail)
           .calendar()
@@ -131,13 +130,10 @@ class CalendarService(
       { requestConfiguration ->
         requestConfiguration.queryParameters.select = arrayOf(
           "subject",
-          "body",
-          "bodyPreview",
           "organizer",
           "attendees",
           "start",
           "end",
-          "location",
         )
         requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
       },

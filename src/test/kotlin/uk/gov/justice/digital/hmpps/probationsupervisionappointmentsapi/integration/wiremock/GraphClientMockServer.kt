@@ -193,7 +193,6 @@ class MsGraphMockServer :
         ),
     )
   }
-
   fun stubGetEvent(email: String, eventId: String, startDateTime: String) {
     val encodedEmail = email.replace("@", "%40")
     val urlPath = "/v1.0/users/$encodedEmail/calendar/events/$eventId"
@@ -201,9 +200,23 @@ class MsGraphMockServer :
     val body = mapOf(
       "id" to eventId,
       "subject" to "Original Meeting",
-      "start" to mapOf("dateTime" to startDateTime, "timeZone" to "Europe/London"),
-      "end" to mapOf("dateTime" to "2025-09-16T10:30:00Z", "timeZone" to "Europe/London"),
-      "attendees" to listOf(mapOf("emailAddress" to mapOf("address" to email, "name" to "test"))),
+      "start" to mapOf(
+        "dateTime" to startDateTime,
+        "timeZone" to "Europe/London",
+      ),
+      "end" to mapOf(
+        "dateTime" to "2025-09-16T10:30:00Z",
+        "timeZone" to "Europe/London",
+      ),
+      "attendees" to listOf(
+        mapOf(
+          "emailAddress" to mapOf(
+            "address" to email,
+            "name" to "test",
+          ),
+          "type" to "required", // ← ★ REQUIRED FIELD YOU WERE MISSING
+        ),
+      ),
     )
 
     stubFor(

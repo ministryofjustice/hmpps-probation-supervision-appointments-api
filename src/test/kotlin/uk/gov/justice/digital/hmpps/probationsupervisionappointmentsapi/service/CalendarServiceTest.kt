@@ -9,6 +9,8 @@ import com.microsoft.graph.users.item.calendar.CalendarRequestBuilder
 import com.microsoft.graph.users.item.calendar.events.EventsRequestBuilder
 import com.microsoft.graph.users.item.calendar.events.item.EventItemRequestBuilder
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -22,13 +24,13 @@ import org.mockito.Mock
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.lenient
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.doReturn
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
@@ -65,7 +67,8 @@ class CalendarServiceTest {
 
   @Captor
   private lateinit var mappingCaptor: ArgumentCaptor<DeliusOutlookMapping>
-  private val fromEmail = "sender@justice.gov.uk"
+
+  private val fromEmail = "MPoP-Digital-Team@justice.gov.uk"
   private lateinit var calendarService: CalendarService
 
   private val fixedStartDateTime: ZonedDateTime = ZonedDateTime.parse("2050-01-01T10:00:00Z")
@@ -107,7 +110,6 @@ class CalendarServiceTest {
     fun `should create event via Graph and save mapping to repository`() {
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
-      // Mock the Event that the Graph POST call returns (ensuring non-null fields are present)
       val mockGraphEventResponse = Event().apply {
         id = outlookId
         subject = mockEventRequest.subject
@@ -121,12 +123,18 @@ class CalendarServiceTest {
       }
 
       `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
-      calendarService.sendEvent(mockEventRequest)
+      val result = calendarService.sendEvent(mockEventRequest)
 
+      verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
+
       assertEquals(mockEventRequest.supervisionAppointmentUrn, mappingCaptor.value.supervisionAppointmentUrn)
       assertEquals(outlookId, mappingCaptor.value.outlookId)
+      assertEquals(outlookId, result.id)
+      assertEquals(mockEventRequest.subject, result.subject)
     }
   }
 
@@ -144,18 +152,24 @@ class CalendarServiceTest {
 
     @Test
     fun `should delete old event and send new event if new start is in the future`() {
-      val usersBuilder = mock(UsersRequestBuilder::class.java)
-      val userItemBuilder = mock(UserItemRequestBuilder::class.java)
-
-      val eventsBuilder = mock(EventsRequestBuilder::class.java)
-      val eventItemRequestBuilder = mock(EventItemRequestBuilder::class.java)
-
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
 
+      // Mock getting the old event details for deletion
       `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn)).thenReturn(mockMapping)
 
+      val oldEventForGet = Event().apply {
+        id = oldOutlookId
+        subject = "Old Subject"
+        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEventRequest.start.toString() }
+        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEndDateTime.toString() }
+        attendees = listOf()
+      }
+      `when`(eventItemRequestBuilder.get(any())).thenReturn(oldEventForGet)
+      doNothing().`when`(eventItemRequestBuilder).delete()
+
+      // Mock creating the new event
       val newOutlookId = "new-outlook-id-123"
       val mockGraphEventResponse = Event().apply {
         id = newOutlookId
@@ -170,64 +184,118 @@ class CalendarServiceTest {
         )
       }
       `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
-
       `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
-        .thenReturn(DeliusOutlookMapping(supervisionAppointmentUrn = newUrn, outlookId = newOutlookId))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
-      calendarService.rescheduleEvent(rescheduleRequest)
+      val result = calendarService.rescheduleEvent(rescheduleRequest)
 
-      verify(eventsRequestBuilder, times(1)).byEventId(oldOutlookId)
+      // Verify deletion happened
+      verify(eventItemRequestBuilder, times(1)).delete()
+
+      // Verify new event created
       verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
-
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
+
       assertEquals(newUrn, mappingCaptor.value.supervisionAppointmentUrn)
       assertEquals(newOutlookId, mappingCaptor.value.outlookId)
+      assertNotNull(result)
+      assertEquals(newOutlookId, result?.id)
     }
 
     @Test
     fun `should only delete old event and return manual response if new start is in the past`() {
       val pastStart = ZonedDateTime.now().minusDays(1)
-      val pastEnd = pastStart.plusMinutes(durationMinutes)
-
-      val pastEventRequest = mockEventRequest.copy(start = pastStart, supervisionAppointmentUrn = newUrn)
+      val pastEventRequest = EventRequest(
+        recipients = listOf(mockRecipient),
+        message = "Test Message Body",
+        subject = "Test Subject",
+        start = pastStart,
+        durationInMinutes = durationMinutes,
+        supervisionAppointmentUrn = newUrn,
+      )
       val rescheduleRequest = RescheduleEventRequest(pastEventRequest, oldUrn)
 
+      // Mock the old event (which is in the future, so it will be deleted)
       `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn)).thenReturn(mockMapping)
+
+      val futureOldEvent = Event().apply {
+        id = oldOutlookId
+        subject = "Old Subject"
+        start = com.microsoft.graph.models.DateTimeTimeZone().apply {
+          dateTime = ZonedDateTime.now().plusDays(1).toString()
+        }
+        end = com.microsoft.graph.models.DateTimeTimeZone().apply {
+          dateTime = ZonedDateTime.now().plusDays(1).plusMinutes(durationMinutes).toString()
+        }
+        attendees = listOf()
+      }
+      `when`(eventItemRequestBuilder.get(any())).thenReturn(futureOldEvent)
       doNothing().`when`(eventItemRequestBuilder).delete()
 
       val result = calendarService.rescheduleEvent(rescheduleRequest)
 
-      verify(eventsRequestBuilder, times(1)).byEventId(oldOutlookId)
+      // Old event should be deleted
       verify(eventItemRequestBuilder, times(1)).delete()
+
+      // No new event should be created (because new start is in past)
       verify(eventsRequestBuilder, never()).post(any(Event::class.java))
       verify(deliusOutlookMappingRepository, never()).save(any(DeliusOutlookMapping::class.java))
+
+      // Should return a response with null ID (manual entry)
+      assertNotNull(result)
+      assertNull(result?.id)
+      assertEquals(pastEventRequest.subject, result?.subject)
     }
 
     @Test
     fun `should throw exception and not call post if delete fails and new start is in the future`() {
-      // Arrange
       val service = spy(calendarService)
-
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val expectedException = RuntimeException("Graph API error: Delete failed")
 
-      // Only stub what WILL be called
       doThrow(expectedException)
         .`when`(service)
         .deleteExistingOutlookEvent(oldUrn)
 
-      // Act + Assert
       assertThrows<RuntimeException> {
         service.rescheduleEvent(rescheduleRequest)
       }
 
-      // Verify delete attempted
       verify(service).deleteExistingOutlookEvent(oldUrn)
-
-      // Verify no follow-up calls
       verify(eventsRequestBuilder, never()).post(any())
       verify(deliusOutlookMappingRepository, never()).save(any())
+    }
+
+    @Test
+    fun `should not delete old event if it no longer exists in repository`() {
+      val service = spy(calendarService)
+
+      // Mock getEventDetails to return null (mapping doesn't exist)
+      doReturn(null).`when`(service).getEventDetails(oldUrn)
+
+      // Should not throw - getEventDetails returns null when mapping doesn't exist
+      service.deleteExistingOutlookEvent(oldUrn)
+
+      verify(eventItemRequestBuilder, never()).delete()
+    }
+
+    @Test
+    fun `should not delete old event if start time is in the past`() {
+      val service = spy(calendarService)
+
+      val pastEvent = uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse(
+        id = oldOutlookId,
+        subject = "Past Event",
+        startDate = ZonedDateTime.now().minusDays(1).toString(),
+        endDate = ZonedDateTime.now().minusDays(1).plusMinutes(durationMinutes).toString(),
+        attendees = listOf(),
+      )
+      doReturn(pastEvent).`when`(service).getEventDetails(oldUrn)
+
+      service.deleteExistingOutlookEvent(oldUrn)
+
+      verify(eventItemRequestBuilder, never()).delete()
     }
   }
 
@@ -275,6 +343,22 @@ class CalendarServiceTest {
       assertEquals(mockStart, response.startDate)
       assertEquals(mockEnd, response.endDate)
       assertEquals(listOf(mockAttendeeAddress), response.attendees)
+    }
+
+    @Test
+    fun `getAttendees should map multiple recipients correctly`() {
+      val recipients = listOf(
+        Recipient("user1@example.com", "User One"),
+        Recipient("user2@example.com", "User Two"),
+      )
+
+      val attendees = calendarService.getAttendees(recipients)
+
+      assertEquals(2, attendees.size)
+      assertEquals("user1@example.com", attendees[0].emailAddress.address)
+      assertEquals("User One", attendees[0].emailAddress.name)
+      assertEquals("user2@example.com", attendees[1].emailAddress.address)
+      assertEquals("User Two", attendees[1].emailAddress.name)
     }
   }
 }

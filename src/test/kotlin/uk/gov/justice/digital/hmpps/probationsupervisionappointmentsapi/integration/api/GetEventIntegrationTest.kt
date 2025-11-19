@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.api
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -10,18 +11,23 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrat
 
 class GetEventIntegrationTest : IntegrationTestBase() {
 
+  @BeforeEach
+  fun setUp() {
+    deliusOutlookMappingRepository.deleteAll()
+  }
+
   @Test
   fun `unauthorized status returned`() {
-    webTestClient.get().uri("/calendar/event")
+    webTestClient.get().uri("/calendar/event-mapping")
       .exchange()
       .expectStatus().isUnauthorized
   }
 
   @Test
-  fun `test successful retrieval of event mapping`() {
+  fun `test successful retrieval of event mapping by supervisionAppointmentUrn`() {
     val supervisionAppointmentUrn =
-      "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7931"
-    val outlookId = "mock-event-id-1234"
+      "urn:uk:gov:hmpps:manage-supervision-service:appointment:a9bf7a2c-b713-43e3-a8b7-62e31526a001"
+    val outlookId = "mock-outlook-id-5678"
 
     deliusOutlookMappingRepository.save(
       DeliusOutlookMapping(
@@ -32,7 +38,7 @@ class GetEventIntegrationTest : IntegrationTestBase() {
 
     webTestClient.get()
       .uri { uriBuilder ->
-        uriBuilder.path("/calendar/event")
+        uriBuilder.path("/calendar/event-mapping")
           .queryParam("supervisionAppointmentUrn", supervisionAppointmentUrn)
           .build()
       }
@@ -43,24 +49,25 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       .expectBody(DeliusOutlookMappingsResponse::class.java)
       .consumeWith { response ->
         val body = response.responseBody!!
-        assert(body.supervisionAppointmentUrn == supervisionAppointmentUrn)
         assert(body.outlookId == outlookId)
+        assert(body.supervisionAppointmentUrn == supervisionAppointmentUrn)
       }
   }
 
   @ParameterizedTest
   @ValueSource(
     strings = [
-      "urn:uk:gov:hmpps:manage-supervision-service:appointment:nonexistent-urn",
-      "",
-      "     ",
+      "nonexistent-outlook-id",
+      "urn:uk:gov:hmpps:manage-supervision-service:appointment:00000000-0000-0000-0000-000000000000",
     ],
   )
-  fun `supervisionAppointmentUrn not found`(urn: String) {
+  fun `supervisionAppointmentUrn not found`(supervisionAppointmentUrn: String) {
+    val trimmed = supervisionAppointmentUrn.trim()
+
     webTestClient.get()
       .uri { uriBuilder ->
-        uriBuilder.path("/calendar/event")
-          .queryParam("supervisionAppointmentUrn", urn)
+        uriBuilder.path("/calendar/event-mapping")
+          .queryParam("supervisionAppointmentUrn", supervisionAppointmentUrn)
           .build()
       }
       .headers(setAuthorisation())
@@ -69,7 +76,7 @@ class GetEventIntegrationTest : IntegrationTestBase() {
       .expectStatus().isNotFound
       .expectBody()
       .jsonPath("$.userMessage").value<String> { message ->
-        assert(message.equals("Not found: DeliusOutlookMapping with supervisionAppointmentUrn of $urn not found"))
+        assert(message == "Not found: DeliusOutlookMapping with supervisionAppointmentUrn of $trimmed not found")
       }
   }
 }

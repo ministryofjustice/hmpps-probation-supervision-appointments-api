@@ -52,4 +52,16 @@ abstract class IntegrationTestBase {
   protected fun stubGraphGetUsers() {
     msGraph.stubUserSearch()
   }
+
+  protected fun stubGraphGetEvent(fromEmail: String, eventId: String, startDateTime: String) {
+    msGraph.stubGetEvent(fromEmail, eventId = eventId, startDateTime = startDateTime)
+  }
+
+  protected fun stubGraphCreateRescheduledEvent(attendeesEmail: String, eventId: String, startDateTime: String?, endDateTime: String?) {
+    msGraph.stubCreateRescheduledEvent(attendeesEmail, eventId, startDateTime, endDateTime)
+  }
+
+  protected fun stubGraphDeleteEvent(fromEmail: String, eventId: String) {
+    msGraph.stubDeleteEvent(fromEmail, eventId)
+  }
 }

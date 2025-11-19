@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CalendarService
 
 @RestController
@@ -24,15 +24,19 @@ class OutlookCalendarController(val calendarService: CalendarService) {
   @ResponseStatus(HttpStatus.CREATED)
   fun saveEvent(@RequestBody event: EventRequest) = calendarService.sendEvent(event)
 
+  @PostMapping("/event/reschedule")
+  @ResponseStatus(HttpStatus.OK)
+  fun rescheduleEvent(@RequestBody rescheduledEvent: RescheduleEventRequest) = calendarService.rescheduleEvent(rescheduledEvent)
+
+  @GetMapping("/event-mapping")
+  @ResponseStatus(HttpStatus.OK)
+  fun getEventMapping(
+    @RequestParam supervisionAppointmentUrn: String,
+  ) = calendarService.getEventDetailsMappings(supervisionAppointmentUrn)
+
   @GetMapping("/event")
   @ResponseStatus(HttpStatus.OK)
-  fun getEventDetails(
+  fun getOutlookEvent(
     @RequestParam supervisionAppointmentUrn: String,
-  ): DeliusOutlookMappingsResponse = calendarService.getEventDetailsMappings(supervisionAppointmentUrn)
-
-  @GetMapping("/event/by-outlook-id")
-  @ResponseStatus(HttpStatus.OK)
-  fun getEventDetailsByOutlookId(
-    @RequestParam outlookId: String,
-  ): DeliusOutlookMappingsResponse = calendarService.getEventDetails(outlookId)
+  ) = calendarService.getEventDetails(supervisionAppointmentUrn)
 }

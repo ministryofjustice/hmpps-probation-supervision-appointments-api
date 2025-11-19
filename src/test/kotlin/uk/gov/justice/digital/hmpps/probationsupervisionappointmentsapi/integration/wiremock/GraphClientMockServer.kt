@@ -161,13 +161,13 @@ class MsGraphMockServer :
     )
   }
 
-  fun stubCreateRescheduledEvent(email: String, eventId: String) {
+  fun stubCreateRescheduledEvent(attendeesEmail: String? = "MPoP-Digital-Team@justice.gov.uk", eventId: String, startDateTime: String? = "2025-11-16T15:03:29Z", endDateTime: String? = "2025-11-16T15:48:29Z") {
     val body = mapOf(
       "id" to eventId,
       "subject" to "Rescheduled Meeting Subject",
-      "start" to mapOf("dateTime" to "2025-11-16T15:03:29Z", "timeZone" to "Europe/London"),
-      "end" to mapOf("dateTime" to "2025-11-16T15:48:29Z", "timeZone" to "Europe/London"),
-      "attendees" to listOf(mapOf("emailAddress" to mapOf("address" to "attendee@example.com", "name" to "Attendee"))),
+      "start" to mapOf("dateTime" to startDateTime, "timeZone" to "Europe/London"),
+      "end" to mapOf("dateTime" to endDateTime, "timeZone" to "Europe/London"),
+      "attendees" to listOf(mapOf("emailAddress" to mapOf("address" to attendeesEmail, "name" to "Attendee"))),
     )
 
     stubFor(

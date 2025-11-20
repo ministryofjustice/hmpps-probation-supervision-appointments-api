@@ -1,6 +1,10 @@
 name: Deploy to environment
 
 on:
+  push:
+    branches:
+      - main
+      - MAN-1348-fix
   workflow_dispatch:
     inputs:
       environment:

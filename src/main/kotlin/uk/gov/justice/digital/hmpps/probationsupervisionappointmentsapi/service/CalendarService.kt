@@ -18,6 +18,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
@@ -63,7 +65,8 @@ class CalendarService(
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
     getEventDetails(oldSupervisionAppointmentUrn)?.let {
-      val eventStart = ZonedDateTime.parse(it.startDate)
+      val eventStart = LocalDateTime.parse(it.startDate)
+        .atZone(ZoneId.of("UTC"))
       val now = ZonedDateTime.now()
 
       if (eventStart.isAfter(now) || eventStart.isEqual(now)) {

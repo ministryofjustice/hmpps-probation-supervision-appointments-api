@@ -1,6 +1,9 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
+import com.microsoft.graph.models.Attendee
 import com.microsoft.graph.models.BodyType
+import com.microsoft.graph.models.DateTimeTimeZone
+import com.microsoft.graph.models.EmailAddress
 import com.microsoft.graph.models.Event
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import com.microsoft.graph.users.UsersRequestBuilder
@@ -36,6 +39,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -157,15 +161,21 @@ class CalendarServiceTest {
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
 
       // Mock getting the old event details for deletion
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn)).thenReturn(mockMapping)
+      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+        .thenReturn(mockMapping)
 
       val oldEventForGet = Event().apply {
         id = oldOutlookId
         subject = "Old Subject"
-        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEventRequest.start.toString() }
-        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEndDateTime.toString() }
+        start = DateTimeTimeZone().apply {
+          dateTime = futureEventRequest.start.toLocalDateTime().toString()
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = futureEndDateTime.toLocalDateTime().toString()
+        }
         attendees = listOf()
       }
+
       `when`(eventItemRequestBuilder.get(any())).thenReturn(oldEventForGet)
       doNothing().`when`(eventItemRequestBuilder).delete()
 
@@ -174,15 +184,20 @@ class CalendarServiceTest {
       val mockGraphEventResponse = Event().apply {
         id = newOutlookId
         subject = futureEventRequest.subject
-        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEventRequest.start.toString() }
-        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = futureEndDateTime.toString() }
+        start = DateTimeTimeZone().apply {
+          dateTime = futureEventRequest.start.toLocalDateTime().toString()
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = futureEndDateTime.toLocalDateTime().toString()
+        }
         attendees = listOf(
-          com.microsoft.graph.models.Attendee().apply {
-            emailAddress = com.microsoft.graph.models.EmailAddress()
+          Attendee().apply {
+            emailAddress = EmailAddress()
               .apply { address = futureEventRequest.recipients.first().emailAddress }
           },
         )
       }
+
       `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
       `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
@@ -216,16 +231,18 @@ class CalendarServiceTest {
       val rescheduleRequest = RescheduleEventRequest(pastEventRequest, oldUrn)
 
       // Mock the old event (which is in the future, so it will be deleted)
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn)).thenReturn(mockMapping)
+      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+        .thenReturn(mockMapping)
 
       val futureOldEvent = Event().apply {
         id = oldOutlookId
         subject = "Old Subject"
         start = com.microsoft.graph.models.DateTimeTimeZone().apply {
-          dateTime = ZonedDateTime.now().plusDays(1).toString()
+          dateTime = ZonedDateTime.now().plusDays(1).toLocalDateTime().toString()
         }
         end = com.microsoft.graph.models.DateTimeTimeZone().apply {
-          dateTime = ZonedDateTime.now().plusDays(1).plusMinutes(durationMinutes).toString()
+          dateTime = ZonedDateTime.now().plusDays(1).plusMinutes(durationMinutes)
+            .toLocalDateTime().toString()
         }
         attendees = listOf()
       }
@@ -287,10 +304,11 @@ class CalendarServiceTest {
       val pastEvent = uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse(
         id = oldOutlookId,
         subject = "Past Event",
-        startDate = ZonedDateTime.now().minusDays(1).toString(),
-        endDate = ZonedDateTime.now().minusDays(1).plusMinutes(durationMinutes).toString(),
+        startDate = LocalDateTime.now().minusDays(1).toString(),
+        endDate = LocalDateTime.now().minusDays(1).plusMinutes(durationMinutes).toString(),
         attendees = listOf(),
       )
+
       doReturn(pastEvent).`when`(service).getEventDetails(oldUrn)
 
       service.deleteExistingOutlookEvent(oldUrn)

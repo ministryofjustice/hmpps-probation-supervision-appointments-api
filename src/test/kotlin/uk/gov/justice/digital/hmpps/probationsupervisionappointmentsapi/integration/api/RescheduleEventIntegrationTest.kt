@@ -6,14 +6,10 @@ import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 class RescheduleEventIntegrationTest : IntegrationTestBase() {
-
-  private val mockNewStartDatetime = "2025-11-16T15:03:29Z"
-  private val mockNewEndDatetime = "2025-11-16T15:48:29Z"
-  private val mockOriginalStartDatetime = "2025-11-10T10:00:00Z"
-  private val mockDurationMinutes: Long = 45
 
   @Test
   fun `unauthorized status returned for reschedule`() {
@@ -32,12 +28,14 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
     val oldOutlookId = "old-outlook-event-id-1"
     val newOutlookId = "new-outlook-event-id-2"
 
-    // Use future dates for both old and new appointments
-    val futureOldStartDatetime = ZonedDateTime.now().plusDays(1).toString()
-    val futureNewStartDatetime = ZonedDateTime.now().plusDays(2).toString()
-    val futureNewEndDatetime = ZonedDateTime.now().plusDays(2).plusMinutes(mockDurationMinutes.toLong()).toString()
+    val mockDurationMinutes: Long = 45
 
-    // Pre-populate the Mapping Repository for the OLD event
+    // Future dates as ZonedDateTime (Jackson can parse)
+    val futureOldStart = ZonedDateTime.now(ZoneOffset.UTC).plusDays(1)
+    val futureNewStart = ZonedDateTime.now(ZoneOffset.UTC).plusDays(2)
+    val futureNewEnd = futureNewStart.plusMinutes(mockDurationMinutes)
+
+    // Pre-populate the mapping repository for the old event
     deliusOutlookMappingRepository.save(
       DeliusOutlookMapping(
         supervisionAppointmentUrn = oldSupervisionAppointmentUrn,
@@ -45,16 +43,17 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
       ),
     )
 
-    // Stub for getting the old event details (to check if it's in the future)
-    stubGraphGetEvent(fromEmail, oldOutlookId, futureOldStartDatetime)
-    // Stub for deleting the old event
+    stubGraphGetEvent(
+      fromEmail,
+      oldOutlookId,
+      futureOldStart.toLocalDateTime().toString(),
+    )
     stubGraphDeleteEvent(fromEmail, oldOutlookId)
-    // Stub for creating the new rescheduled event - make sure to include the attendee email
     stubGraphCreateRescheduledEvent(
       attendeeEmail,
       newOutlookId,
-      futureNewStartDatetime,
-      futureNewEndDatetime,
+      futureNewStart.toLocalDateTime().toString(),
+      futureNewEnd.toLocalDateTime().toString(),
     )
 
     val requestBody = mapOf(
@@ -63,7 +62,7 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
         "recipients" to listOf(mapOf("emailAddress" to attendeeEmail, "name" to "Attendee")),
         "message" to "Rescheduled meeting body",
         "subject" to "Rescheduled Meeting Subject",
-        "start" to futureNewStartDatetime,
+        "start" to futureNewStart,
         "durationInMinutes" to mockDurationMinutes,
         "supervisionAppointmentUrn" to newSupervisionAppointmentUrn,
       ),
@@ -72,8 +71,8 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
     val expected = EventResponse(
       id = newOutlookId,
       subject = "Rescheduled Meeting Subject",
-      startDate = futureNewStartDatetime,
-      endDate = futureNewEndDatetime,
+      startDate = futureNewStart.toLocalDateTime().toString(),
+      endDate = futureNewEnd.toLocalDateTime().toString(),
       attendees = listOf(attendeeEmail),
     )
 
@@ -86,7 +85,6 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
       .expectBody(EventResponse::class.java)
       .isEqualTo(expected)
 
-    // Verify the new mapping was created
     val newMapping = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(newSupervisionAppointmentUrn)
     assertThat(newMapping).isNotNull()
     assertThat(newMapping?.outlookId).isEqualTo(newOutlookId)
@@ -100,14 +98,11 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
     val oldSupervisionAppointmentUrn = "urn:uk.gov:hmpps:manage-supervision-service:appointment:old-124"
     val newSupervisionAppointmentUrn = "urn:uk.gov:hmpps:manage-supervision-service:appointment:new-457"
 
-    // 1. Define Event IDs and Dates
     val oldOutlookId = "old-outlook-event-id-3"
-    val originalStartDateTime = ZonedDateTime.now().plusDays(5).withNano(0).toString()
+    val durationMinutes: Long = 45
 
-    val pastStartDateTime = ZonedDateTime.now().minusDays(5).withNano(0)
-    val newStartDateTime = pastStartDateTime.toString()
+    val oldStart = ZonedDateTime.now(ZoneOffset.UTC).plusDays(5)
 
-    // 2. Pre-populate the Mapping Repository for the OLD event
     deliusOutlookMappingRepository.save(
       DeliusOutlookMapping(
         supervisionAppointmentUrn = oldSupervisionAppointmentUrn,
@@ -115,30 +110,34 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
       ),
     )
 
-    stubGraphGetEvent(fromEmail, oldOutlookId, originalStartDateTime)
+    stubGraphGetEvent(fromEmail, oldOutlookId, oldStart.toLocalDateTime().toString())
     stubGraphDeleteEvent(fromEmail, oldOutlookId)
 
-    val durationMinutes: Long = 45
-    val expectedEndDateTime = pastStartDateTime.plusMinutes(durationMinutes).toString()
+    // New start is in the past
+    val pastStart = ZonedDateTime.now(ZoneOffset.UTC).minusDays(5)
+    val pastEnd = pastStart.plusMinutes(durationMinutes)
+
     val requestBody = mapOf(
       "oldSupervisionAppointmentUrn" to oldSupervisionAppointmentUrn,
       "rescheduledEventRequest" to mapOf(
         "recipients" to listOf(mapOf("emailAddress" to attendeeEmail, "name" to "Attendee")),
         "message" to "Rescheduled meeting body",
         "subject" to "Past Reschedule Subject",
-        "start" to newStartDateTime,
+        "start" to pastStart, // ZonedDateTime, includes offset
         "durationInMinutes" to durationMinutes,
         "supervisionAppointmentUrn" to newSupervisionAppointmentUrn,
       ),
     )
+
     val expected = EventResponse(
       id = null,
       subject = "Past Reschedule Subject",
-      startDate = newStartDateTime.substringBefore("["),
-      endDate = expectedEndDateTime.substringBefore("["),
+      startDate = pastStart.toString(), // includes Z offset
+      endDate = pastEnd.toString(), // includes Z offset
       attendees = listOf(attendeeEmail),
     )
 
+    // Perform the request
     webTestClient.post().uri("/calendar/event/reschedule")
       .headers(setAuthorisation())
       .contentType(MediaType.APPLICATION_JSON)
@@ -148,7 +147,7 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
       .expectBody(EventResponse::class.java)
       .isEqualTo(expected)
 
-    val newResponse = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(newSupervisionAppointmentUrn)
-    assertThat(newResponse).isNull()
+    val newMapping = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(newSupervisionAppointmentUrn)
+    assertThat(newMapping).isNull()
   }
 }

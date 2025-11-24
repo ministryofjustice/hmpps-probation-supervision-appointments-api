@@ -34,6 +34,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.verifyNoInteractions
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
@@ -331,11 +332,11 @@ class CalendarServiceTest {
     @Test
     fun `event without sms request`() {
       val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
-      `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(Event().apply { id = "some-id" })
+      val event = mockEvent()
       `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
-      calendarService.sendEvent(eventRequestWithoutSms)
+      val response = calendarService.sendEvent(eventRequestWithoutSms)
 
       verify(notificationClient, never()).sendSms(
         anyString(),
@@ -343,6 +344,10 @@ class CalendarServiceTest {
         any(),
         anyString(),
       )
+
+      verifyNoInteractions(telemetryService)
+
+      assertEquals(event.toEventResponse(), response)
     }
 
     @Test

@@ -37,11 +37,13 @@ import org.mockito.kotlin.doReturn
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.service.notify.NotificationClient
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 private const val EVENT_TIMEZONE = "Europe/London"
@@ -71,7 +73,7 @@ class CalendarServiceTest {
   private lateinit var eventItemRequestBuilder: EventItemRequestBuilder
 
   @Mock
-  private lateinit var featureFlags: FeatureFlags
+  private lateinit var featureFlags: FeatureFlagsService
 
   @Mock
   private lateinit var notificationClient: NotificationClient
@@ -100,7 +102,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, fromEmail)
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, fromEmail, "template-id-1")
   }
 
   private fun setupGraphMocks() {
@@ -324,6 +326,52 @@ class CalendarServiceTest {
       service.deleteExistingOutlookEvent(oldUrn)
 
       verify(eventItemRequestBuilder, never()).delete()
+    }
+
+    @Test
+    fun `event without sms request`() {
+      val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
+
+      `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(Event().apply { id = "some-id" })
+      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      calendarService.sendEvent(eventRequestWithoutSms)
+
+      verify(notificationClient, never()).sendSms(
+        anyString(),
+        anyString(),
+        any(),
+        anyString(),
+      )
+    }
+
+    @Test
+    fun `should track telemetry and capture exception if sendSms fails`() {
+      val eventRequest = mockEventRequest
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true))
+      val exception = RuntimeException("SMS failure")
+
+      `when`(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
+      doThrow(exception).`when`(notificationClient).sendSms(
+        anyString(),
+        anyString(),
+        any(),
+        anyString(),
+      )
+
+      calendarService.sendSMSNotification(eventRequest)
+
+      val templateValues = mapOf(
+        "FirstName" to "name",
+        "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+      )
+      verify(notificationClient).sendSms(
+        "template-id-1",
+        "mobile",
+        templateValues,
+        "crn",
+      )
     }
   }
 

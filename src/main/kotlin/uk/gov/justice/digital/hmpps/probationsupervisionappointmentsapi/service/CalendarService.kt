@@ -8,7 +8,6 @@ import com.microsoft.graph.models.EmailAddress
 import com.microsoft.graph.models.Event
 import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
-import io.sentry.Sentry
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
@@ -31,10 +30,11 @@ private const val EVENT_TIMEZONE = "Europe/London"
 class CalendarService(
   private val graphClient: GraphServiceClient,
   private val deliusOutlookMappingRepository: DeliusOutlookMappingRepository,
-  private val featureFlags: FeatureFlags,
+  private val featureFlagsService: FeatureFlagsService,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   @Value("\${calendar-from-email}") private val fromEmail: String,
+  @Value("\${gov-notify.template-ids.appointment-scheduled}") private val appointmentScheduledTemplateId: String,
 ) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse? {
@@ -53,7 +53,7 @@ class CalendarService(
   }
 
   fun sendSMSNotification(eventRequest: EventRequest) {
-    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlags.enabled("sms-notification-toggle")) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.enabled("sms-notification-toggle")) {
       val templateValues = mapOf(
         "FirstName" to eventRequest.smsEventRequest.personName,
         "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
@@ -61,19 +61,21 @@ class CalendarService(
 
       val telemetryProperties = mapOf(
         "crn" to eventRequest.smsEventRequest.crn,
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
       )
 
       try {
         notificationClient.sendSms(
-          "1234",
+          appointmentScheduledTemplateId,
           eventRequest.smsEventRequest.mobileNumber,
           templateValues,
           eventRequest.smsEventRequest.crn,
         )
+
+        telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
       } catch (e: Exception) {
-        telemetryService.trackEvent("UnpaidWorkAppointmentReminderFailure", telemetryProperties)
+        telemetryService.trackEvent("AppointmentReminderFailure", telemetryProperties)
         telemetryService.trackException(e, telemetryProperties)
-        Sentry.captureException(e)
       }
     }
   }

@@ -8,6 +8,8 @@ import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.web.reactive.server.WebTestClient
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.FliptExtension
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.FliptExtension.Companion.flipt
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.MsGraphApiExtension
@@ -16,7 +18,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrat
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
-@ExtendWith(HmppsAuthApiExtension::class, MsGraphApiExtension::class)
+@ExtendWith(HmppsAuthApiExtension::class, MsGraphApiExtension::class, FliptExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
 @ContextConfiguration(classes = [MsGraphTestConfig::class])
@@ -63,5 +65,9 @@ abstract class IntegrationTestBase {
 
   protected fun stubGraphDeleteEvent(fromEmail: String, eventId: String) {
     msGraph.stubDeleteEvent(fromEmail, eventId)
+  }
+
+  protected fun stubGetFeatureFlags() {
+    flipt.stubGetFeatureFlags()
   }
 }

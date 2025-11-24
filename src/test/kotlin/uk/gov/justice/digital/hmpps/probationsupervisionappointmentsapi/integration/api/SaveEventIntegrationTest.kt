@@ -24,7 +24,7 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
     val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7932"
     val smsRequest = mapOf(
       "smsOptIn" to true,
-      "personName" to "John Doe",
+      "firstName" to "John Doe",
       "personTelephoneNumber" to "07123456789",
       "crn" to "X123456",
     )

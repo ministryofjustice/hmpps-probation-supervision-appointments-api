@@ -164,6 +164,46 @@ class CalendarServiceTest {
     }
 
     @Test
+    fun `should create event, no sms, as fixture flag is set to false`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(false)
+
+      val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
+
+      val mockGraphEventResponse = Event().apply {
+        id = outlookId
+        subject = mockEventRequest.subject
+        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
+        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        attendees = listOf(
+          com.microsoft.graph.models.Attendee().apply {
+            emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
+          },
+        )
+      }
+
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      val result = calendarService.sendEvent(
+        mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true),
+        ),
+      )
+
+      verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
+      verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
+      verifyNoInteractions(notificationClient)
+      verifyNoInteractions(telemetryService)
+
+      assertEquals(mockGraphEventResponse.toEventResponse(), result)
+    }
+
+    @Test
     fun `event without sms request`() {
       whenever(graphClient.users()).thenReturn(usersRequestBuilder)
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
@@ -177,13 +217,7 @@ class CalendarServiceTest {
 
       val response = calendarService.sendEvent(eventRequestWithoutSms)
 
-      verify(notificationClient, never()).sendSms(
-        anyString(),
-        anyString(),
-        any(),
-        anyString(),
-      )
-
+      verifyNoInteractions(notificationClient)
       verifyNoInteractions(telemetryService)
 
       assertEquals(event.toEventResponse(), response)

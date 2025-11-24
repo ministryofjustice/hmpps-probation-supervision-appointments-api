@@ -183,7 +183,7 @@ class CalendarServiceTest {
       val exception = RuntimeException("SMS failure")
 
       whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
-      doThrow(exception).`when`(notificationClient).sendSms(
+      doThrow(exception).whenever(notificationClient).sendSms(
         anyString(),
         anyString(),
         any(),
@@ -256,7 +256,7 @@ class CalendarServiceTest {
       }
 
       whenever(eventItemRequestBuilder.get(any())).thenReturn(oldEventForGet)
-      doNothing().`when`(eventItemRequestBuilder).delete()
+      doNothing().whenever(eventItemRequestBuilder).delete()
 
       // Mock creating the new event
       val newOutlookId = "new-outlook-id-123"
@@ -326,7 +326,7 @@ class CalendarServiceTest {
         attendees = listOf()
       }
       whenever(eventItemRequestBuilder.get(any())).thenReturn(futureOldEvent)
-      doNothing().`when`(eventItemRequestBuilder).delete()
+      doNothing().whenever(eventItemRequestBuilder).delete()
 
       val result = calendarService.rescheduleEvent(rescheduleRequest)
 
@@ -351,7 +351,7 @@ class CalendarServiceTest {
       val expectedException = RuntimeException("Graph API error: Delete failed")
 
       doThrow(expectedException)
-        .`when`(service)
+        .whenever(service)
         .deleteExistingOutlookEvent(oldUrn)
 
       assertThrows<RuntimeException> {
@@ -368,7 +368,7 @@ class CalendarServiceTest {
       val service = spy(calendarService)
 
       // Mock getEventDetails to return null (mapping doesn't exist)
-      doReturn(null).`when`(service).getEventDetails(oldUrn)
+      doReturn(null).whenever(service).getEventDetails(oldUrn)
 
       // Should not throw - getEventDetails returns null when mapping doesn't exist
       service.deleteExistingOutlookEvent(oldUrn)
@@ -388,7 +388,7 @@ class CalendarServiceTest {
         attendees = listOf(),
       )
 
-      doReturn(pastEvent).`when`(service).getEventDetails(oldUrn)
+      doReturn(pastEvent).whenever(service).getEventDetails(oldUrn)
 
       service.deleteExistingOutlookEvent(oldUrn)
 

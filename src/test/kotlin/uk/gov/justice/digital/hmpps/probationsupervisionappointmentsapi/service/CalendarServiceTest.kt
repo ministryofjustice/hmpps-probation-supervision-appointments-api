@@ -115,6 +115,7 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
 
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
@@ -134,15 +135,32 @@ class CalendarServiceTest {
       whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
-      val result = calendarService.sendEvent(mockEventRequest)
+      val result = calendarService.sendEvent(
+        mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true),
+        ),
+      )
 
       verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
 
-      assertEquals(mockEventRequest.supervisionAppointmentUrn, mappingCaptor.value.supervisionAppointmentUrn)
-      assertEquals(outlookId, mappingCaptor.value.outlookId)
-      assertEquals(outlookId, result?.id)
-      assertEquals(mockEventRequest.subject, result?.subject)
+      verify(notificationClient).sendSms(
+        "template-id-1",
+        "mobile",
+        mapOf(
+          "FirstName" to "name",
+          "NextWorkSession" to mockEventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+        ),
+        "crn",
+      )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderSent",
+          mapOf("crn" to "crn", "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn),
+        )
+
+      assertEquals(mockGraphEventResponse.toEventResponse(), result)
     }
 
     @Test

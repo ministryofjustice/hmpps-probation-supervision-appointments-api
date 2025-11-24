@@ -31,10 +31,10 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.verifyNoInteractions
+import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
@@ -139,8 +139,8 @@ class CalendarServiceTest {
         )
       }
 
-      `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
-      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
       val result = calendarService.sendEvent(mockEventRequest)
@@ -174,7 +174,7 @@ class CalendarServiceTest {
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
 
       // Mock getting the old event details for deletion
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+      whenever(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
         .thenReturn(mockMapping)
 
       val oldEventForGet = Event().apply {
@@ -189,7 +189,7 @@ class CalendarServiceTest {
         attendees = listOf()
       }
 
-      `when`(eventItemRequestBuilder.get(any())).thenReturn(oldEventForGet)
+      whenever(eventItemRequestBuilder.get(any())).thenReturn(oldEventForGet)
       doNothing().`when`(eventItemRequestBuilder).delete()
 
       // Mock creating the new event
@@ -211,8 +211,8 @@ class CalendarServiceTest {
         )
       }
 
-      `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
-      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
       val result = calendarService.rescheduleEvent(rescheduleRequest)
@@ -244,7 +244,7 @@ class CalendarServiceTest {
       val rescheduleRequest = RescheduleEventRequest(pastEventRequest, oldUrn)
 
       // Mock the old event (which is in the future, so it will be deleted)
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+      whenever(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
         .thenReturn(mockMapping)
 
       val futureOldEvent = Event().apply {
@@ -259,7 +259,7 @@ class CalendarServiceTest {
         }
         attendees = listOf()
       }
-      `when`(eventItemRequestBuilder.get(any())).thenReturn(futureOldEvent)
+      whenever(eventItemRequestBuilder.get(any())).thenReturn(futureOldEvent)
       doNothing().`when`(eventItemRequestBuilder).delete()
 
       val result = calendarService.rescheduleEvent(rescheduleRequest)
@@ -333,7 +333,8 @@ class CalendarServiceTest {
     fun `event without sms request`() {
       val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
       val event = mockEvent()
-      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
       val response = calendarService.sendEvent(eventRequestWithoutSms)
@@ -356,7 +357,7 @@ class CalendarServiceTest {
         .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true))
       val exception = RuntimeException("SMS failure")
 
-      `when`(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
+      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
       doThrow(exception).`when`(notificationClient).sendSms(
         anyString(),
         anyString(),
@@ -399,7 +400,8 @@ class CalendarServiceTest {
     val event = Event().apply {
       id = "some-id"
     }
-    `when`(
+
+    whenever(
       graphClient
         .users()
         .byUserId(anyString())

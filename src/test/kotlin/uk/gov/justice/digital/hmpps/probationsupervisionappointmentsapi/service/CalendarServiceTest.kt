@@ -331,7 +331,6 @@ class CalendarServiceTest {
     @Test
     fun `event without sms request`() {
       val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
-
       `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(Event().apply { id = "some-id" })
       `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
@@ -360,7 +359,9 @@ class CalendarServiceTest {
         anyString(),
       )
 
-      calendarService.sendSMSNotification(eventRequest)
+      val event = mockEvent()
+
+      val response = calendarService.sendEvent(eventRequest)
 
       val templateValues = mapOf(
         "FirstName" to "name",
@@ -372,7 +373,36 @@ class CalendarServiceTest {
         templateValues,
         "crn",
       )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderFailure",
+          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
+        )
+
+      verify(telemetryService)
+        .trackException(
+          exception,
+          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
+        )
+
+      assertEquals(event.toEventResponse(), response)
     }
+  }
+
+  private fun mockEvent(): Event {
+    val event = Event().apply {
+      id = "some-id"
+    }
+    `when`(
+      graphClient
+        .users()
+        .byUserId(anyString())
+        .calendar()
+        .events()
+        .post(any()),
+    ).thenReturn(event)
+    return event
   }
 
   @Nested

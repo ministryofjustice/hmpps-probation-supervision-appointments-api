@@ -47,9 +47,15 @@ class CalendarService(
       ),
     )
 
-    if (featureFlags.enabled("sms-notification-toggle")) {
+    sendSMSNotification(eventRequest)
+
+    return response?.toEventResponse()
+  }
+
+  fun sendSMSNotification(eventRequest: EventRequest) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlags.enabled("sms-notification-toggle")) {
       val templateValues = mapOf(
-        "FirstName" to eventRequest.smsEventRequest!!.personName,
+        "FirstName" to eventRequest.smsEventRequest.personName,
         "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
       )
 
@@ -58,15 +64,18 @@ class CalendarService(
       )
 
       try {
-        notificationClient.sendSms("1234", eventRequest.smsEventRequest.mobileNumber, templateValues, eventRequest.smsEventRequest.crn)
+        notificationClient.sendSms(
+          "1234",
+          eventRequest.smsEventRequest.mobileNumber,
+          templateValues,
+          eventRequest.smsEventRequest.crn,
+        )
       } catch (e: Exception) {
         telemetryService.trackEvent("UnpaidWorkAppointmentReminderFailure", telemetryProperties)
         telemetryService.trackException(e, telemetryProperties)
         Sentry.captureException(e)
       }
     }
-
-    return response?.toEventResponse()
   }
 
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {

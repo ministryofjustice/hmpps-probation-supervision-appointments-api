@@ -5,5 +5,5 @@ data class EventResponse(
   val subject: String?,
   val startDate: String?,
   val endDate: String?,
-  val attendees: List<String>?,
+  val attendees: List<String>? = emptyList(),
 )

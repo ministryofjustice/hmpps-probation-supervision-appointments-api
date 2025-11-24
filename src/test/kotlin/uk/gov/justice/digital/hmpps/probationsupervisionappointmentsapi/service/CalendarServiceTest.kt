@@ -153,6 +153,72 @@ class CalendarServiceTest {
       assertEquals(outlookId, result?.id)
       assertEquals(mockEventRequest.subject, result?.subject)
     }
+
+    @Test
+    fun `event without sms request`() {
+      val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
+      val event = mockEvent()
+
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      val response = calendarService.sendEvent(eventRequestWithoutSms)
+
+      verify(notificationClient, never()).sendSms(
+        anyString(),
+        anyString(),
+        any(),
+        anyString(),
+      )
+
+      verifyNoInteractions(telemetryService)
+
+      assertEquals(event.toEventResponse(), response)
+    }
+
+    @Test
+    fun `should track telemetry and capture exception if sendSms fails`() {
+      val eventRequest = mockEventRequest
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true))
+      val exception = RuntimeException("SMS failure")
+
+      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
+      doThrow(exception).`when`(notificationClient).sendSms(
+        anyString(),
+        anyString(),
+        any(),
+        anyString(),
+      )
+
+      val event = mockEvent()
+
+      val response = calendarService.sendEvent(eventRequest)
+
+      val templateValues = mapOf(
+        "FirstName" to "name",
+        "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+      )
+      verify(notificationClient).sendSms(
+        "template-id-1",
+        "mobile",
+        templateValues,
+        "crn",
+      )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderFailure",
+          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
+        )
+
+      verify(telemetryService)
+        .trackException(
+          exception,
+          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
+        )
+
+      assertEquals(event.toEventResponse(), response)
+    }
   }
 
   @Nested
@@ -327,72 +393,6 @@ class CalendarServiceTest {
       service.deleteExistingOutlookEvent(oldUrn)
 
       verify(eventItemRequestBuilder, never()).delete()
-    }
-
-    @Test
-    fun `event without sms request`() {
-      val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
-      val event = mockEvent()
-
-      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
-        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
-
-      val response = calendarService.sendEvent(eventRequestWithoutSms)
-
-      verify(notificationClient, never()).sendSms(
-        anyString(),
-        anyString(),
-        any(),
-        anyString(),
-      )
-
-      verifyNoInteractions(telemetryService)
-
-      assertEquals(event.toEventResponse(), response)
-    }
-
-    @Test
-    fun `should track telemetry and capture exception if sendSms fails`() {
-      val eventRequest = mockEventRequest
-        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true))
-      val exception = RuntimeException("SMS failure")
-
-      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
-      doThrow(exception).`when`(notificationClient).sendSms(
-        anyString(),
-        anyString(),
-        any(),
-        anyString(),
-      )
-
-      val event = mockEvent()
-
-      val response = calendarService.sendEvent(eventRequest)
-
-      val templateValues = mapOf(
-        "FirstName" to "name",
-        "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
-      )
-      verify(notificationClient).sendSms(
-        "template-id-1",
-        "mobile",
-        templateValues,
-        "crn",
-      )
-
-      verify(telemetryService)
-        .trackEvent(
-          "AppointmentReminderFailure",
-          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
-        )
-
-      verify(telemetryService)
-        .trackException(
-          exception,
-          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
-        )
-
-      assertEquals(event.toEventResponse(), response)
     }
   }
 

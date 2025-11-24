@@ -18,7 +18,7 @@ data class Recipient(
 )
 
 data class SmsEventRequest(
-  val personName: String,
+  val firstName: String,
   val mobileNumber: String?,
   val crn: String,
   val smsOptIn: Boolean,

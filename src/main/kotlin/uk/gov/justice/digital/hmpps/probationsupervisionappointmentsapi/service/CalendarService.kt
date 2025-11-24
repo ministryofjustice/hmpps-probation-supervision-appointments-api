@@ -55,7 +55,7 @@ class CalendarService(
   fun sendSMSNotification(eventRequest: EventRequest) {
     if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.enabled("sms-notification-toggle")) {
       val templateValues = mapOf(
-        "FirstName" to eventRequest.smsEventRequest.personName,
+        "FirstName" to eventRequest.smsEventRequest.firstName,
         "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
       )
 

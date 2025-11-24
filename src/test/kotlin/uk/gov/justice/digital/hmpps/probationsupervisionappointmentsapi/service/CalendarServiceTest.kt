@@ -39,6 +39,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import uk.gov.service.notify.NotificationClient
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -69,6 +70,15 @@ class CalendarServiceTest {
   @Mock
   private lateinit var eventItemRequestBuilder: EventItemRequestBuilder
 
+  @Mock
+  private lateinit var featureFlags: FeatureFlags
+
+  @Mock
+  private lateinit var notificationClient: NotificationClient
+
+  @Mock
+  private lateinit var telemetryService: TelemetryService
+
   @Captor
   private lateinit var mappingCaptor: ArgumentCaptor<DeliusOutlookMapping>
 
@@ -90,7 +100,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, fromEmail)
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, fromEmail)
   }
 
   private fun setupGraphMocks() {
@@ -137,8 +147,8 @@ class CalendarServiceTest {
 
       assertEquals(mockEventRequest.supervisionAppointmentUrn, mappingCaptor.value.supervisionAppointmentUrn)
       assertEquals(outlookId, mappingCaptor.value.outlookId)
-      assertEquals(outlookId, result.id)
-      assertEquals(mockEventRequest.subject, result.subject)
+      assertEquals(outlookId, result?.id)
+      assertEquals(mockEventRequest.subject, result?.subject)
     }
   }
 
@@ -325,13 +335,13 @@ class CalendarServiceTest {
       val event = calendarService.buildEvent(mockEventRequest)
 
       assertEquals(mockEventRequest.subject, event.subject)
-      assertEquals(EVENT_TIMEZONE, event.start.timeZone)
-      assertEquals(fixedStartDateTime.toString(), event.start.dateTime)
-      assertEquals(fixedStartDateTime.plusMinutes(durationMinutes).toString(), event.end.dateTime)
-      assertEquals(1, event.attendees.size)
-      assertEquals(mockRecipient.emailAddress, event.attendees.first().emailAddress.address)
-      assertEquals(mockEventRequest.message, event.body.content)
-      assertEquals(BodyType.Html, event.body.contentType)
+      assertEquals(EVENT_TIMEZONE, event.start?.timeZone)
+      assertEquals(fixedStartDateTime.toString(), event.start?.dateTime)
+      assertEquals(fixedStartDateTime.plusMinutes(durationMinutes).toString(), event.end?.dateTime)
+      assertEquals(1, event.attendees?.size)
+      assertEquals(mockRecipient.emailAddress, event.attendees?.first()?.emailAddress?.address)
+      assertEquals(mockEventRequest.message, event.body?.content)
+      assertEquals(BodyType.Html, event.body?.contentType)
     }
 
     @Test
@@ -373,10 +383,10 @@ class CalendarServiceTest {
       val attendees = calendarService.getAttendees(recipients)
 
       assertEquals(2, attendees.size)
-      assertEquals("user1@example.com", attendees[0].emailAddress.address)
-      assertEquals("User One", attendees[0].emailAddress.name)
-      assertEquals("user2@example.com", attendees[1].emailAddress.address)
-      assertEquals("User Two", attendees[1].emailAddress.name)
+      assertEquals("user1@example.com", attendees[0].emailAddress?.address)
+      assertEquals("User One", attendees[0].emailAddress?.name)
+      assertEquals("user2@example.com", attendees[1].emailAddress?.address)
+      assertEquals("User Two", attendees[1].emailAddress?.name)
     }
   }
 }

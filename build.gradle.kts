@@ -11,6 +11,9 @@ val microsoftGraphVersion = "6.55.0"
 val wiremockVersion = "3.13.1"
 val swaggerParserVersion = "2.1.35"
 val springdocVersion = "2.8.13"
+val fliptVersion = "1.1.2"
+val sentryVersion = "8.25.0"
+val notifyVersion = "5.2.1-RELEASE"
 
 idea {
   module {
@@ -30,6 +33,9 @@ dependencies {
   implementation("org.flywaydb:flyway-core")
   implementation("com.microsoft.graph:microsoft-graph:$microsoftGraphVersion")
   implementation("com.azure:azure-identity:$azureIdentityVersion")
+  implementation("io.flipt:flipt-client-java:$fliptVersion")
+  implementation("uk.gov.service.notify:notifications-java-client:$notifyVersion")
+  implementation("io.sentry:sentry-spring-boot-starter-jakarta:$sentryVersion")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")

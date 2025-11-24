@@ -2,8 +2,8 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.control
 
 data class EventResponse(
   val id: String?,
-  val subject: String,
-  val startDate: String,
-  val endDate: String,
-  val attendees: List<String>,
+  val subject: String?,
+  val startDate: String?,
+  val endDate: String?,
+  val attendees: List<String>?,
 )

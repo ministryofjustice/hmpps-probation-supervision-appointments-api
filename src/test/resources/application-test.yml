@@ -27,3 +27,8 @@ graph-client:
   tenant-id: id
 
 calendar-from-email: MPoP-Digital-Team@justice.gov.uk
+
+
+flipt:
+  url: "http://localhost:8092"
+  token:  "test-token"

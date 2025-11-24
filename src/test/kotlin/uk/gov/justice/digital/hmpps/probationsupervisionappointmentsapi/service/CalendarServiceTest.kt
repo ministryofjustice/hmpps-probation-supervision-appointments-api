@@ -26,7 +26,6 @@ import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doThrow
-import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
@@ -106,25 +105,17 @@ class CalendarServiceTest {
     calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, fromEmail, "template-id-1")
   }
 
-  private fun setupGraphMocks() {
-    lenient().`when`(graphClient.users()).thenReturn(usersRequestBuilder)
-    lenient().`when`(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
-    lenient().`when`(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
-    lenient().`when`(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-    lenient().`when`(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
-  }
-
   @Nested
   inner class SendEventTests {
     private val outlookId = "mock-outlook-id"
 
-    @BeforeEach
-    fun setupNested() {
-      setupGraphMocks()
-    }
-
     @Test
     fun `should create event via Graph and save mapping to repository`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
       val mockGraphEventResponse = Event().apply {
@@ -156,6 +147,10 @@ class CalendarServiceTest {
 
     @Test
     fun `event without sms request`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
       val event = mockEvent()
 
@@ -178,6 +173,10 @@ class CalendarServiceTest {
 
     @Test
     fun `should track telemetry and capture exception if sendSms fails`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       val eventRequest = mockEventRequest
         .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true))
       val exception = RuntimeException("SMS failure")
@@ -228,13 +227,13 @@ class CalendarServiceTest {
     private val oldOutlookId = "old-outlook-id"
     private val mockMapping = DeliusOutlookMapping(supervisionAppointmentUrn = oldUrn, outlookId = oldOutlookId)
 
-    @BeforeEach
-    fun setupNested() {
-      setupGraphMocks()
-    }
-
     @Test
     fun `should delete old event and send new event if new start is in the future`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
@@ -298,6 +297,11 @@ class CalendarServiceTest {
 
     @Test
     fun `should only delete old event and return manual response if new start is in the past`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
       val pastStart = ZonedDateTime.now().minusDays(1)
       val pastEventRequest = EventRequest(
         recipients = listOf(mockRecipient),

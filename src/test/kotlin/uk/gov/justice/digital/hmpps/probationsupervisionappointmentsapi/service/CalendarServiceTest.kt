@@ -149,7 +149,7 @@ class CalendarServiceTest {
         "mobile",
         mapOf(
           "FirstName" to "name",
-          "NextWorkSession" to mockEventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+          "Date" to mockEventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
         ),
         "crn",
       )
@@ -247,7 +247,7 @@ class CalendarServiceTest {
 
       val templateValues = mapOf(
         "FirstName" to "name",
-        "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+        "Date" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
       )
       verify(notificationClient).sendSms(
         "template-id-1",

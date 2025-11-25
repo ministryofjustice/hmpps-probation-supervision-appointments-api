@@ -32,7 +32,6 @@ class FliptExtension :
   }
 
   override fun afterAll(context: ExtensionContext) {
-    println("UNMATCHED: ${flipt.findAllUnmatchedRequests()}")
     flipt.stop()
   }
 }
@@ -45,13 +44,6 @@ class FliptMockServer :
   ) {
   companion object {
     private const val WIREMOCK_PORT = 8092
-  }
-
-  init {
-    addMockServiceRequestListener { request, response ->
-      println(">>>STUBS: ${this.stubMappings.size} }")
-      println(">>> WIREMOCK RECEIVED REQUEST: ${request.method} ${request.url}")
-    }
   }
 
   fun stubGetFeatureFlags() {
@@ -74,8 +66,8 @@ class FliptMockServer :
                           "description": "",
                           "enabled": true,
                           "type": "BOOLEAN_FLAG_TYPE",
-                          "createdAt": "2025-01-13T15:28:37.920581Z",
-                          "updatedAt": "2025-01-13T17:06:39.269084Z",
+                          "createdAt": "2025-11-25T15:28:37.920581Z",
+                          "updatedAt": "2025-11-25T17:06:39.269084Z",
                           "rules": [],
                           "rollouts": []
                         }

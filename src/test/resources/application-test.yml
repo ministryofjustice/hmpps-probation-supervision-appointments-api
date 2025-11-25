@@ -33,7 +33,7 @@ flipt:
   url: "http://localhost:8092"
   token:  "test-token"
 
-gov-notify:
-  template-ids:
-    appointment-scheduled: "template-id-1"
+govuk-notify:
+  api-key: "test-api-key"
+  template-id: "template-id-1"
 

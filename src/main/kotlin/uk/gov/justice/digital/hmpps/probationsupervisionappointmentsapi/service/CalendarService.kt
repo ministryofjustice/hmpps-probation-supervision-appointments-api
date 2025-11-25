@@ -34,7 +34,7 @@ class CalendarService(
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   @Value("\${calendar-from-email}") private val fromEmail: String,
-  @Value("\${gov-notify.template-ids.appointment-scheduled}") private val appointmentScheduledTemplateId: String,
+  @Value("\${govuk-notify.template-id}") private val appointmentScheduledTemplateId: String,
 ) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse? {
@@ -56,7 +56,7 @@ class CalendarService(
     if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.enabled("sms-notification-toggle")) {
       val templateValues = mapOf(
         "FirstName" to eventRequest.smsEventRequest.firstName,
-        "NextWorkSession" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+        "Date" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
       )
 
       val telemetryProperties = mapOf(

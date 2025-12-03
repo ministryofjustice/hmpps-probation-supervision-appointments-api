@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integra
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.absent
+import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.matching
@@ -157,6 +158,75 @@ class MsGraphMockServer :
           .withStatus(status)
           .withBody(if (status == 200) """{"status":"UP"}""" else """{"status":"DOWN"}"""),
       ),
+    )
+  }
+
+  fun stubCreateRescheduledEvent(attendeesEmail: String? = "MPoP-Digital-Team@justice.gov.uk", eventId: String, startDateTime: String? = "2025-11-16T15:03:29Z", endDateTime: String? = "2025-11-16T15:48:29Z") {
+    val body = mapOf(
+      "id" to eventId,
+      "subject" to "Rescheduled Meeting Subject",
+      "start" to mapOf("dateTime" to startDateTime, "timeZone" to "Europe/London"),
+      "end" to mapOf("dateTime" to endDateTime, "timeZone" to "Europe/London"),
+      "attendees" to listOf(mapOf("emailAddress" to mapOf("address" to attendeesEmail, "name" to "Attendee"))),
+    )
+
+    stubFor(
+      post(urlPathMatching("/v1.0/users/[^/]+/calendar/events"))
+        .willReturn(
+          aResponse()
+            .withStatus(201)
+            .withHeader("Content-Type", "application/json")
+            .withBody(Json.write(body)),
+        ),
+    )
+  }
+
+  fun stubDeleteEvent(email: String, eventId: String) {
+    val encodedEmail = email.replace("@", "%40")
+    val urlPath = "/v1.0/users/$encodedEmail/calendar/events/$eventId"
+
+    stubFor(
+      delete(urlPathEqualTo(urlPath))
+        .willReturn(
+          aResponse()
+            .withStatus(204),
+        ),
+    )
+  }
+  fun stubGetEvent(email: String, eventId: String, startDateTime: String) {
+    val encodedEmail = email.replace("@", "%40")
+    val urlPath = "/v1.0/users/$encodedEmail/calendar/events/$eventId"
+
+    val body = mapOf(
+      "id" to eventId,
+      "subject" to "Original Meeting",
+      "start" to mapOf(
+        "dateTime" to startDateTime,
+        "timeZone" to "Europe/London",
+      ),
+      "end" to mapOf(
+        "dateTime" to "2025-09-16T10:30:00Z",
+        "timeZone" to "Europe/London",
+      ),
+      "attendees" to listOf(
+        mapOf(
+          "emailAddress" to mapOf(
+            "address" to email,
+            "name" to "test",
+          ),
+          "type" to "required", // ← ★ REQUIRED FIELD YOU WERE MISSING
+        ),
+      ),
+    )
+
+    stubFor(
+      get(urlPathEqualTo(urlPath))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(Json.write(body)),
+        ),
     )
   }
 }

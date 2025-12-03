@@ -15,3 +15,8 @@ data class Recipient(
   val emailAddress: String,
   val name: String,
 )
+
+data class RescheduleEventRequest(
+  val rescheduledEventRequest: EventRequest,
+  val oldSupervisionAppointmentUrn: String,
+)

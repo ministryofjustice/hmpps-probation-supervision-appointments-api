@@ -32,6 +32,7 @@ generic-service:
       GRAPH_CLIENT_CLIENT_SECRET: GRAPH_CLIENT_SECRET
       GRAPH_CLIENT_TENANT_ID: GRAPH_TENANT_ID
       CALENDAR_FROM_EMAIL: CALENDAR_FROM_EMAIL
+      GOV_NOTIFY_API_KEY: NOTIFY_API_KEY
     rds-postgresql-instance-output:
       SPRING_DATASOURCE_USERNAME: "database_username"
       SPRING_DATASOURCE_PASSWORD: "database_password"

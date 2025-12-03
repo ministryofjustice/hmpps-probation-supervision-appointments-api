@@ -22,6 +22,12 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
 
     val durationMinutes: Long = 30
     val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7932"
+    val smsRequest = mapOf(
+      "smsOptIn" to true,
+      "firstName" to "John Doe",
+      "personTelephoneNumber" to "07123456789",
+      "crn" to "X123456",
+    )
 
     val body = mapOf(
       "fromEmail" to email,
@@ -31,6 +37,7 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
       "start" to "2025-09-16T10:00:00Z",
       "duration" to durationMinutes,
       "supervisionAppointmentUrn" to supervisionAppointmentUrn,
+      "smsEventRequest" to smsRequest,
     )
 
     val expected = EventResponse("mock-event-id-123", "3 Way Meeting (Non NS) with Jon Smith", "2025-09-16T10:00:00Z", "2025-09-16T10:30:00Z", listOf("test@test.com"))

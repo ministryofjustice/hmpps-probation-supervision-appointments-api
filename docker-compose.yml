@@ -21,6 +21,10 @@ services:
       - DATABASE_PASSWORD=password
       - DATABASE_URL=jdbc:postgresql://probation-supervision-db:5432/probation-supervision
       - DATABASE_USERNAME=postgres
+      - FLIPT_URL=http://wiremock:8080
+      - FLIPT_token=123
+      - GOVUK_NOTIFY_TEMPLATE_ID=${TEMPLATE_ID} #get value from 1password and populate .env
+      - GOVUK_NOTIFY_API_KEY=${API_KEY}
 
   hmpps-auth:
     image: quay.io/hmpps/hmpps-auth:latest
@@ -47,5 +51,21 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=postgres
       - POSTGRES_DB=probation-supervision
+
+  wiremock:
+    image: wiremock/wiremock:2.35.0
+    networks:
+      - hmpps
+    container_name: wiremock
+    ports:
+      - "8081:8080"       # host:container
+    environment:
+      WIREMOCK_OPTIONS: "--verbose"
+    volumes:
+      - ./docker-wiremock/mappings:/home/wiremock/mappings
+
 networks:
   hmpps:
+
+volumes:
+  flipt-data:

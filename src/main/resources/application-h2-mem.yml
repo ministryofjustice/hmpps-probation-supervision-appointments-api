@@ -31,4 +31,6 @@ graph-client:
   client-secret: secret
   tenant-id: id
 
-calendar-from-email: MPoP-Digital-Team@justice.gov.uk
+flipt:
+  url: "http://localhost:${wiremock.port}"
+  token:  "test-token"

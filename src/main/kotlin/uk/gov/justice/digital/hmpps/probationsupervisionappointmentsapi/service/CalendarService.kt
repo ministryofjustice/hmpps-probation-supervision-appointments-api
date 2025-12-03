@@ -18,31 +18,66 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
+import uk.gov.service.notify.NotificationClient
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 private const val EVENT_TIMEZONE = "Europe/London"
 
 @Service
 class CalendarService(
-  val graphClient: GraphServiceClient,
-  val deliusOutlookMappingRepository: DeliusOutlookMappingRepository,
-  @Value("\${calendar-from-email}")
-  private val fromEmail: String,
+  private val graphClient: GraphServiceClient,
+  private val deliusOutlookMappingRepository: DeliusOutlookMappingRepository,
+  private val featureFlagsService: FeatureFlagsService,
+  private val notificationClient: NotificationClient,
+  private val telemetryService: TelemetryService,
+  @Value("\${calendar-from-email}") private val fromEmail: String,
+  @Value("\${govuk-notify.template-id}") private val appointmentScheduledTemplateId: String,
 ) {
 
-  fun sendEvent(eventRequest: EventRequest): EventResponse {
+  fun sendEvent(eventRequest: EventRequest): EventResponse? {
     val event = buildEvent(eventRequest)
     val response = createEvent(fromEmail, event)
     deliusOutlookMappingRepository.save(
       DeliusOutlookMapping(
         supervisionAppointmentUrn = eventRequest.supervisionAppointmentUrn,
-        outlookId = response.id.toString(),
+        outlookId = response?.id.toString(),
       ),
     )
 
-    return response.toEventResponse()
+    sendSMSNotification(eventRequest)
+
+    return response?.toEventResponse()
+  }
+
+  fun sendSMSNotification(eventRequest: EventRequest) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabled("sms-notification-toggle")) {
+      val templateValues = mapOf(
+        "FirstName" to eventRequest.smsEventRequest.firstName,
+        "Date" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+      )
+
+      val telemetryProperties = mapOf(
+        "crn" to eventRequest.smsEventRequest.crn,
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+      )
+
+      try {
+        notificationClient.sendSms(
+          appointmentScheduledTemplateId,
+          eventRequest.smsEventRequest.mobileNumber,
+          templateValues,
+          eventRequest.smsEventRequest.crn,
+        )
+
+        telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
+      } catch (e: Exception) {
+        telemetryService.trackEvent("AppointmentReminderFailure", telemetryProperties)
+        telemetryService.trackException(e, telemetryProperties)
+      }
+    }
   }
 
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
@@ -65,7 +100,7 @@ class CalendarService(
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
     getEventDetails(oldSupervisionAppointmentUrn)?.let {
-      val eventStart = LocalDateTime.parse(it.startDate)
+      val eventStart = LocalDateTime.parse(requireNotNull(it.startDate))
         .atZone(ZoneId.of("UTC"))
       val now = ZonedDateTime.now()
 
@@ -113,7 +148,7 @@ class CalendarService(
     return mapping.toDeliusOutlookMappingsResponse()
   }
 
-  fun createEvent(userEmail: String, event: Event) = graphClient
+  fun createEvent(userEmail: String, event: Event): Event? = graphClient
     .users()
     .byUserId(userEmail)
     .calendar()
@@ -131,7 +166,7 @@ class CalendarService(
       .events()
       .byEventId(outlookId)[
       { requestConfiguration ->
-        requestConfiguration.queryParameters.select = arrayOf(
+        requestConfiguration?.queryParameters?.select = arrayOf(
           "subject",
           "organizer",
           "attendees",
@@ -149,9 +184,9 @@ class CalendarService(
 fun Event.toEventResponse(): EventResponse = EventResponse(
   id = id,
   subject = subject,
-  startDate = start.dateTime,
-  endDate = end.dateTime,
-  attendees = attendees.map { it.emailAddress.address },
+  startDate = start?.dateTime,
+  endDate = end?.dateTime,
+  attendees = attendees?.mapNotNull { it?.emailAddress?.address },
 )
 
 fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse = DeliusOutlookMappingsResponse(

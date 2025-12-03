@@ -7,6 +7,9 @@ plugins {
 
 val hmppsSpringBootStarterVersion = "1.8.2"
 val azureIdentityVersion = "1.18.1"
+val fliptVersion = "1.1.2"
+val sentryVersion = "8.25.0"
+val notifyVersion = "5.2.1-RELEASE"
 val microsoftGraphVersion = "6.57.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.36"
@@ -30,6 +33,9 @@ dependencies {
   implementation("org.flywaydb:flyway-core")
   implementation("com.microsoft.graph:microsoft-graph:$microsoftGraphVersion")
   implementation("com.azure:azure-identity:$azureIdentityVersion")
+  implementation("io.flipt:flipt-client-java:$fliptVersion")
+  implementation("uk.gov.service.notify:notifications-java-client:$notifyVersion")
+  implementation("io.sentry:sentry-spring-boot-starter-jakarta:$sentryVersion")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")

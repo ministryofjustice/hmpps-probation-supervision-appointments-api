@@ -10,7 +10,7 @@ val azureIdentityVersion = "1.18.1"
 val microsoftGraphVersion = "6.57.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.36"
-val springdocVersion = "2.8.14"
+val springdocVersion = "3.0.0"
 
 idea {
   module {

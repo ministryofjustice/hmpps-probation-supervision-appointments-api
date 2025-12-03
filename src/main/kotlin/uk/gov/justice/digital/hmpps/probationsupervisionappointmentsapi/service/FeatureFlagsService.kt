@@ -13,7 +13,7 @@ class FeatureFlagsService(
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun enabled(key: String) = try {
+  fun isEnabled(key: String) = try {
     client
       .evaluateBoolean(key, key, emptyMap<String, String>())
       .isEnabled

@@ -115,7 +115,7 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
+      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
 
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
@@ -169,7 +169,7 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(false)
+      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(false)
 
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
@@ -233,7 +233,7 @@ class CalendarServiceTest {
         .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true))
       val exception = RuntimeException("SMS failure")
 
-      whenever(featureFlags.enabled("sms-notification-toggle")).thenReturn(true)
+      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
         anyString(),
         anyString(),

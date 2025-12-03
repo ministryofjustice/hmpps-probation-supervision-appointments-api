@@ -53,7 +53,7 @@ class CalendarService(
   }
 
   fun sendSMSNotification(eventRequest: EventRequest) {
-    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.enabled("sms-notification-toggle")) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabled("sms-notification-toggle")) {
       val templateValues = mapOf(
         "FirstName" to eventRequest.smsEventRequest.firstName,
         "Date" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),

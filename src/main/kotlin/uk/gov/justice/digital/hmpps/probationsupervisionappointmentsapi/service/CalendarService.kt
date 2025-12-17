@@ -41,6 +41,10 @@ class CalendarService(
     val now = ZonedDateTime.now()
 
     if (eventRequest.start.isBefore(now)) {
+      val telemetryProperties = mapOf(
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+      )
+      telemetryService.trackEvent("AppointmentInThePast", telemetryProperties)
       return EventResponse(
         id = null,
         subject = eventRequest.subject,

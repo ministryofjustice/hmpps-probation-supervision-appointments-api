@@ -38,6 +38,18 @@ class CalendarService(
 ) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse? {
+    val now = ZonedDateTime.now()
+
+    if (eventRequest.start.isBefore(now)) {
+      return EventResponse(
+        id = null,
+        subject = eventRequest.subject,
+        startDate = eventRequest.start.toString(),
+        endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
+        attendees = eventRequest.recipients.map { it.emailAddress },
+      )
+    }
+
     val event = buildEvent(eventRequest)
     val response = createEvent(fromEmail, event)
     deliusOutlookMappingRepository.save(
@@ -83,19 +95,7 @@ class CalendarService(
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
     deleteExistingOutlookEvent(rescheduleEventRequest.oldSupervisionAppointmentUrn)
 
-    val now = ZonedDateTime.now()
-    val eventRequest = rescheduleEventRequest.rescheduledEventRequest
-
-    if (eventRequest.start.isAfter(now) || eventRequest.start.isEqual(now)) {
-      return sendEvent(eventRequest)
-    }
-    return EventResponse(
-      id = null,
-      subject = eventRequest.subject,
-      startDate = eventRequest.start.toString(),
-      endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
-      attendees = eventRequest.recipients.map { it.emailAddress },
-    )
+    return sendEvent(rescheduleEventRequest.rescheduledEventRequest)
   }
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {

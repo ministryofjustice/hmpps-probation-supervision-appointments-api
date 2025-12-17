@@ -56,8 +56,8 @@ class MsGraphMockServer :
     val body = mapOf(
       "id" to "mock-event-id-123",
       "subject" to "3 Way Meeting (Non NS) with Jon Smith",
-      "start" to mapOf("dateTime" to "2025-09-16T10:00:00Z", "timeZone" to "UTC"),
-      "end" to mapOf("dateTime" to "2025-09-16T10:30:00Z", "timeZone" to "UTC"),
+      "start" to mapOf("dateTime" to "2044-09-16T10:00:00Z", "timeZone" to "UTC"),
+      "end" to mapOf("dateTime" to "2044-09-16T10:30:00Z", "timeZone" to "UTC"),
       "attendees" to listOf(mapOf("emailAddress" to mapOf("address" to email, "name" to "test"))),
     )
 

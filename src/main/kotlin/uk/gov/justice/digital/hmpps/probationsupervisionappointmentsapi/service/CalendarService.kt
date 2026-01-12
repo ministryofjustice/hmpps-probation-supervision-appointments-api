@@ -160,56 +160,42 @@ class CalendarService(
     .post(event)
 
   fun getEventDetails(supervisionAppointmentUrn: String): EventResponse? {
+    // if no mapping found, exception will be thrown
     val outlookId = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn).outlookId
 
-    // user may have deleted their outlook event
-    val event = graphClient
-      .users()
-      .byUserId("MPoP-Digital-Team@justice.gov.uk")
-      .calendar()
-      .events()
-      .byEventId(outlookId)[
-      { requestConfiguration ->
-        requestConfiguration?.queryParameters?.select = arrayOf(
-          "subject",
-          "organizer",
-          "attendees",
-          "start",
-          "end",
-        )
-        requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
-      },
-    ]
+    // user may have deleted the event, so handle null response
+    val event = getEvent(outlookId)
 
     return event?.toEventResponse()
   }
 
   fun findEventDetails(supervisionAppointmentUrn: String): EventResponse? {
+    // if no mapping found, null will be returned
     val outlookId = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn)?.outlookId
 
-    // user may have deleted their outlook event
-    val event = outlookId?.let {
-      graphClient
-        .users()
-        .byUserId("MPoP-Digital-Team@justice.gov.uk")
-        .calendar()
-        .events()
-        .byEventId(it)[
-        { requestConfiguration ->
-          requestConfiguration?.queryParameters?.select = arrayOf(
-            "subject",
-            "organizer",
-            "attendees",
-            "start",
-            "end",
-          )
-          requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
-        },
-      ]
-    }
+    // user may have deleted the event, so handle null response
+    val event = outlookId?.let { getEvent(it) }
 
     return event?.toEventResponse()
   }
+
+  fun getEvent(outlookId: String): Event? = graphClient
+    .users()
+    .byUserId("MPoP-Digital-Team@justice.gov.uk")
+    .calendar()
+    .events()
+    .byEventId(outlookId)[
+    { requestConfiguration ->
+      requestConfiguration?.queryParameters?.select = arrayOf(
+        "subject",
+        "organizer",
+        "attendees",
+        "start",
+        "end",
+      )
+      requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
+    },
+  ]
 }
 
 fun Event.toEventResponse(): EventResponse = EventResponse(

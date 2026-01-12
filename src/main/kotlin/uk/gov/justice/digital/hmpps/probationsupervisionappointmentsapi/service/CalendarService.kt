@@ -103,7 +103,7 @@ class CalendarService(
   }
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
-    getEventDetails(oldSupervisionAppointmentUrn)?.let {
+    findEventDetails(oldSupervisionAppointmentUrn)?.let {
       val eventStart = LocalDateTime.parse(requireNotNull(it.startDate))
         .atZone(ZoneId.of("UTC"))
       val now = ZonedDateTime.now()
@@ -180,6 +180,33 @@ class CalendarService(
         requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
       },
     ]
+
+    return event?.toEventResponse()
+  }
+
+  fun findEventDetails(supervisionAppointmentUrn: String): EventResponse? {
+    val outlookId = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn)?.outlookId
+
+    // user may have deleted their outlook event
+    val event = outlookId?.let {
+      graphClient
+        .users()
+        .byUserId("MPoP-Digital-Team@justice.gov.uk")
+        .calendar()
+        .events()
+        .byEventId(it)[
+        { requestConfiguration ->
+          requestConfiguration?.queryParameters?.select = arrayOf(
+            "subject",
+            "organizer",
+            "attendees",
+            "start",
+            "end",
+          )
+          requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
+        },
+      ]
+    }
 
     return event?.toEventResponse()
   }

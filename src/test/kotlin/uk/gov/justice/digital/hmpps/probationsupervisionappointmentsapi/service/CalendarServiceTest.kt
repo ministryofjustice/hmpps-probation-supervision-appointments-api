@@ -31,7 +31,6 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
@@ -41,7 +40,6 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.service.notify.NotificationClient
-import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -420,35 +418,52 @@ class CalendarServiceTest {
     }
 
     @Test
-    fun `should not delete old event if it no longer exists in repository`() {
-      val service = spy(calendarService)
+    fun `if old event does not exist, api should not fail`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
+      val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
+      val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
 
-      // Mock getEventDetails to return null (mapping doesn't exist)
-      doReturn(null).whenever(service).getEventDetails(oldUrn)
+      // Mock getting the old event details for deletion
+      whenever(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+        .thenReturn(null)
 
-      // Should not throw - getEventDetails returns null when mapping doesn't exist
-      service.deleteExistingOutlookEvent(oldUrn)
+      // Mock creating the new event
+      val newOutlookId = "new-outlook-id-123"
+      val mockGraphEventResponse = Event().apply {
+        id = newOutlookId
+        subject = futureEventRequest.subject
+        start = DateTimeTimeZone().apply {
+          dateTime = futureEventRequest.start.toLocalDateTime().toString()
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = futureEndDateTime.toLocalDateTime().toString()
+        }
+        attendees = listOf(
+          Attendee().apply {
+            emailAddress = EmailAddress()
+              .apply { address = futureEventRequest.recipients.first().emailAddress }
+          },
+        )
+      }
 
-      verify(eventItemRequestBuilder, never()).delete()
-    }
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
-    @Test
-    fun `should not delete old event if start time is in the past`() {
-      val service = spy(calendarService)
+      val result = calendarService.rescheduleEvent(rescheduleRequest)
 
-      val pastEvent = uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse(
-        id = oldOutlookId,
-        subject = "Past Event",
-        startDate = LocalDateTime.now().minusDays(1).toString(),
-        endDate = LocalDateTime.now().minusDays(1).plusMinutes(durationMinutes).toString(),
-        attendees = listOf(),
-      )
+      // Verify new event created
+      verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
+      verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
 
-      doReturn(pastEvent).whenever(service).getEventDetails(oldUrn)
-
-      service.deleteExistingOutlookEvent(oldUrn)
-
-      verify(eventItemRequestBuilder, never()).delete()
+      assertEquals(newUrn, mappingCaptor.value.supervisionAppointmentUrn)
+      assertEquals(newOutlookId, mappingCaptor.value.outlookId)
+      assertNotNull(result)
+      assertEquals(newOutlookId, result?.id)
     }
   }
 

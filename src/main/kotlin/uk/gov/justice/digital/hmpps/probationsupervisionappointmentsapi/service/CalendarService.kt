@@ -164,7 +164,7 @@ class CalendarService(
     val outlookId = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn).outlookId
 
     // user may have deleted the event, so handle null response
-    val event = getEvent(outlookId)
+    val event = getCalendarEventByOutlookId(outlookId)
 
     return event?.toEventResponse()
   }
@@ -174,12 +174,12 @@ class CalendarService(
     val outlookId = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn)?.outlookId
 
     // user may have deleted the event, so handle null response
-    val event = outlookId?.let { getEvent(it) }
+    val event = outlookId?.let { getCalendarEventByOutlookId(it) }
 
     return event?.toEventResponse()
   }
 
-  fun getEvent(outlookId: String): Event? = graphClient
+  fun getCalendarEventByOutlookId(outlookId: String): Event? = graphClient
     .users()
     .byUserId("MPoP-Digital-Team@justice.gov.uk")
     .calendar()

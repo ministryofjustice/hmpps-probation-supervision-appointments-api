@@ -33,6 +33,7 @@ import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
@@ -40,8 +41,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.service.notify.NotificationClient
+import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 private const val EVENT_TIMEZONE = "Europe/London"
@@ -79,6 +80,12 @@ class CalendarServiceTest {
   @Mock
   private lateinit var telemetryService: TelemetryService
 
+  @Mock
+  private lateinit var translationService: TranslationService
+
+  @Mock
+  private lateinit var smsTemplateResolverService: SmsTemplateResolverService
+
   @Captor
   private lateinit var mappingCaptor: ArgumentCaptor<DeliusOutlookMapping>
 
@@ -100,7 +107,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, fromEmail, "template-id-1")
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, translationService, smsTemplateResolverService, fromEmail)
   }
 
   @Nested
@@ -114,7 +121,12 @@ class CalendarServiceTest {
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
-
+      val templateId = UUID.randomUUID().toString()
+      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
       val mockGraphEventResponse = Event().apply {
@@ -135,7 +147,7 @@ class CalendarServiceTest {
 
       val result = calendarService.sendEvent(
         mockEventRequest.copy(
-          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true),
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, SmsLanguage.ENGLISH),
         ),
       )
 
@@ -143,11 +155,14 @@ class CalendarServiceTest {
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
 
       verify(notificationClient).sendSms(
-        "template-id-1",
+        templateId,
         "mobile",
         mapOf(
-          "FirstName" to "name",
-          "Date" to mockEventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+          "FIRST_NAME" to "name",
+          "APPOINTMENT_DATE" to "Saturday 1 January",
+          "APPOINTMENT_TIME" to "10am",
+          "APPOINTMENT_LOCATION" to "",
+          "APPOINTMENT_TYPE" to "",
         ),
         "crn",
       )
@@ -155,7 +170,7 @@ class CalendarServiceTest {
       verify(telemetryService)
         .trackEvent(
           "AppointmentReminderSent",
-          mapOf("crn" to "crn", "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn),
+          mapOf("crn" to "crn", "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn, "smsLanguage" to SmsLanguage.ENGLISH.name),
         )
 
       assertEquals(mockGraphEventResponse.toEventResponse(), result)
@@ -189,7 +204,7 @@ class CalendarServiceTest {
 
       val result = calendarService.sendEvent(
         mockEventRequest.copy(
-          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true),
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, SmsLanguage.ENGLISH),
         ),
       )
 
@@ -228,9 +243,14 @@ class CalendarServiceTest {
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       val eventRequest = mockEventRequest
-        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true))
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, SmsLanguage.ENGLISH))
       val exception = RuntimeException("SMS failure")
-
+      val templateId = UUID.randomUUID().toString()
+      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
       whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
         anyString(),
@@ -244,26 +264,35 @@ class CalendarServiceTest {
       val response = calendarService.sendEvent(eventRequest)
 
       val templateValues = mapOf(
-        "FirstName" to "name",
-        "Date" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
+        "FIRST_NAME" to "name",
+        "APPOINTMENT_DATE" to "Saturday 1 January",
+        "APPOINTMENT_TIME" to "10am",
+        "APPOINTMENT_LOCATION" to "",
+        "APPOINTMENT_TYPE" to "",
+
       )
       verify(notificationClient).sendSms(
-        "template-id-1",
+        templateId,
         "mobile",
         templateValues,
         "crn",
+      )
+      val telemetryProperties = mapOf(
+        "crn" to "crn",
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+        "smsLanguage" to SmsLanguage.ENGLISH.name,
       )
 
       verify(telemetryService)
         .trackEvent(
           "AppointmentReminderFailure",
-          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
+          telemetryProperties,
         )
 
       verify(telemetryService)
         .trackException(
           exception,
-          mapOf("crn" to "crn", "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
+          telemetryProperties,
         )
 
       assertEquals(event.toEventResponse(), response)
@@ -546,3 +575,19 @@ class CalendarServiceTest {
     }
   }
 }
+
+private fun notifyTemplateJson(templateId: String = "ff94ee5e-6799-441c-9c95-e777b3978297", body: String): String =
+  """
+  {
+    "id": $templateId,
+    "name": "Appointment reminder",
+    "type": "sms",
+    "created_at": "2024-01-01T10:00:00Z",
+    "updated_at": null,
+    "version": 1,
+    "body": "$body",
+    "subject": null,
+    "letter_contact_block": null,
+    "personalisation": null
+  }
+  """.trimIndent()

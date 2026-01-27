@@ -1,12 +1,10 @@
-package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
+package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util
 
-import org.springframework.stereotype.Service
 import java.util.Locale
 
-@Service
-class TranslationService {
+object EnglishToWelshTranslator {
 
-  val englishToWelshTranslations: Map<String, String> = mapOf(
+  private val translations = mapOf(
     // Days
     "monday" to "Dydd Llun",
     "tuesday" to "Dydd Mawrth",
@@ -31,7 +29,5 @@ class TranslationService {
     "december" to "Rhagfyr",
   )
 
-  fun lookup(english: String): String = englishToWelshTranslations[english.lowercase(Locale.UK)] ?: english
-
-  fun toWelsh(english: String): String = lookup(english)
+  fun toWelsh(english: String): String = translations[english.lowercase(Locale.UK)] ?: english
 }

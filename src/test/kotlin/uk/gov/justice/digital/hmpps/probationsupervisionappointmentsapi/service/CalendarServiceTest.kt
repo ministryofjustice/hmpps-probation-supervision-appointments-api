@@ -81,9 +81,6 @@ class CalendarServiceTest {
   private lateinit var telemetryService: TelemetryService
 
   @Mock
-  private lateinit var translationService: TranslationService
-
-  @Mock
   private lateinit var smsTemplateResolverService: SmsTemplateResolverService
 
   @Captor
@@ -107,7 +104,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, translationService, smsTemplateResolverService, fromEmail)
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail)
   }
 
   @Nested

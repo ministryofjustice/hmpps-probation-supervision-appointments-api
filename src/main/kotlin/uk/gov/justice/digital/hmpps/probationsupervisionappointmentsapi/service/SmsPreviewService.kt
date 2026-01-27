@@ -1,7 +1,5 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
@@ -12,6 +10,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -19,26 +18,14 @@ import java.util.Locale
 @Service
 class SmsPreviewService(
   private val smsTemplateResolverService: SmsTemplateResolverService,
-  private val translationService: TranslationService,
 ) {
-  companion object {
-    private val log: Logger = LoggerFactory.getLogger(this::class.java)
-  }
 
-  fun generatePreview(request: SmsPreviewRequest): SmsPreviewResponse {
-    val english = buildPreview(request, SmsLanguage.ENGLISH)
-
-    val welsh = if (request.includeWelshPreview) {
-      buildPreview(request, SmsLanguage.WELSH)
-    } else {
-      null
-    }
-
-    return SmsPreviewResponse(
-      englishSmsPreview = english,
-      welshSmsPreview = welsh,
-    )
-  }
+  fun generatePreview(request: SmsPreviewRequest) = SmsPreviewResponse(
+    englishSmsPreview = buildPreview(request, SmsLanguage.ENGLISH),
+    welshSmsPreview = request
+      .takeIf { it.includeWelshPreview }
+      ?.let { buildPreview(it, SmsLanguage.WELSH) },
+  )
 
   private fun buildPreview(
     request: SmsPreviewRequest,
@@ -54,12 +41,12 @@ class SmsPreviewService(
     val date = if (smsLanguage == SmsLanguage.WELSH) {
       englishDate
         .split(" ")
-        .joinToString(" ") { translationService.toWelsh(it) }
+        .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
     } else {
       englishDate
     }
 
-    val personalisation = mutableMapOf(
+    val personalisation = mapOf(
       FIRST_NAME to request.firstName,
       APPOINTMENT_DATE to date,
       APPOINTMENT_TIME to englishTime,

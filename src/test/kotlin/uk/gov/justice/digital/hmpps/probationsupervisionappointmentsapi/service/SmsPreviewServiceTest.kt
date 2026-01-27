@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
@@ -17,9 +16,6 @@ import java.time.ZonedDateTime
 
 @ExtendWith(MockitoExtension::class)
 class SmsPreviewServiceTest {
-
-  @Mock
-  private lateinit var translationService: TranslationService
 
   @Mock
   private lateinit var smsTemplateResolverService: SmsTemplateResolverService
@@ -33,7 +29,6 @@ class SmsPreviewServiceTest {
   fun setup() {
     service = SmsPreviewService(
       smsTemplateResolverService = smsTemplateResolverService,
-      translationService = translationService,
     )
   }
 
@@ -68,10 +63,6 @@ class SmsPreviewServiceTest {
 
   @Test
   fun `should return english and welsh preview with location`() {
-    // Welsh translation defaults to English in tests
-    whenever(translationService.toWelsh(any()))
-      .thenAnswer { it.arguments[0] as String }
-
     val request = SmsPreviewRequest(
       firstName = "John",
       dateAndTimeOfAppointment = fixedStartDateTime,
@@ -108,7 +99,7 @@ class SmsPreviewServiceTest {
     )
 
     assertEquals(
-      "CY John Saturday 1 January 10am yn Leeds Office",
+      "CY John Dydd Sadwrn 1 Ionawr 10am yn Leeds Office",
       response.welshSmsPreview,
     )
   }

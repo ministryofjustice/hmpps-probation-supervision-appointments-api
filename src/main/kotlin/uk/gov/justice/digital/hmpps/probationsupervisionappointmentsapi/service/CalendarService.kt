@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -39,7 +40,6 @@ class CalendarService(
   private val featureFlagsService: FeatureFlagsService,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
-  private val translationService: TranslationService,
   private val templateResolverService: SmsTemplateResolverService,
   @Value("\${calendar-from-email}") private val fromEmail: String,
 ) {
@@ -91,7 +91,7 @@ class CalendarService(
     val date = if (eventRequest.smsEventRequest?.smsLanguage == SmsLanguage.WELSH) {
       englishDate
         .split(" ")
-        .joinToString(" ") { translationService.toWelsh(it) }
+        .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
     } else {
       englishDate
     }
@@ -129,7 +129,7 @@ class CalendarService(
     try {
       val template = templateResolverService.getTemplate(eventRequest.smsEventRequest?.smsLanguage!!, eventRequest.smsEventRequest.appointmentLocation)
       notificationClient.sendSms(
-        template?.id.toString(),
+        template.id.toString(),
         eventRequest.smsEventRequest.mobileNumber,
         templateValues,
         eventRequest.smsEventRequest.crn,

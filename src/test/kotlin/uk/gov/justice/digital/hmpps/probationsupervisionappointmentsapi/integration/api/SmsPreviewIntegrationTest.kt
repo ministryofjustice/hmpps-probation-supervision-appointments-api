@@ -2,8 +2,8 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integra
 
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
@@ -13,9 +13,11 @@ import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
 
 class SmsPreviewIntegrationTest : IntegrationTestBase() {
-  private val fixedStartDateTime: ZonedDateTime = ZonedDateTime.parse("2050-01-01T10:00:00Z")
 
-  @MockBean
+  private val fixedStartDateTime =
+    ZonedDateTime.parse("2050-01-01T10:00:00Z")
+
+  @MockitoBean
   lateinit var notificationClient: NotificationClient
 
   private fun notifyTemplateJson(body: String): String =

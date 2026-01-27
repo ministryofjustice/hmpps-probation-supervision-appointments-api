@@ -5,7 +5,7 @@ plugins {
   id("idea")
 }
 
-val hmppsSpringBootStarterVersion = "1.8.2"
+val hmppsSpringBootStarterVersion = "2.0.0"
 val azureIdentityVersion = "1.18.2"
 val fliptVersion = "1.2.1"
 val sentryVersion = "8.28.0"

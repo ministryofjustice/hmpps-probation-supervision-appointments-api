@@ -22,9 +22,7 @@ class SmsPreviewService(
 
   fun generatePreview(request: SmsPreviewRequest) = SmsPreviewResponse(
     englishSmsPreview = buildPreview(request, SmsLanguage.ENGLISH),
-    welshSmsPreview = request
-      .takeIf { it.includeWelshPreview }
-      ?.let { buildPreview(it, SmsLanguage.WELSH) },
+    welshSmsPreview = if (request.includeWelshPreview) buildPreview(request, SmsLanguage.WELSH) else null,
   )
 
   private fun buildPreview(
@@ -54,7 +52,7 @@ class SmsPreviewService(
       APPOINTMENT_TYPE to getDisplayText(request.appointmentTypeCode, smsLanguage),
     )
 
-    return substitute(template?.body!!, personalisation)
+    return substitute(template.body, personalisation)
   }
 
   private fun getDisplayText(appointmentTypeCode: String?, smsLanguage: SmsLanguage): String {

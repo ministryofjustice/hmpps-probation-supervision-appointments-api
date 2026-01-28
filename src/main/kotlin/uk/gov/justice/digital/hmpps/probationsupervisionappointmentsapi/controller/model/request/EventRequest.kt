@@ -23,7 +23,7 @@ data class SmsEventRequest(
   val mobileNumber: String?,
   val crn: String,
   val smsOptIn: Boolean,
-  val smsLanguage: SmsLanguage? = SmsLanguage.ENGLISH,
+  val smsLanguage: SmsLanguage = SmsLanguage.ENGLISH,
   val appointmentLocation: String? = null,
   val appointmentTypeCode: String? = null,
 )

@@ -18,10 +18,12 @@ class SmsTemplateResolverService(
     smsLanguage: SmsLanguage = SmsLanguage.ENGLISH,
     appointmentLocation: String? = null,
   ): Template {
-    val variant = appointmentLocation
-      ?.takeIf { it.isNotBlank() }
-      ?.let { TemplateVariant.WITH_NAME_DATE_LOCATION }
-      ?: TemplateVariant.WITH_NAME_DATE
+    val variant =
+      if (appointmentLocation.isNullOrBlank()) {
+        TemplateVariant.WITH_NAME_DATE
+      } else {
+        TemplateVariant.WITH_NAME_DATE_LOCATION
+      }
 
     val templateKey = "${smsLanguage.name}_${variant.name}"
     val templateId = notifyTemplateProperties.templateIds[templateKey] ?: throw NotFoundException(

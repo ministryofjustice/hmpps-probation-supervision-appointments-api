@@ -119,7 +119,7 @@ class CalendarServiceTest {
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
       val templateId = UUID.randomUUID().toString()
-      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+      whenever(smsTemplateResolverService.getTemplate(false, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
@@ -144,7 +144,7 @@ class CalendarServiceTest {
 
       val result = calendarService.sendEvent(
         mockEventRequest.copy(
-          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, SmsLanguage.ENGLISH),
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
         ),
       )
 
@@ -201,7 +201,7 @@ class CalendarServiceTest {
 
       val result = calendarService.sendEvent(
         mockEventRequest.copy(
-          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, SmsLanguage.ENGLISH),
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
         ),
       )
 
@@ -240,10 +240,10 @@ class CalendarServiceTest {
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       val eventRequest = mockEventRequest
-        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, SmsLanguage.ENGLISH))
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
       val exception = RuntimeException("SMS failure")
       val templateId = UUID.randomUUID().toString()
-      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+      whenever(smsTemplateResolverService.getTemplate(false, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),

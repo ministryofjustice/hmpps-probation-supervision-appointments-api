@@ -80,7 +80,7 @@ class CalendarService(
       sendSms(eventRequest, buildTemplateValues(eventRequest))
 
       // WELSH sms
-      if (eventRequest.smsEventRequest.smsLanguage == SmsLanguage.WELSH) {
+      if (eventRequest.smsEventRequest.includeWelshTranslation) {
         sendSms(eventRequest, buildTemplateValues(eventRequest))
       }
     }
@@ -88,7 +88,7 @@ class CalendarService(
 
   fun buildTemplateValues(eventRequest: EventRequest): Map<String, String> {
     val englishDate = eventRequest.start.toNotifyDate()
-    val date = if (eventRequest.smsEventRequest?.smsLanguage == SmsLanguage.WELSH) {
+    val date = if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
       englishDate
         .split(" ")
         .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
@@ -101,14 +101,14 @@ class CalendarService(
       APPOINTMENT_DATE to date,
       APPOINTMENT_TIME to eventRequest.start.toNotifyTime(),
       APPOINTMENT_LOCATION to eventRequest.smsEventRequest?.appointmentLocation.orEmpty(),
-      APPOINTMENT_TYPE to getDisplayText(eventRequest),
+      APPOINTMENT_TYPE to getAppointmentType(eventRequest),
     )
   }
 
-  private fun getDisplayText(eventRequest: EventRequest): String {
+  private fun getAppointmentType(eventRequest: EventRequest): String {
     val type = AppointmentType.fromCode(eventRequest.smsEventRequest?.appointmentTypeCode)
     return (
-      if (eventRequest.smsEventRequest?.smsLanguage == SmsLanguage.WELSH) {
+      if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
         type?.welsh
       } else {
         type?.english
@@ -123,11 +123,11 @@ class CalendarService(
     val telemetryProperties = mapOf(
       "crn" to eventRequest.smsEventRequest?.crn,
       "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
-      "smsLanguage" to eventRequest.smsEventRequest?.smsLanguage?.name,
+      "smsLanguage" to if (eventRequest.smsEventRequest?.includeWelshTranslation == true) SmsLanguage.WELSH.name else SmsLanguage.ENGLISH.name,
     )
 
     try {
-      val template = templateResolverService.getTemplate(eventRequest.smsEventRequest?.smsLanguage!!, eventRequest.smsEventRequest.appointmentLocation)
+      val template = templateResolverService.getTemplate(eventRequest.smsEventRequest?.includeWelshTranslation!!, eventRequest.smsEventRequest.appointmentLocation)
       notificationClient.sendSms(
         template.id.toString(),
         eventRequest.smsEventRequest.mobileNumber,

@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request
 
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import java.time.ZonedDateTime
 
 data class EventRequest(
@@ -23,7 +22,7 @@ data class SmsEventRequest(
   val mobileNumber: String?,
   val crn: String,
   val smsOptIn: Boolean,
-  val smsLanguage: SmsLanguage = SmsLanguage.ENGLISH,
+  val includeWelshTranslation: Boolean = false,
   val appointmentLocation: String? = null,
   val appointmentTypeCode: String? = null,
 )

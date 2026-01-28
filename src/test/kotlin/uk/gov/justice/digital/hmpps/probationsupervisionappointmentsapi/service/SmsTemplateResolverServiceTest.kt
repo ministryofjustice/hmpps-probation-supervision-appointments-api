@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.NotifyTemplateProperties
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
@@ -39,7 +38,7 @@ class SmsTemplateResolverServiceTest {
       .thenReturn(template)
 
     val result = service.getTemplate(
-      smsLanguage = SmsLanguage.ENGLISH,
+      includeWelshTranslation = false,
       appointmentLocation = null,
     )
 
@@ -56,7 +55,7 @@ class SmsTemplateResolverServiceTest {
       .thenReturn(template)
 
     val result = service.getTemplate(
-      smsLanguage = SmsLanguage.ENGLISH,
+      includeWelshTranslation = false,
       appointmentLocation = "Leeds Office",
     )
 
@@ -73,7 +72,7 @@ class SmsTemplateResolverServiceTest {
       .thenReturn(template)
 
     val result = service.getTemplate(
-      smsLanguage = SmsLanguage.WELSH,
+      includeWelshTranslation = true,
       appointmentLocation = null,
     )
 
@@ -93,7 +92,7 @@ class SmsTemplateResolverServiceTest {
 
     val exception = assertThrows(NotFoundException::class.java) {
       serviceWithMissingConfig.getTemplate(
-        smsLanguage = SmsLanguage.ENGLISH,
+        includeWelshTranslation = false,
         appointmentLocation = null,
       )
     }

@@ -37,6 +37,14 @@ dependencies {
   implementation("uk.gov.service.notify:notifications-java-client:$notifyVersion")
   implementation("io.sentry:sentry-spring-boot-starter-jakarta:$sentryVersion")
 
+  // CVE-2025-67735 - it does not fix all occurrences
+  implementation(enforcedPlatform("io.netty:netty-bom:4.2.8.Final"))
+  implementation("io.netty:netty-buffer")
+  implementation("io.netty:netty-codec-http")
+  implementation("io.netty:netty-handler")
+  implementation("io.netty:netty-transport")
+  // END of CVE-2025-67735 - Remove when fixed
+
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
 

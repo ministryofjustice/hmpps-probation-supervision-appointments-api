@@ -10,6 +10,8 @@ import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
@@ -18,11 +20,16 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_LOCATION
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 
 private const val EVENT_TIMEZONE = "Europe/London"
 
@@ -33,8 +40,8 @@ class CalendarService(
   private val featureFlagsService: FeatureFlagsService,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
+  private val templateResolverService: SmsTemplateResolverService,
   @Value("\${calendar-from-email}") private val fromEmail: String,
-  @Value("\${govuk-notify.template-id}") private val appointmentScheduledTemplateId: String,
 ) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse? {
@@ -70,29 +77,68 @@ class CalendarService(
 
   fun sendSMSNotification(eventRequest: EventRequest) {
     if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabled("sms-notification-toggle")) {
-      val templateValues = mapOf(
-        "FirstName" to eventRequest.smsEventRequest.firstName,
-        "Date" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
-      )
+      sendSms(eventRequest, buildTemplateValues(eventRequest))
 
-      val telemetryProperties = mapOf(
-        "crn" to eventRequest.smsEventRequest.crn,
-        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
-      )
-
-      try {
-        notificationClient.sendSms(
-          appointmentScheduledTemplateId,
-          eventRequest.smsEventRequest.mobileNumber,
-          templateValues,
-          eventRequest.smsEventRequest.crn,
-        )
-
-        telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
-      } catch (e: Exception) {
-        telemetryService.trackEvent("AppointmentReminderFailure", telemetryProperties)
-        telemetryService.trackException(e, telemetryProperties)
+      // WELSH sms
+      if (eventRequest.smsEventRequest.includeWelshTranslation) {
+        sendSms(eventRequest, buildTemplateValues(eventRequest))
       }
+    }
+  }
+
+  fun buildTemplateValues(eventRequest: EventRequest): Map<String, String> {
+    val englishDate = eventRequest.start.toNotifyDate()
+    val date = if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
+      englishDate
+        .split(" ")
+        .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
+    } else {
+      englishDate
+    }
+
+    return mapOf(
+      FIRST_NAME to eventRequest.smsEventRequest?.firstName.orEmpty(),
+      APPOINTMENT_DATE to date,
+      APPOINTMENT_TIME to eventRequest.start.toNotifyTime(),
+      APPOINTMENT_LOCATION to eventRequest.smsEventRequest?.appointmentLocation.orEmpty(),
+      APPOINTMENT_TYPE to getAppointmentType(eventRequest),
+    )
+  }
+
+  private fun getAppointmentType(eventRequest: EventRequest): String {
+    val type = AppointmentType.fromCode(eventRequest.smsEventRequest?.appointmentTypeCode)
+    return (
+      if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
+        type?.welsh
+      } else {
+        type?.english
+      }
+      ).orEmpty()
+  }
+
+  fun sendSms(
+    eventRequest: EventRequest,
+    templateValues: Map<String, String> = emptyMap(),
+  ) {
+    val telemetryProperties = mapOf(
+      "crn" to eventRequest.smsEventRequest?.crn,
+      "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+      "smsLanguage" to if (eventRequest.smsEventRequest?.includeWelshTranslation == true) SmsLanguage.WELSH.name else SmsLanguage.ENGLISH.name,
+    )
+
+    try {
+      val template = templateResolverService.getTemplate(eventRequest.smsEventRequest?.includeWelshTranslation!!, eventRequest.smsEventRequest.appointmentLocation)
+      notificationClient.sendSms(
+        template.id.toString(),
+        eventRequest.smsEventRequest.mobileNumber,
+        templateValues,
+        eventRequest.smsEventRequest.crn,
+      )
+
+      telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
+    } catch (e: Exception) {
+      telemetryService.trackEvent("AppointmentReminderFailure", telemetryProperties)
+      telemetryService.trackException(e, telemetryProperties)
     }
   }
 

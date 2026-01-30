@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class OpenApiConfiguration(buildProperties: BuildProperties) {
-  private val version: String = buildProperties.version
+  private val version: String = buildProperties.version!!
 
   @Bean
   fun customOpenAPI(): OpenAPI = OpenAPI()
@@ -30,7 +30,6 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
       Info().title("HMPPS Probation Supervision Appointments Api").version(version)
         .contact(Contact().name("HMPPS Digital Studio").email("feedback@digital.justice.gov.uk")),
     )
-  // TODO Add security schema and roles in `.components()` and `.addSecurityItem()`
 }
 
 private fun SecurityScheme.addBearerJwtRequirement(role: String): SecurityScheme = type(SecurityScheme.Type.HTTP)

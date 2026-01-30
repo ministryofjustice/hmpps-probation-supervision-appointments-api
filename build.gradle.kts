@@ -13,7 +13,7 @@ val notifyVersion = "6.0.0-RELEASE"
 val microsoftGraphVersion = "6.58.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.37"
-val springdocVersion = "2.8.14"
+val springdocVersion = "3.0.1"
 
 idea {
   module {
@@ -47,6 +47,7 @@ dependencies {
   developmentOnly("com.h2database:h2")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:$hmppsSpringBootStarterVersion")
+  testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("com.h2database:h2")
   testImplementation("org.wiremock:wiremock-standalone:$wiremockVersion")
   testImplementation("io.swagger.parser.v3:swagger-parser:$swaggerParserVersion") {

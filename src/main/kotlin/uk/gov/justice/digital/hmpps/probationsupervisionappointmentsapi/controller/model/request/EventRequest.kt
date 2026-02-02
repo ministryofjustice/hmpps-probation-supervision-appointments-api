@@ -22,6 +22,9 @@ data class SmsEventRequest(
   val mobileNumber: String?,
   val crn: String,
   val smsOptIn: Boolean,
+  val includeWelshTranslation: Boolean = false,
+  val appointmentLocation: String? = null,
+  val appointmentTypeCode: String? = null,
 )
 data class RescheduleEventRequest(
   val rescheduledEventRequest: EventRequest,

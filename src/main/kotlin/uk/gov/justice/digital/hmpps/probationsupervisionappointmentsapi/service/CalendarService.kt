@@ -10,6 +10,8 @@ import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
@@ -18,11 +20,16 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_LOCATION
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 
 private const val EVENT_TIMEZONE = "Europe/London"
 
@@ -33,11 +40,27 @@ class CalendarService(
   private val featureFlagsService: FeatureFlagsService,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
+  private val templateResolverService: SmsTemplateResolverService,
   @Value("\${calendar-from-email}") private val fromEmail: String,
-  @Value("\${govuk-notify.template-id}") private val appointmentScheduledTemplateId: String,
 ) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse? {
+    val now = ZonedDateTime.now()
+
+    if (eventRequest.start.isBefore(now)) {
+      val telemetryProperties = mapOf(
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+      )
+      telemetryService.trackEvent("AppointmentInThePast", telemetryProperties)
+      return EventResponse(
+        id = null,
+        subject = eventRequest.subject,
+        startDate = eventRequest.start.toString(),
+        endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
+        attendees = eventRequest.recipients.map { it.emailAddress },
+      )
+    }
+
     val event = buildEvent(eventRequest)
     val response = createEvent(fromEmail, event)
     deliusOutlookMappingRepository.save(
@@ -54,52 +77,79 @@ class CalendarService(
 
   fun sendSMSNotification(eventRequest: EventRequest) {
     if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabled("sms-notification-toggle")) {
-      val templateValues = mapOf(
-        "FirstName" to eventRequest.smsEventRequest.firstName,
-        "Date" to eventRequest.start.format(DateTimeFormatter.ofPattern("d MMMM yyyy 'at' h:mma")),
-      )
+      sendSms(eventRequest, buildTemplateValues(eventRequest))
 
-      val telemetryProperties = mapOf(
-        "crn" to eventRequest.smsEventRequest.crn,
-        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
-      )
-
-      try {
-        notificationClient.sendSms(
-          appointmentScheduledTemplateId,
-          eventRequest.smsEventRequest.mobileNumber,
-          templateValues,
-          eventRequest.smsEventRequest.crn,
-        )
-
-        telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
-      } catch (e: Exception) {
-        telemetryService.trackEvent("AppointmentReminderFailure", telemetryProperties)
-        telemetryService.trackException(e, telemetryProperties)
+      // WELSH sms
+      if (eventRequest.smsEventRequest.includeWelshTranslation) {
+        sendSms(eventRequest, buildTemplateValues(eventRequest))
       }
+    }
+  }
+
+  fun buildTemplateValues(eventRequest: EventRequest): Map<String, String> {
+    val englishDate = eventRequest.start.toNotifyDate()
+    val date = if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
+      englishDate
+        .split(" ")
+        .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
+    } else {
+      englishDate
+    }
+
+    return mapOf(
+      FIRST_NAME to eventRequest.smsEventRequest?.firstName.orEmpty(),
+      APPOINTMENT_DATE to date,
+      APPOINTMENT_TIME to eventRequest.start.toNotifyTime(),
+      APPOINTMENT_LOCATION to eventRequest.smsEventRequest?.appointmentLocation.orEmpty(),
+      APPOINTMENT_TYPE to getAppointmentType(eventRequest),
+    )
+  }
+
+  private fun getAppointmentType(eventRequest: EventRequest): String {
+    val type = AppointmentType.fromCode(eventRequest.smsEventRequest?.appointmentTypeCode)
+    return (
+      if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
+        type?.welsh
+      } else {
+        type?.english
+      }
+      ).orEmpty()
+  }
+
+  fun sendSms(
+    eventRequest: EventRequest,
+    templateValues: Map<String, String> = emptyMap(),
+  ) {
+    val telemetryProperties = mapOf(
+      "crn" to eventRequest.smsEventRequest?.crn,
+      "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+      "smsLanguage" to if (eventRequest.smsEventRequest?.includeWelshTranslation == true) SmsLanguage.WELSH.name else SmsLanguage.ENGLISH.name,
+    )
+
+    try {
+      val template = templateResolverService.getTemplate(eventRequest.smsEventRequest?.includeWelshTranslation!!, eventRequest.smsEventRequest.appointmentLocation)
+      notificationClient.sendSms(
+        template.id.toString(),
+        eventRequest.smsEventRequest.mobileNumber,
+        templateValues,
+        eventRequest.smsEventRequest.crn,
+      )
+
+      telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
+    } catch (e: Exception) {
+      telemetryService.trackEvent("AppointmentReminderFailure", telemetryProperties)
+      telemetryService.trackException(e, telemetryProperties)
     }
   }
 
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
     deleteExistingOutlookEvent(rescheduleEventRequest.oldSupervisionAppointmentUrn)
 
-    val now = ZonedDateTime.now()
-    val eventRequest = rescheduleEventRequest.rescheduledEventRequest
-
-    if (eventRequest.start.isAfter(now) || eventRequest.start.isEqual(now)) {
-      return sendEvent(eventRequest)
-    }
-    return EventResponse(
-      id = null,
-      subject = eventRequest.subject,
-      startDate = eventRequest.start.toString(),
-      endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
-      attendees = eventRequest.recipients.map { it.emailAddress },
-    )
+    return sendEvent(rescheduleEventRequest.rescheduledEventRequest)
   }
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
-    getEventDetails(oldSupervisionAppointmentUrn)?.let {
+    findEventDetails(oldSupervisionAppointmentUrn)?.let {
       val eventStart = LocalDateTime.parse(requireNotNull(it.startDate))
         .atZone(ZoneId.of("UTC"))
       val now = ZonedDateTime.now()
@@ -156,29 +206,42 @@ class CalendarService(
     .post(event)
 
   fun getEventDetails(supervisionAppointmentUrn: String): EventResponse? {
+    // if no mapping found, exception will be thrown
     val outlookId = deliusOutlookMappingRepository.getSupervisionAppointmentUrn(supervisionAppointmentUrn).outlookId
 
-    // user may have deleted their outlook event
-    val event = graphClient
-      .users()
-      .byUserId("MPoP-Digital-Team@justice.gov.uk")
-      .calendar()
-      .events()
-      .byEventId(outlookId)[
-      { requestConfiguration ->
-        requestConfiguration?.queryParameters?.select = arrayOf(
-          "subject",
-          "organizer",
-          "attendees",
-          "start",
-          "end",
-        )
-        requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
-      },
-    ]
+    // user may have deleted the event, so handle null response
+    val event = getCalendarEventByOutlookId(outlookId)
 
     return event?.toEventResponse()
   }
+
+  fun findEventDetails(supervisionAppointmentUrn: String): EventResponse? {
+    // if no mapping found, null will be returned
+    val outlookId = deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn)?.outlookId
+
+    // user may have deleted the event, so handle null response
+    val event = outlookId?.let { getCalendarEventByOutlookId(it) }
+
+    return event?.toEventResponse()
+  }
+
+  fun getCalendarEventByOutlookId(outlookId: String): Event? = graphClient
+    .users()
+    .byUserId("MPoP-Digital-Team@justice.gov.uk")
+    .calendar()
+    .events()
+    .byEventId(outlookId)[
+    { requestConfiguration ->
+      requestConfiguration?.queryParameters?.select = arrayOf(
+        "subject",
+        "organizer",
+        "attendees",
+        "start",
+        "end",
+      )
+      requestConfiguration.headers.add("Prefer", "outlook.timezone=\"Europe/London\"")
+    },
+  ]
 }
 
 fun Event.toEventResponse(): EventResponse = EventResponse(

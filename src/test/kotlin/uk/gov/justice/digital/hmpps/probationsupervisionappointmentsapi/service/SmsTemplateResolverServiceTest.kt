@@ -98,7 +98,7 @@ class SmsTemplateResolverServiceTest {
     }
 
     assertEquals(
-      "No Notify template configured for ENGLISH / WITH_NAME_DATE",
+      "No Notify template configured for Language: ENGLISH Variant: WITH_NAME_DATE",
       exception.message,
     )
   }

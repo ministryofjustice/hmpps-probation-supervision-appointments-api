@@ -30,12 +30,12 @@ class SmsTemplateResolverService(
       }
 
     val language = if (includeWelshTranslation) SmsLanguage.WELSH else SmsLanguage.ENGLISH
-    val templateKey = "${language.name}_${variant.name}"
+    val templateKey = "${language.key()}-${variant.key()}"
 
     log.info("Getting template: $templateKey")
 
     val templateId = notifyTemplateProperties.templateIds[templateKey] ?: throw NotFoundException(
-      "No Notify template configured for Language: $language Variant: $variant",
+      "No Notify template configured for Language: $language Variant: $variant templateKey: $templateKey",
     )
     log.info("Template Id fetched : $templateId")
 

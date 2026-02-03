@@ -17,10 +17,10 @@ class SmsTemplateResolverServiceTest {
 
   private val notifyTemplateProperties = NotifyTemplateProperties(
     templateIds = mapOf(
-      "ENGLISH_WITH_NAME_DATE" to "template-en-no-location",
-      "ENGLISH_WITH_NAME_DATE_LOCATION" to "template-en-with-location",
-      "WELSH_WITH_NAME_DATE" to "template-cy-no-location",
-      "WELSH_WITH_NAME_DATE_LOCATION" to "template-cy-with-location",
+      "english-with-name-date" to "template-en-no-location",
+      "english-with-name-date-location" to "template-en-with-location",
+      "welsh-with-name-date" to "template-cy-no-location",
+      "welsh-with-name-date-location" to "template-cy-with-location",
     ),
   )
   private val service = SmsTemplateResolverService(
@@ -98,7 +98,7 @@ class SmsTemplateResolverServiceTest {
     }
 
     assertEquals(
-      "No Notify template configured for Language: ENGLISH Variant: WITH_NAME_DATE",
+      "No Notify template configured for Language: ENGLISH Variant: WITH_NAME_DATE templateKey: english-with-name-date",
       exception.message,
     )
   }

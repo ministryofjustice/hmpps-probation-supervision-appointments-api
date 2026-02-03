@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties(prefix = "govuk-notify")
 data class NotifyTemplateProperties(
-  val templateIds: Map<String, String> = emptyMap(),
+  val templateIds: Map<String, String>,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

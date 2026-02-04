@@ -9,6 +9,7 @@ data class EventRequest(
   val start: ZonedDateTime,
   val durationInMinutes: Long,
   val supervisionAppointmentUrn: String,
+  val smsEventRequest: SmsEventRequest? = null,
 )
 
 data class Recipient(
@@ -16,6 +17,15 @@ data class Recipient(
   val name: String,
 )
 
+data class SmsEventRequest(
+  val firstName: String,
+  val mobileNumber: String?,
+  val crn: String,
+  val smsOptIn: Boolean,
+  val includeWelshTranslation: Boolean = false,
+  val appointmentLocation: String? = null,
+  val appointmentTypeCode: String? = null,
+)
 data class RescheduleEventRequest(
   val rescheduledEventRequest: EventRequest,
   val oldSupervisionAppointmentUrn: String,

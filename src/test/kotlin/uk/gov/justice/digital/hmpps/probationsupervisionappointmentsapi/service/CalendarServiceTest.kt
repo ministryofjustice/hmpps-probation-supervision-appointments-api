@@ -26,20 +26,22 @@ import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doThrow
-import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.verifyNoInteractions
+import org.mockito.kotlin.whenever
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
-import java.time.LocalDateTime
+import uk.gov.service.notify.NotificationClient
+import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -69,6 +71,18 @@ class CalendarServiceTest {
   @Mock
   private lateinit var eventItemRequestBuilder: EventItemRequestBuilder
 
+  @Mock
+  private lateinit var featureFlags: FeatureFlagsService
+
+  @Mock
+  private lateinit var notificationClient: NotificationClient
+
+  @Mock
+  private lateinit var telemetryService: TelemetryService
+
+  @Mock
+  private lateinit var smsTemplateResolverService: SmsTemplateResolverService
+
   @Captor
   private lateinit var mappingCaptor: ArgumentCaptor<DeliusOutlookMapping>
 
@@ -90,28 +104,26 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, fromEmail)
-  }
-
-  private fun setupGraphMocks() {
-    lenient().`when`(graphClient.users()).thenReturn(usersRequestBuilder)
-    lenient().`when`(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
-    lenient().`when`(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
-    lenient().`when`(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-    lenient().`when`(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail)
   }
 
   @Nested
   inner class SendEventTests {
     private val outlookId = "mock-outlook-id"
 
-    @BeforeEach
-    fun setupNested() {
-      setupGraphMocks()
-    }
-
     @Test
     fun `should create event via Graph and save mapping to repository`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
+      val templateId = UUID.randomUUID().toString()
+      whenever(smsTemplateResolverService.getTemplate(false, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
       val mockGraphEventResponse = Event().apply {
@@ -126,19 +138,161 @@ class CalendarServiceTest {
         )
       }
 
-      `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
-      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
-      val result = calendarService.sendEvent(mockEventRequest)
+      val result = calendarService.sendEvent(
+        mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+        ),
+      )
 
       verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
 
-      assertEquals(mockEventRequest.supervisionAppointmentUrn, mappingCaptor.value.supervisionAppointmentUrn)
-      assertEquals(outlookId, mappingCaptor.value.outlookId)
-      assertEquals(outlookId, result.id)
-      assertEquals(mockEventRequest.subject, result.subject)
+      verify(notificationClient).sendSms(
+        templateId,
+        "mobile",
+        mapOf(
+          "FIRST_NAME" to "name",
+          "APPOINTMENT_DATE" to "Saturday 1 January",
+          "APPOINTMENT_TIME" to "10am",
+          "APPOINTMENT_LOCATION" to "",
+          "APPOINTMENT_TYPE" to "",
+        ),
+        "crn",
+      )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderSent",
+          mapOf("crn" to "crn", "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn, "smsLanguage" to SmsLanguage.ENGLISH.name),
+        )
+
+      assertEquals(mockGraphEventResponse.toEventResponse(), result)
+    }
+
+    @Test
+    fun `should create event, no sms, as fixture flag is set to false`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(false)
+
+      val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
+
+      val mockGraphEventResponse = Event().apply {
+        id = outlookId
+        subject = mockEventRequest.subject
+        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
+        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        attendees = listOf(
+          com.microsoft.graph.models.Attendee().apply {
+            emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
+          },
+        )
+      }
+
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      val result = calendarService.sendEvent(
+        mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+        ),
+      )
+
+      verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
+      verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
+      verifyNoInteractions(notificationClient)
+      verifyNoInteractions(telemetryService)
+
+      assertEquals(mockGraphEventResponse.toEventResponse(), result)
+    }
+
+    @Test
+    fun `event without sms request`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
+      val event = mockEvent()
+
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      val response = calendarService.sendEvent(eventRequestWithoutSms)
+
+      verifyNoInteractions(notificationClient)
+      verifyNoInteractions(telemetryService)
+
+      assertEquals(event.toEventResponse(), response)
+    }
+
+    @Test
+    fun `should track telemetry and capture exception if sendSms fails`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      val eventRequest = mockEventRequest
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
+      val exception = RuntimeException("SMS failure")
+      val templateId = UUID.randomUUID().toString()
+      whenever(smsTemplateResolverService.getTemplate(false, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
+      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
+      doThrow(exception).whenever(notificationClient).sendSms(
+        anyString(),
+        anyString(),
+        any(),
+        anyString(),
+      )
+
+      val event = mockEvent()
+
+      val response = calendarService.sendEvent(eventRequest)
+
+      val templateValues = mapOf(
+        "FIRST_NAME" to "name",
+        "APPOINTMENT_DATE" to "Saturday 1 January",
+        "APPOINTMENT_TIME" to "10am",
+        "APPOINTMENT_LOCATION" to "",
+        "APPOINTMENT_TYPE" to "",
+
+      )
+      verify(notificationClient).sendSms(
+        templateId,
+        "mobile",
+        templateValues,
+        "crn",
+      )
+      val telemetryProperties = mapOf(
+        "crn" to "crn",
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+        "smsLanguage" to SmsLanguage.ENGLISH.name,
+      )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderFailure",
+          telemetryProperties,
+        )
+
+      verify(telemetryService)
+        .trackException(
+          exception,
+          telemetryProperties,
+        )
+
+      assertEquals(event.toEventResponse(), response)
     }
   }
 
@@ -149,19 +303,19 @@ class CalendarServiceTest {
     private val oldOutlookId = "old-outlook-id"
     private val mockMapping = DeliusOutlookMapping(supervisionAppointmentUrn = oldUrn, outlookId = oldOutlookId)
 
-    @BeforeEach
-    fun setupNested() {
-      setupGraphMocks()
-    }
-
     @Test
     fun `should delete old event and send new event if new start is in the future`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
 
       // Mock getting the old event details for deletion
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+      whenever(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
         .thenReturn(mockMapping)
 
       val oldEventForGet = Event().apply {
@@ -176,8 +330,8 @@ class CalendarServiceTest {
         attendees = listOf()
       }
 
-      `when`(eventItemRequestBuilder.get(any())).thenReturn(oldEventForGet)
-      doNothing().`when`(eventItemRequestBuilder).delete()
+      whenever(eventItemRequestBuilder.get(any())).thenReturn(oldEventForGet)
+      doNothing().whenever(eventItemRequestBuilder).delete()
 
       // Mock creating the new event
       val newOutlookId = "new-outlook-id-123"
@@ -198,8 +352,8 @@ class CalendarServiceTest {
         )
       }
 
-      `when`(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
-      `when`(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
         .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
 
       val result = calendarService.rescheduleEvent(rescheduleRequest)
@@ -219,6 +373,11 @@ class CalendarServiceTest {
 
     @Test
     fun `should only delete old event and return manual response if new start is in the past`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
       val pastStart = ZonedDateTime.now().minusDays(1)
       val pastEventRequest = EventRequest(
         recipients = listOf(mockRecipient),
@@ -231,7 +390,7 @@ class CalendarServiceTest {
       val rescheduleRequest = RescheduleEventRequest(pastEventRequest, oldUrn)
 
       // Mock the old event (which is in the future, so it will be deleted)
-      `when`(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+      whenever(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
         .thenReturn(mockMapping)
 
       val futureOldEvent = Event().apply {
@@ -246,8 +405,8 @@ class CalendarServiceTest {
         }
         attendees = listOf()
       }
-      `when`(eventItemRequestBuilder.get(any())).thenReturn(futureOldEvent)
-      doNothing().`when`(eventItemRequestBuilder).delete()
+      whenever(eventItemRequestBuilder.get(any())).thenReturn(futureOldEvent)
+      doNothing().whenever(eventItemRequestBuilder).delete()
 
       val result = calendarService.rescheduleEvent(rescheduleRequest)
 
@@ -272,7 +431,7 @@ class CalendarServiceTest {
       val expectedException = RuntimeException("Graph API error: Delete failed")
 
       doThrow(expectedException)
-        .`when`(service)
+        .whenever(service)
         .deleteExistingOutlookEvent(oldUrn)
 
       assertThrows<RuntimeException> {
@@ -285,36 +444,69 @@ class CalendarServiceTest {
     }
 
     @Test
-    fun `should not delete old event if it no longer exists in repository`() {
-      val service = spy(calendarService)
+    fun `if old event does not exist, api should not fail`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
+      val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
+      val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
 
-      // Mock getEventDetails to return null (mapping doesn't exist)
-      doReturn(null).`when`(service).getEventDetails(oldUrn)
+      // Mock getting the old event details for deletion
+      whenever(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(oldUrn))
+        .thenReturn(null)
 
-      // Should not throw - getEventDetails returns null when mapping doesn't exist
-      service.deleteExistingOutlookEvent(oldUrn)
+      // Mock creating the new event
+      val newOutlookId = "new-outlook-id-123"
+      val mockGraphEventResponse = Event().apply {
+        id = newOutlookId
+        subject = futureEventRequest.subject
+        start = DateTimeTimeZone().apply {
+          dateTime = futureEventRequest.start.toLocalDateTime().toString()
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = futureEndDateTime.toLocalDateTime().toString()
+        }
+        attendees = listOf(
+          Attendee().apply {
+            emailAddress = EmailAddress()
+              .apply { address = futureEventRequest.recipients.first().emailAddress }
+          },
+        )
+      }
 
-      verify(eventItemRequestBuilder, never()).delete()
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      val result = calendarService.rescheduleEvent(rescheduleRequest)
+
+      // Verify new event created
+      verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
+      verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
+
+      assertEquals(newUrn, mappingCaptor.value.supervisionAppointmentUrn)
+      assertEquals(newOutlookId, mappingCaptor.value.outlookId)
+      assertNotNull(result)
+      assertEquals(newOutlookId, result?.id)
+    }
+  }
+
+  private fun mockEvent(): Event {
+    val event = Event().apply {
+      id = "some-id"
     }
 
-    @Test
-    fun `should not delete old event if start time is in the past`() {
-      val service = spy(calendarService)
-
-      val pastEvent = uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse(
-        id = oldOutlookId,
-        subject = "Past Event",
-        startDate = LocalDateTime.now().minusDays(1).toString(),
-        endDate = LocalDateTime.now().minusDays(1).plusMinutes(durationMinutes).toString(),
-        attendees = listOf(),
-      )
-
-      doReturn(pastEvent).`when`(service).getEventDetails(oldUrn)
-
-      service.deleteExistingOutlookEvent(oldUrn)
-
-      verify(eventItemRequestBuilder, never()).delete()
-    }
+    whenever(
+      graphClient
+        .users()
+        .byUserId(anyString())
+        .calendar()
+        .events()
+        .post(any()),
+    ).thenReturn(event)
+    return event
   }
 
   @Nested
@@ -325,13 +517,13 @@ class CalendarServiceTest {
       val event = calendarService.buildEvent(mockEventRequest)
 
       assertEquals(mockEventRequest.subject, event.subject)
-      assertEquals(EVENT_TIMEZONE, event.start.timeZone)
-      assertEquals(fixedStartDateTime.toString(), event.start.dateTime)
-      assertEquals(fixedStartDateTime.plusMinutes(durationMinutes).toString(), event.end.dateTime)
-      assertEquals(1, event.attendees.size)
-      assertEquals(mockRecipient.emailAddress, event.attendees.first().emailAddress.address)
-      assertEquals(mockEventRequest.message, event.body.content)
-      assertEquals(BodyType.Html, event.body.contentType)
+      assertEquals(EVENT_TIMEZONE, event.start?.timeZone)
+      assertEquals(fixedStartDateTime.toString(), event.start?.dateTime)
+      assertEquals(fixedStartDateTime.plusMinutes(durationMinutes).toString(), event.end?.dateTime)
+      assertEquals(1, event.attendees?.size)
+      assertEquals(mockRecipient.emailAddress, event.attendees?.first()?.emailAddress?.address)
+      assertEquals(mockEventRequest.message, event.body?.content)
+      assertEquals(BodyType.Html, event.body?.contentType)
     }
 
     @Test
@@ -373,10 +565,26 @@ class CalendarServiceTest {
       val attendees = calendarService.getAttendees(recipients)
 
       assertEquals(2, attendees.size)
-      assertEquals("user1@example.com", attendees[0].emailAddress.address)
-      assertEquals("User One", attendees[0].emailAddress.name)
-      assertEquals("user2@example.com", attendees[1].emailAddress.address)
-      assertEquals("User Two", attendees[1].emailAddress.name)
+      assertEquals("user1@example.com", attendees[0].emailAddress?.address)
+      assertEquals("User One", attendees[0].emailAddress?.name)
+      assertEquals("user2@example.com", attendees[1].emailAddress?.address)
+      assertEquals("User Two", attendees[1].emailAddress?.name)
     }
   }
 }
+
+private fun notifyTemplateJson(templateId: String = "ff94ee5e-6799-441c-9c95-e777b3978297", body: String): String =
+  """
+  {
+    "id": $templateId,
+    "name": "Appointment reminder",
+    "type": "sms",
+    "created_at": "2024-01-01T10:00:00Z",
+    "updated_at": null,
+    "version": 1,
+    "body": "$body",
+    "subject": null,
+    "letter_contact_block": null,
+    "personalisation": null
+  }
+  """.trimIndent()

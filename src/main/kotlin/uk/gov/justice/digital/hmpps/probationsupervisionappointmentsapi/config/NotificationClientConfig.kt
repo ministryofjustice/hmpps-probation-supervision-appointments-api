@@ -1,0 +1,14 @@
+package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config
+
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import uk.gov.service.notify.NotificationClient
+
+@Configuration
+@EnableConfigurationProperties(NotifyTemplateProperties::class)
+class NotificationClientConfig {
+  @Bean
+  fun notificationClient(@Value("\${govuk-notify.api-key}") apiKey: String) = NotificationClient(apiKey)
+}

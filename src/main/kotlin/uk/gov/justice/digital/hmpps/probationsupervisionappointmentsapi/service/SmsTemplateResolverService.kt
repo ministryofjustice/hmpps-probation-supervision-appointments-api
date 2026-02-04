@@ -30,7 +30,7 @@ class SmsTemplateResolverService(
       }
 
     val language = if (includeWelshTranslation) SmsLanguage.WELSH else SmsLanguage.ENGLISH
-    val templateKey = "${language.key()}-${variant.key()}"
+    val templateKey = "${language.key}-${variant.key}"
 
     log.info("Getting template: $templateKey")
 

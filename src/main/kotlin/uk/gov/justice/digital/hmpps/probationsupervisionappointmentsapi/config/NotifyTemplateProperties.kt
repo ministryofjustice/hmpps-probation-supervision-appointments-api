@@ -18,18 +18,12 @@ data class NotifyTemplateProperties(
   }
 }
 
-enum class SmsLanguage {
-  ENGLISH,
-  WELSH,
-  ;
-
-  fun key() = name.lowercase()
+enum class SmsLanguage(val key: String) {
+  ENGLISH("english"),
+  WELSH("welsh"),
 }
 
-enum class TemplateVariant {
-  WITH_NAME_DATE,
-  WITH_NAME_DATE_LOCATION,
-  ;
-
-  fun key() = name.lowercase().replace('_', '-')
+enum class TemplateVariant(val key: String) {
+  WITH_NAME_DATE("with-name-date"),
+  WITH_NAME_DATE_LOCATION("with-name-date-location"),
 }

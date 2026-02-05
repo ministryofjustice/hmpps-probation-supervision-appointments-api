@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.service.notify.Template
@@ -42,7 +43,7 @@ class SmsPreviewServiceTest {
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(false, null),
+      smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
     ).thenReturn(
       Template(
         notifyTemplateJson(
@@ -71,7 +72,7 @@ class SmsPreviewServiceTest {
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(false, "Leeds Office"),
+      smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, "Leeds Office"),
     ).thenReturn(
       Template(
         notifyTemplateJson(
@@ -81,7 +82,7 @@ class SmsPreviewServiceTest {
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(true, "Leeds Office"),
+      smsTemplateResolverService.getTemplate(SmsLanguage.WELSH, "Leeds Office"),
     ).thenReturn(
       Template(
         notifyTemplateJson(

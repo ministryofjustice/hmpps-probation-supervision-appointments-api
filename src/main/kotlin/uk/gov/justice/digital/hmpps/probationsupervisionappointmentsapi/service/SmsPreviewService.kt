@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
@@ -20,22 +21,22 @@ class SmsPreviewService(
 ) {
 
   fun generatePreview(request: SmsPreviewRequest) = SmsPreviewResponse(
-    englishSmsPreview = buildPreview(request, false),
-    welshSmsPreview = if (request.includeWelshPreview) buildPreview(request, true) else null,
+    englishSmsPreview = buildPreview(request, SmsLanguage.ENGLISH),
+    welshSmsPreview = if (request.includeWelshPreview) buildPreview(request, SmsLanguage.WELSH) else null,
   )
 
   private fun buildPreview(
     request: SmsPreviewRequest,
-    includeWelshTranslation: Boolean,
+    smsLanguage: SmsLanguage,
   ): String {
-    val template = smsTemplateResolverService.getTemplate(includeWelshTranslation, request.appointmentLocation)
+    val template = smsTemplateResolverService.getTemplate(smsLanguage, request.appointmentLocation)
 
     // Base (English) values
     val englishDate = request.dateAndTimeOfAppointment.toNotifyDate()
     val englishTime = request.dateAndTimeOfAppointment.toNotifyTime()
 
     // Translate only if Welsh
-    val date = if (includeWelshTranslation) {
+    val date = if (smsLanguage == SmsLanguage.WELSH) {
       englishDate
         .split(" ")
         .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
@@ -48,15 +49,15 @@ class SmsPreviewService(
       APPOINTMENT_DATE to date,
       APPOINTMENT_TIME to englishTime,
       APPOINTMENT_LOCATION to request.appointmentLocation.orEmpty(),
-      APPOINTMENT_TYPE to getAppointmentType(request.appointmentTypeCode, includeWelshTranslation),
+      APPOINTMENT_TYPE to getAppointmentType(request.appointmentTypeCode, smsLanguage),
     )
 
     return substitute(template.body, personalisation)
   }
 
-  private fun getAppointmentType(appointmentTypeCode: String?, includeWelshTranslation: Boolean): String {
+  private fun getAppointmentType(appointmentTypeCode: String?, smsLanguage: SmsLanguage): String {
     val type = AppointmentType.fromCode(appointmentTypeCode)
-    return (if (includeWelshTranslation) type?.welsh else type?.english).orEmpty()
+    return (if (smsLanguage == SmsLanguage.WELSH) type?.welsh else type?.english).orEmpty()
   }
 
   /**

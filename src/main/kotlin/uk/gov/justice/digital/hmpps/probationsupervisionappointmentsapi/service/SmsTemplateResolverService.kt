@@ -19,7 +19,7 @@ class SmsTemplateResolverService(
   }
 
   fun getTemplate(
-    includeWelshTranslation: Boolean,
+    smsLanguage: SmsLanguage,
     appointmentLocation: String? = null,
   ): Template {
     val variant =
@@ -29,13 +29,12 @@ class SmsTemplateResolverService(
         TemplateVariant.WITH_NAME_DATE_LOCATION
       }
 
-    val language = if (includeWelshTranslation) SmsLanguage.WELSH else SmsLanguage.ENGLISH
-    val templateKey = "${language.key}-${variant.key}"
+    val templateKey = "${smsLanguage.key}-${variant.key}"
 
     log.info("Getting template: $templateKey")
 
     val templateId = notifyTemplateProperties.templateIds[templateKey] ?: throw NotFoundException(
-      "No Notify template configured for Language: $language Variant: $variant templateKey: $templateKey",
+      "No Notify template configured for Language: $smsLanguage Variant: $variant templateKey: $templateKey",
     )
     log.info("Template Id fetched : $templateId")
 

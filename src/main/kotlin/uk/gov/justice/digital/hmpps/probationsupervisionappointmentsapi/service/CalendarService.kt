@@ -77,18 +77,18 @@ class CalendarService(
 
   fun sendSMSNotification(eventRequest: EventRequest) {
     if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabled("sms-notification-toggle")) {
-      sendSms(eventRequest, buildTemplateValues(eventRequest))
+      sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
 
       // WELSH sms
       if (eventRequest.smsEventRequest.includeWelshTranslation) {
-        sendSms(eventRequest, buildTemplateValues(eventRequest))
+        sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.WELSH), SmsLanguage.WELSH)
       }
     }
   }
 
-  fun buildTemplateValues(eventRequest: EventRequest): Map<String, String> {
+  fun buildTemplateValues(eventRequest: EventRequest, smsLanguage: SmsLanguage): Map<String, String> {
     val englishDate = eventRequest.start.toNotifyDate()
-    val date = if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
+    val date = if (smsLanguage == SmsLanguage.WELSH) {
       englishDate
         .split(" ")
         .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
@@ -119,20 +119,21 @@ class CalendarService(
   fun sendSms(
     eventRequest: EventRequest,
     templateValues: Map<String, String> = emptyMap(),
+    smsLanguage: SmsLanguage,
   ) {
     val telemetryProperties = mapOf(
       "crn" to eventRequest.smsEventRequest?.crn,
       "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
-      "smsLanguage" to if (eventRequest.smsEventRequest?.includeWelshTranslation == true) SmsLanguage.WELSH.name else SmsLanguage.ENGLISH.name,
+      "smsLanguage" to smsLanguage.name,
     )
 
     try {
-      val template = templateResolverService.getTemplate(eventRequest.smsEventRequest?.includeWelshTranslation!!, eventRequest.smsEventRequest.appointmentLocation)
+      val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest?.appointmentLocation)
       notificationClient.sendSms(
         template.id.toString(),
-        eventRequest.smsEventRequest.mobileNumber,
+        eventRequest.smsEventRequest?.mobileNumber,
         templateValues,
-        eventRequest.smsEventRequest.crn,
+        eventRequest.smsEventRequest?.crn,
       )
 
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)

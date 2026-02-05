@@ -8,10 +8,10 @@ generic-service:
 
   env:
     HMPPS_AUTH_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
-    GOVUK_NOTIFY_TEMPLATE_IDS_ENGLISH_WITH_NAME_DATE: "TBC"
-    GOVUK_NOTIFY_TEMPLATE_IDS_ENGLISH_WITH_NAME_DATE_LOCATION: "TBC"
-    GOVUK_NOTIFY_TEMPLATE_IDS_WELSH_WITH_NAME_DATE: "TBC"
-    GOVUK_NOTIFY_TEMPLATE_IDS_WELSH_WITH_NAME_DATE_LOCATION: "TBC"
+    GOVUK-NOTIFY_TEMPLATEIDS_ENGLISH-WITH-NAME-DATE: "TBC"
+    GOVUK-NOTIFY_TEMPLATEIDS_ENGLISH-WITH-NAME-DATE-LOCATION: "TBC"
+    GOVUK-NOTIFY_TEMPLATEIDS_WELSH-WITH-NAME-DATE: "TBC"
+    GOVUK-NOTIFY_TEMPLATEIDS_WELSH_WITH-WITH-NAME-DATE-LOCATION: "TBC"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts

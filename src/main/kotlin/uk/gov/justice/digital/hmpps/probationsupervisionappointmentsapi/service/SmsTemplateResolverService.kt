@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.NotifyTemplateProperties
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
@@ -13,6 +14,9 @@ class SmsTemplateResolverService(
   private val notifyTemplateProperties: NotifyTemplateProperties,
   private val notificationClient: NotificationClient,
 ) {
+  companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
 
   fun getTemplate(
     includeWelshTranslation: Boolean,
@@ -26,10 +30,15 @@ class SmsTemplateResolverService(
       }
 
     val language = if (includeWelshTranslation) SmsLanguage.WELSH else SmsLanguage.ENGLISH
-    val templateKey = "${language.name}_${variant.name}"
+    val templateKey = "${language.key}-${variant.key}"
+
+    log.info("Getting template: $templateKey")
+
     val templateId = notifyTemplateProperties.templateIds[templateKey] ?: throw NotFoundException(
-      "No Notify template configured for $language / $variant",
+      "No Notify template configured for Language: $language Variant: $variant templateKey: $templateKey",
     )
+    log.info("Template Id fetched : $templateId")
+
     return notificationClient.getTemplateById(templateId)
   }
 }

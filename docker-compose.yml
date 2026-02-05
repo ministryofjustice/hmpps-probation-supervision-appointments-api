@@ -57,7 +57,7 @@ services:
       - POSTGRES_DB=probation-supervision
 
   wiremock:
-    image: wiremock/wiremock:2.35.0
+    image: wiremock/wiremock:3.13.2
     networks:
       - hmpps
     container_name: wiremock

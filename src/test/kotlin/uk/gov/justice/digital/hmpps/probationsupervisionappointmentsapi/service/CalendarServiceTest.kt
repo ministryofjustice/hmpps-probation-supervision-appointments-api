@@ -164,11 +164,14 @@ class CalendarServiceTest {
         "crn",
       )
 
-      verify(telemetryService)
-        .trackEvent(
-          "AppointmentReminderSent",
-          mapOf("crn" to "crn", "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn, "smsLanguage" to SmsLanguage.ENGLISH.name),
-        )
+      verify(telemetryService).trackEvent(
+        "AppointmentReminderSent",
+        mapOf(
+          "crn" to "crn",
+          "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
+          "smsLanguage" to SmsLanguage.ENGLISH.name,
+        ),
+      )
 
       assertEquals(mockGraphEventResponse.toEventResponse(), result)
     }
@@ -208,7 +211,10 @@ class CalendarServiceTest {
       verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
       verifyNoInteractions(notificationClient)
-      verifyNoInteractions(telemetryService)
+      verify(telemetryService).trackEvent(
+        "AppointmentCalendarEventCreationSuccessful",
+        mapOf("supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn),
+      )
 
       assertEquals(mockGraphEventResponse.toEventResponse(), result)
     }
@@ -228,7 +234,10 @@ class CalendarServiceTest {
       val response = calendarService.sendEvent(eventRequestWithoutSms)
 
       verifyNoInteractions(notificationClient)
-      verifyNoInteractions(telemetryService)
+      verify(telemetryService).trackEvent(
+        "AppointmentCalendarEventCreationSuccessful",
+        mapOf("supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn),
+      )
 
       assertEquals(event.toEventResponse(), response)
     }

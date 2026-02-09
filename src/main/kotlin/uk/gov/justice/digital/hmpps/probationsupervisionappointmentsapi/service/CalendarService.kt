@@ -71,17 +71,23 @@ class CalendarService(
           outlookId = it.id.toString(),
         ),
       )
-      telemetryService.trackEvent("AppointmentCalendarEventCreationSuccessful", mapOf(
-        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
-      ))
+      telemetryService.trackEvent(
+        "AppointmentCalendarEventCreationSuccessful",
+        mapOf(
+          "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+        ),
+      )
 
       sendSMSNotification(eventRequest)
       return response.toEventResponse()
     }
 
-    telemetryService.trackEvent("AppointmentCalendarEventCreationFailed", mapOf(
-      "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
-    ))
+    telemetryService.trackEvent(
+      "AppointmentCalendarEventCreationFailed",
+      mapOf(
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+      ),
+    )
 
     return null
   }

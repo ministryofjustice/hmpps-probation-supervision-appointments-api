@@ -8,7 +8,6 @@ generic-service:
     host: probation-supervision-appointments-api-preprod.hmpps.service.justice.gov.uk
 
   env:
-    APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
     HMPPS_AUTH_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
     GOVUK-NOTIFY_TEMPLATEIDS_ENGLISH-WITH-NAME-DATE: "TBC"
     GOVUK-NOTIFY_TEMPLATEIDS_ENGLISH-WITH-NAME-DATE-LOCATION: "TBC"

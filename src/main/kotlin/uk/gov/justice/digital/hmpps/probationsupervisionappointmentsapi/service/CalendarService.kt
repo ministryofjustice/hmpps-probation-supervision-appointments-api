@@ -64,11 +64,11 @@ class CalendarService(
     val event = buildEvent(eventRequest)
     val response = createEvent(fromEmail, event)
 
-    response?.let {
+    response?.id?.let {
       deliusOutlookMappingRepository.save(
         DeliusOutlookMapping(
           supervisionAppointmentUrn = eventRequest.supervisionAppointmentUrn,
-          outlookId = it.id.toString(),
+          outlookId = it,
         ),
       )
       telemetryService.trackEvent(

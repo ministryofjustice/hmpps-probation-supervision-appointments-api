@@ -167,9 +167,12 @@ class CalendarService(
   }
 
   fun deleteExistingOutlookEvent(oldSupervisionAppointmentUrn: String) {
-    findEventDetails(oldSupervisionAppointmentUrn)?.let {
-      val eventStart = LocalDateTime.parse(requireNotNull(it.startDate))
+    findEventDetails(oldSupervisionAppointmentUrn)?.let { event ->
+      val eventId = event.id ?: return
+
+      val eventStart = LocalDateTime.parse(requireNotNull(event.startDate))
         .atZone(ZoneId.of("UTC"))
+
       val now = ZonedDateTime.now()
 
       if (eventStart.isAfter(now) || eventStart.isEqual(now)) {
@@ -177,7 +180,7 @@ class CalendarService(
           .byUserId(fromEmail)
           .calendar()
           .events()
-          .byEventId(it.id)
+          .byEventId(eventId)
           .delete()
       }
     }

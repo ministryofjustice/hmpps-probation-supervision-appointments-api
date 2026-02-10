@@ -63,16 +63,33 @@ class CalendarService(
 
     val event = buildEvent(eventRequest)
     val response = createEvent(fromEmail, event)
-    deliusOutlookMappingRepository.save(
-      DeliusOutlookMapping(
-        supervisionAppointmentUrn = eventRequest.supervisionAppointmentUrn,
-        outlookId = response?.id.toString(),
+
+    response?.id?.let {
+      deliusOutlookMappingRepository.save(
+        DeliusOutlookMapping(
+          supervisionAppointmentUrn = eventRequest.supervisionAppointmentUrn,
+          outlookId = it,
+        ),
+      )
+      telemetryService.trackEvent(
+        "AppointmentCalendarEventCreationSuccessful",
+        mapOf(
+          "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+        ),
+      )
+
+      sendSMSNotification(eventRequest)
+      return response.toEventResponse()
+    }
+
+    telemetryService.trackEvent(
+      "AppointmentCalendarEventCreationFailed",
+      mapOf(
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
       ),
     )
 
-    sendSMSNotification(eventRequest)
-
-    return response?.toEventResponse()
+    return null
   }
 
   fun sendSMSNotification(eventRequest: EventRequest) {

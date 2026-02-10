@@ -164,11 +164,14 @@ class CalendarServiceTest {
         "crn",
       )
 
-      verify(telemetryService)
-        .trackEvent(
-          "AppointmentReminderSent",
-          mapOf("crn" to "crn", "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn, "smsLanguage" to SmsLanguage.ENGLISH.name),
-        )
+      verify(telemetryService).trackEvent(
+        "AppointmentReminderSent",
+        mapOf(
+          "crn" to "crn",
+          "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
+          "smsLanguage" to SmsLanguage.ENGLISH.name,
+        ),
+      )
 
       assertEquals(mockGraphEventResponse.toEventResponse(), result)
     }
@@ -204,13 +207,43 @@ class CalendarServiceTest {
           smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
         ),
       )
-
       verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
       verifyNoInteractions(notificationClient)
-      verifyNoInteractions(telemetryService)
+      verify(telemetryService).trackEvent(
+        "AppointmentCalendarEventCreationSuccessful",
+        mapOf("supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn),
+      )
 
       assertEquals(mockGraphEventResponse.toEventResponse(), result)
+    }
+
+    @Test
+    fun `should track telemetry when calendar event creation fails`() {
+      // Arrange
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+
+      // Graph returns null -> event creation failed
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(null)
+
+      // Act
+      val result = calendarService.sendEvent(mockEventRequest)
+
+      // Assert
+      assertNull(result)
+
+      verify(deliusOutlookMappingRepository, never()).save(any())
+      verifyNoInteractions(notificationClient)
+
+      verify(telemetryService).trackEvent(
+        "AppointmentCalendarEventCreationFailed",
+        mapOf(
+          "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
+        ),
+      )
     }
 
     @Test
@@ -228,7 +261,10 @@ class CalendarServiceTest {
       val response = calendarService.sendEvent(eventRequestWithoutSms)
 
       verifyNoInteractions(notificationClient)
-      verifyNoInteractions(telemetryService)
+      verify(telemetryService).trackEvent(
+        "AppointmentCalendarEventCreationSuccessful",
+        mapOf("supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn),
+      )
 
       assertEquals(event.toEventResponse(), response)
     }

@@ -20,6 +20,8 @@ generic-service:
     SERVER_PORT: "8080"
     SPRING_DATASOURCE_URL: "jdbc:postgresql://${DB_HOST}/${DB_NAME}"
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: applicationinsights.json
+    SENTRY_SAMPLE-RATE: 1
+    SENTRY_TRACES-SAMPLE-RATE: 0.2
 
   # Pre-existing kubernetes secrets to load as environment variables in the deployment.
   # namespace_secrets:
@@ -35,6 +37,7 @@ generic-service:
       GOVUK_NOTIFY_API_KEY: NOTIFY_API_KEY
       FLIPT_URL: FLIPT_URL
       FLIPT_TOKEN: FLIPT_TOKEN
+      SENTRY_DSN: "SENTRY_DSN"
     rds-postgresql-instance-output:
       SPRING_DATASOURCE_USERNAME: "database_username"
       SPRING_DATASOURCE_PASSWORD: "database_password"

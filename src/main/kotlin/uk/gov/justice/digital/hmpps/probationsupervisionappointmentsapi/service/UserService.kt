@@ -37,7 +37,7 @@ class UserService(private val graphServiceClient: GraphServiceClient) {
       },
     ]
       ?.value
-      .orEmpty() // 👈 converts null → emptyList()
+      .orEmpty() // converts null → emptyList()
 
     val usersWithMail = users.filter { it.mail != null }
 

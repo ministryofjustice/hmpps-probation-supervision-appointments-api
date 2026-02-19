@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config
 
+import io.sentry.Sentry
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus.BAD_REQUEST
@@ -69,7 +70,10 @@ class ProbationSupervisionAppointmentsApiExceptionHandler {
         userMessage = "Unexpected error: ${e.message}",
         developerMessage = e.message,
       ),
-    ).also { log.error("Unexpected exception", e) }
+    ).also {
+      log.error("Unexpected exception", e)
+      Sentry.captureException(e)
+    }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

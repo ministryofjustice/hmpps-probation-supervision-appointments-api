@@ -3,6 +3,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.jpa") version "2.3.10"
   kotlin("plugin.spring") version "2.3.10"
   id("idea")
+  id("io.sentry.jvm.gradle") version "6.0.0"
 }
 
 val hmppsSpringBootStarterVersion = "2.0.0"
@@ -12,7 +13,7 @@ val sentryVersion = "8.32.0"
 val notifyVersion = "6.0.0-RELEASE"
 val microsoftGraphVersion = "6.61.0"
 val wiremockVersion = "3.13.2"
-val swaggerParserVersion = "2.1.37"
+val swaggerParserVersion = "2.1.38"
 val springdocVersion = "3.0.1"
 
 idea {

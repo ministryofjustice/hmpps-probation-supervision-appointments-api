@@ -19,6 +19,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_LOCATION
@@ -37,6 +39,7 @@ private const val EVENT_TIMEZONE = "Europe/London"
 class CalendarService(
   private val graphClient: GraphServiceClient,
   private val deliusOutlookMappingRepository: DeliusOutlookMappingRepository,
+  private val notificationMappingRepository: NotificationMappingRepository,
   private val featureFlagsService: FeatureFlagsService,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
@@ -142,12 +145,23 @@ class CalendarService(
 
     try {
       val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest?.appointmentLocation)
-      notificationClient.sendSms(
+      val smsResponse = notificationClient.sendSms(
         template.id.toString(),
         eventRequest.smsEventRequest?.mobileNumber,
         templateValues,
         eventRequest.smsEventRequest?.crn,
       )
+
+      notificationMappingRepository.save(
+        NotificationMapping(
+          deliusExternalReference = eventRequest.supervisionAppointmentUrn,
+          notificationId = smsResponse.notificationId,
+          templateId = smsResponse.templateId,
+          message = smsResponse.body,
+        ),
+      )?.let {
+        // publish sqs event for PI
+      }
 
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
     } catch (e: Exception) {

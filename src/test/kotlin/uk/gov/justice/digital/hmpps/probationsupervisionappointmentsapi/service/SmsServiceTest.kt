@@ -4,31 +4,40 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
-class SmsPreviewServiceTest {
+class SmsServiceTest {
 
   @Mock
   private lateinit var smsTemplateResolverService: SmsTemplateResolverService
 
-  private lateinit var service: SmsPreviewService
+  @Mock
+  private lateinit var notificationMappingRepository: NotificationMappingRepository
+  private lateinit var service: SmsService
 
   private val fixedStartDateTime: ZonedDateTime =
     ZonedDateTime.parse("2050-01-01T10:00:00Z")
 
   @BeforeEach
   fun setup() {
-    service = SmsPreviewService(
+    service = SmsService(
       smsTemplateResolverService = smsTemplateResolverService,
+      notificationMappingRepository = notificationMappingRepository,
     )
   }
 
@@ -118,6 +127,43 @@ class SmsPreviewServiceTest {
 
     assertEquals("Tuesday 11 August", dt.toNotifyDate())
     assertEquals("2:30pm", dt.toNotifyTime())
+  }
+
+  @Test
+  fun `should return sms message when notification mapping exists`() {
+    val notificationId = UUID.randomUUID()
+    val templateId = UUID.randomUUID()
+    val expectedMessage = "Test SMS message"
+
+    val mapping = NotificationMapping(
+      id = 100L,
+      deliusExternalReference = "",
+      notificationId = notificationId,
+      message = expectedMessage,
+      templateId = templateId,
+    )
+
+    whenever(
+      notificationMappingRepository.findByNotificationId(notificationId),
+    ).thenReturn(mapping)
+
+    val result = service.getSmsByNotificationId(notificationId)
+
+    assertEquals(expectedMessage, result)
+    verify(notificationMappingRepository).findByNotificationId(notificationId)
+  }
+
+  @Test
+  fun `should throw NotFoundException when notification mapping does not exist`() {
+    val notificationId = UUID.randomUUID()
+
+    whenever(
+      notificationMappingRepository.findByNotificationId(notificationId),
+    ).thenReturn(null)
+
+    val exception = assertThrows<NotFoundException> {
+      service.getSmsByNotificationId(notificationId)
+    }
   }
 }
 

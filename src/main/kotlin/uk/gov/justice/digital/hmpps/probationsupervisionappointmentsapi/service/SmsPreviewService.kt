@@ -11,7 +11,6 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
-import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -85,11 +84,10 @@ private val HOUR_ONLY_FORMATTER =
 private val HOUR_MINUTE_FORMATTER =
   DateTimeFormatter.ofPattern("h:mma", Locale.UK)
 
-fun ZonedDateTime.toNotifyTime(): String =
-  if (this.minute == 0) {
-    this.format(HOUR_ONLY_FORMATTER)
-  } else {
-    this.format(HOUR_MINUTE_FORMATTER)
-  }.lowercase()
+fun ZonedDateTime.toNotifyTime(): String = if (this.minute == 0) {
+  this.format(HOUR_ONLY_FORMATTER)
+} else {
+  this.format(HOUR_MINUTE_FORMATTER)
+}.lowercase()
 
 fun ZonedDateTime.toNotifyDate(): String = this.format(DATE_FORMATTER)

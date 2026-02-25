@@ -111,6 +111,14 @@ class SmsPreviewServiceTest {
     assertEquals("Tuesday 11 August", dt.toNotifyDate())
     assertEquals("2pm", dt.toNotifyTime())
   }
+
+  @Test
+  fun `formats notify date and time with minutes`() {
+    val dt = ZonedDateTime.parse("2026-08-11T14:30:00+01:00[Europe/London]")
+
+    assertEquals("Tuesday 11 August", dt.toNotifyDate())
+    assertEquals("2:30pm", dt.toNotifyTime())
+  }
 }
 
 private fun notifyTemplateJson(body: String): String =

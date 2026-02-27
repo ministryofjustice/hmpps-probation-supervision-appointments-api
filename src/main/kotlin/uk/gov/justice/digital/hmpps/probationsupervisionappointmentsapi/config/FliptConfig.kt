@@ -6,13 +6,15 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
+const val FLIPT_NAMESPACE = "probation-supervision"
+
 @Configuration
 class FliptConfig(
-  @Value("\${flipt.url}") private val url: String,
-  @Value("\${flipt.token}") private val token: String,
+  @Value("\${flipt.url}") val url: String,
+  @Value("\${flipt.token}") val token: String,
 ) {
 
   @Bean
-  fun fliptApiClient(): FliptClient = FliptClient.builder().url(url).namespace("probation-supervision")
+  fun fliptApiClient(): FliptClient = FliptClient.builder().url(url).namespace(FLIPT_NAMESPACE)
     .authentication(ClientTokenAuthentication(token)).build()
 }

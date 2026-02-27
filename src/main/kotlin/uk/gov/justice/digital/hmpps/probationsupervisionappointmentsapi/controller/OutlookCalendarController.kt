@@ -13,12 +13,14 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CalendarService
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
 
 @RestController
 @Tag(name = "Outlook Calendar", description = "Outlook Calendar API")
 @RequestMapping("/calendar")
 @PreAuthorize("hasRole('ROLE_PROBATION_API__PROBATION_SUPERVISION_APPOINTMENTS__EVENTS')")
-class OutlookCalendarController(val calendarService: CalendarService) {
+class OutlookCalendarController(val calendarService: CalendarService,
+  val flagsService: FeatureFlagsService) {
 
   @PostMapping("/event")
   @ResponseStatus(HttpStatus.CREATED)
@@ -39,4 +41,11 @@ class OutlookCalendarController(val calendarService: CalendarService) {
   fun getOutlookEvent(
     @RequestParam supervisionAppointmentUrn: String,
   ) = calendarService.getEventDetails(supervisionAppointmentUrn)
+
+  @GetMapping("/segment")
+  @ResponseStatus(HttpStatus.OK)
+  fun getSegment(
+    @RequestParam key: String,
+  ) = flagsService.getSegments(key)
+
 }

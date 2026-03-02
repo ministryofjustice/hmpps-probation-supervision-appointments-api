@@ -40,7 +40,10 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.service.notify.NotificationClient
+import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -55,6 +58,9 @@ class CalendarServiceTest {
 
   @Mock
   private lateinit var deliusOutlookMappingRepository: DeliusOutlookMappingRepository
+
+  @Mock
+  private lateinit var notificationMappingRepository: NotificationMappingRepository
 
   @Mock
   private lateinit var usersRequestBuilder: UsersRequestBuilder
@@ -86,6 +92,9 @@ class CalendarServiceTest {
   @Captor
   private lateinit var mappingCaptor: ArgumentCaptor<DeliusOutlookMapping>
 
+  @Captor
+  private lateinit var notificationMappingCaptor: ArgumentCaptor<NotificationMapping>
+
   private val fromEmail = "MPoP-Digital-Team@justice.gov.uk"
   private lateinit var calendarService: CalendarService
 
@@ -104,7 +113,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail)
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail)
   }
 
   @Nested
@@ -119,9 +128,30 @@ class CalendarServiceTest {
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
       val templateId = UUID.randomUUID().toString()
+      val notificationId = UUID.randomUUID()
       whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
+      whenever(notificationClient.sendSms(anyString(), anyString(), any(), anyString())).thenReturn(
+        SendSmsResponse(
+          """
+          {
+            "id": "$notificationId",
+            "reference": "crn",
+            "content": {
+              "body": "Reminder: Dear name. Appointment on Saturday 1 January at 10am.",
+              "from_number": "447700900000"
+            },
+            "uri": "https://api.notifications.service.gov.uk/v2/notifications/$notificationId",
+            "template": {
+              "id": "$templateId",
+              "version": 1,
+              "uri": "https://api.notifications.service.gov.uk/v2/templates/$templateId"
+            }
+          }
+          """.trimIndent(),
         ),
       )
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
@@ -150,6 +180,7 @@ class CalendarServiceTest {
 
       verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
       verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
+      verify(notificationMappingRepository, times(1)).save(notificationMappingCaptor.capture())
 
       verify(notificationClient).sendSms(
         templateId,
@@ -174,6 +205,12 @@ class CalendarServiceTest {
       )
 
       assertEquals(mockGraphEventResponse.toEventResponse(), result)
+
+      val notificationMapping = notificationMappingCaptor.value
+      assertEquals(mockEventRequest.supervisionAppointmentUrn, notificationMapping.deliusExternalReference)
+      assertEquals(notificationId, notificationMapping.notificationId)
+      assertEquals(UUID.fromString(templateId), notificationMapping.templateId)
+      assertEquals("Reminder: Dear name. Appointment on Saturday 1 January at 10am.", notificationMapping.message)
     }
 
     @Test

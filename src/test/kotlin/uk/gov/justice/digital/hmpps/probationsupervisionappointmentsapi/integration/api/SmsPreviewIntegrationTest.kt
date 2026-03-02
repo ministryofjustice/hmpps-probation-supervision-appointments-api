@@ -1,6 +1,8 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.api
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -8,9 +10,12 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
+import java.util.UUID
+import kotlin.String
 
 class SmsPreviewIntegrationTest : IntegrationTestBase() {
 
@@ -113,6 +118,78 @@ class SmsPreviewIntegrationTest : IntegrationTestBase() {
         val body = response.responseBody!!
         assert(body.englishSmsPreview == "EN John Saturday 1 January 10am at Leeds Office")
         assert(body.welshSmsPreview == "CY John Dydd Sadwrn 1 Ionawr 10am yn Leeds Office")
+      }
+  }
+
+  @Test
+  fun `unauthorized status returned`() {
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/sms/message")
+          .queryParam("notificationId", UUID.randomUUID())
+          .build()
+      }
+      .exchange()
+      .expectStatus().isUnauthorized
+  }
+
+  @Test
+  fun `test successful retrieval of sms by notificationId`() {
+    val notificationId = UUID.randomUUID()
+    val message = "Test SMS message"
+
+    notificationMappingRepository.save(
+      NotificationMapping(
+        notificationId = notificationId,
+        deliusExternalReference = "",
+        templateId = UUID.randomUUID(),
+        message = message,
+      ),
+    )
+
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/sms/message")
+          .queryParam("notificationId", notificationId)
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(String::class.java)
+      .consumeWith { response ->
+        val body = response.responseBody!!
+        assert(body == message)
+      }
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+    strings = [
+      "00000000-0000-0000-0000-000000000000",
+      "11111111-1111-1111-1111-111111111111",
+    ],
+  )
+  fun `notificationId not found`(notificationId: String) {
+    val trimmed = notificationId.trim()
+
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/sms/message")
+          .queryParam("notificationId", notificationId)
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isNotFound
+      .expectBody()
+      .jsonPath("$.userMessage").value<String> { message ->
+        assert(
+          message ==
+            "Not found: NotificationMapping with notificationId of $trimmed not found",
+        )
       }
   }
 }

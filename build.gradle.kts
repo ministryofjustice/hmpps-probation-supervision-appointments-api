@@ -1,12 +1,12 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.0.3"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.0.4"
   id("org.jetbrains.kotlin.plugin.jpa") version "2.3.10"
   kotlin("plugin.spring") version "2.3.10"
   id("idea")
   id("io.sentry.jvm.gradle") version "6.1.0"
 }
 
-val hmppsSpringBootStarterVersion = "2.0.0"
+val hmppsSpringBootStarterVersion = "2.0.2"
 val azureIdentityVersion = "1.18.2"
 val fliptVersion = "1.2.1"
 val sentryVersion = "8.33.0"
@@ -14,7 +14,7 @@ val notifyVersion = "6.0.0-RELEASE"
 val microsoftGraphVersion = "6.62.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.38"
-val springdocVersion = "3.0.1"
+val springdocVersion = "3.0.2"
 
 idea {
   module {

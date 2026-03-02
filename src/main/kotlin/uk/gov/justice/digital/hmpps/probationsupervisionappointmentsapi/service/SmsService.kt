@@ -5,6 +5,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.S
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getNotificationMappingByNotificationId
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_LOCATION
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
@@ -14,10 +16,12 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.Eng
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.UUID
 
 @Service
-class SmsPreviewService(
+class SmsService(
   private val smsTemplateResolverService: SmsTemplateResolverService,
+  private val notificationMappingRepository: NotificationMappingRepository,
 ) {
 
   fun generatePreview(request: SmsPreviewRequest) = SmsPreviewResponse(
@@ -70,6 +74,8 @@ class SmsPreviewService(
   ): String = values.entries.fold(template) { acc, (key, value) ->
     acc.replace("(($key))", value)
   }
+
+  fun getSmsByNotificationId(notificationId: UUID) = notificationMappingRepository.getNotificationMappingByNotificationId(notificationId).message
 }
 
 private val DATE_FORMATTER =

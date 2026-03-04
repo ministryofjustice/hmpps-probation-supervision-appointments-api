@@ -171,8 +171,8 @@ class CalendarService(
   }
 
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
-    rescheduleEventRequest.oldSupervisionAppointmentUrn?.run {
-      deleteExistingOutlookEvent(this)
+    rescheduleEventRequest.oldSupervisionAppointmentUrn?.let {
+      deleteExistingOutlookEvent(it)
     }
 
     return sendEvent(rescheduleEventRequest.rescheduledEventRequest)

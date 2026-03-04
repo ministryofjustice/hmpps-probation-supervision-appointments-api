@@ -453,6 +453,67 @@ class CalendarServiceTest {
     }
 
     @Test
+    fun `should not try to delete old event when appointment is created in nDelius and send new event if new start is in the future`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+
+      val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
+      val rescheduleRequest = RescheduleEventRequest(futureEventRequest, null)
+      val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
+
+      val oldEventForGet = Event().apply {
+        id = oldOutlookId
+        subject = "Old Subject"
+        start = DateTimeTimeZone().apply {
+          dateTime = futureEventRequest.start.toLocalDateTime().toString()
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = futureEndDateTime.toLocalDateTime().toString()
+        }
+        attendees = listOf()
+      }
+
+      // Mock creating the new event
+      val newOutlookId = "new-outlook-id-123"
+      val mockGraphEventResponse = Event().apply {
+        id = newOutlookId
+        subject = futureEventRequest.subject
+        start = DateTimeTimeZone().apply {
+          dateTime = futureEventRequest.start.toLocalDateTime().toString()
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = futureEndDateTime.toLocalDateTime().toString()
+        }
+        attendees = listOf(
+          Attendee().apply {
+            emailAddress = EmailAddress()
+              .apply { address = futureEventRequest.recipients.first().emailAddress }
+          },
+        )
+      }
+
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      val result = calendarService.rescheduleEvent(rescheduleRequest)
+
+      // Verify deletion happened
+      verify(eventItemRequestBuilder, never()).delete()
+
+      // Verify new event created
+      verify(eventsRequestBuilder, times(1)).post(any(Event::class.java))
+      verify(deliusOutlookMappingRepository, times(1)).save(mappingCaptor.capture())
+
+      assertEquals(newUrn, mappingCaptor.value.supervisionAppointmentUrn)
+      assertEquals(newOutlookId, mappingCaptor.value.outlookId)
+      assertNotNull(result)
+      assertEquals(newOutlookId, result?.id)
+    }
+
+    @Test
     fun `should only delete old event and return manual response if new start is in the past`() {
       whenever(graphClient.users()).thenReturn(usersRequestBuilder)
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)

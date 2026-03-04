@@ -174,7 +174,7 @@ class CalendarService(
           templateId = smsResponse.templateId,
           message = smsResponse.body,
         ),
-      )?.let {
+      ).let {
         // publish sqs event for PI
       }
 
@@ -186,7 +186,9 @@ class CalendarService(
   }
 
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {
-    deleteExistingOutlookEvent(rescheduleEventRequest.oldSupervisionAppointmentUrn)
+    rescheduleEventRequest.oldSupervisionAppointmentUrn?.let {
+      deleteExistingOutlookEvent(it)
+    }
 
     return sendEvent(rescheduleEventRequest.rescheduledEventRequest)
   }

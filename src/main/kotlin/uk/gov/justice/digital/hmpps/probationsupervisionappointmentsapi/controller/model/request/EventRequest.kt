@@ -28,5 +28,6 @@ data class SmsEventRequest(
 )
 data class RescheduleEventRequest(
   val rescheduledEventRequest: EventRequest,
-  val oldSupervisionAppointmentUrn: String,
+  // oldSupervisionAppointmentUrn can be null if appointment is created in nDelius
+  val oldSupervisionAppointmentUrn: String?,
 )

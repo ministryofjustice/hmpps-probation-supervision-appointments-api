@@ -8,6 +8,8 @@
 .kotlin/
 build/
 
+application-local.yml
+
 # CMake
 cmake-build-debug/
 

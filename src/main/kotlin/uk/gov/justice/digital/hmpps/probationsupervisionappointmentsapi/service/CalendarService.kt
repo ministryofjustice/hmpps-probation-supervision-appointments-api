@@ -64,6 +64,21 @@ class CalendarService(
       )
     }
 
+    val eventCreationFlag = "calendar-event-creation"
+    if (!featureFlagsService.isEnabledForUser(eventCreationFlag, eventRequest.recipients.first().emailAddress)) {
+      telemetryService.trackEvent(
+        name = "CalendarEventCreationSkippedDueToFeatureFlag",
+        properties = mapOf(
+          "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+          "recipientEmail" to eventRequest.recipients.first().emailAddress,
+          "flagEnabled" to featureFlagsService.isEnabled(eventCreationFlag).toString(),
+          "isEnabledForUser" to featureFlagsService.isEnabledForUser(eventCreationFlag, eventRequest.recipients.first().emailAddress).toString(),
+        ),
+      )
+
+      return null
+    }
+
     val event = buildEvent(eventRequest)
     val response = createEvent(fromEmail, event)
 

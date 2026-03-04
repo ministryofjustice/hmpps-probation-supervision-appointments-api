@@ -14,7 +14,7 @@ import org.springframework.security.web.SecurityFilterChain
 
 @Configuration
 @EnableWebSecurity
-@Profile("h2-mem")
+@Profile("h2-mem", "local")
 class DevSecurityConfig {
 
   @Bean

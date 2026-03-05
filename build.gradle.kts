@@ -9,7 +9,7 @@ plugins {
 val hmppsSpringBootStarterVersion = "2.0.2"
 val azureIdentityVersion = "1.18.2"
 val fliptVersion = "1.2.1"
-val sentryVersion = "8.33.0"
+val sentryVersion = "8.34.1"
 val notifyVersion = "6.0.0-RELEASE"
 val microsoftGraphVersion = "6.62.0"
 val wiremockVersion = "3.13.2"

@@ -96,6 +96,7 @@ class CalendarServiceTest {
   private lateinit var notificationMappingCaptor: ArgumentCaptor<NotificationMapping>
 
   private val fromEmail = "from@example.com"
+
   private lateinit var calendarService: CalendarService
 
   private val fixedStartDateTime: ZonedDateTime = ZonedDateTime.parse("2050-01-01T10:00:00Z")

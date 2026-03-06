@@ -95,7 +95,7 @@ class CalendarServiceTest {
   @Captor
   private lateinit var notificationMappingCaptor: ArgumentCaptor<NotificationMapping>
 
-  private val fromEmail = "MPoP-Digital-Team@justice.gov.uk"
+  private val fromEmail = "from@justice.gov.uk"
   private lateinit var calendarService: CalendarService
 
   private val fixedStartDateTime: ZonedDateTime = ZonedDateTime.parse("2050-01-01T10:00:00Z")
@@ -110,8 +110,6 @@ class CalendarServiceTest {
     durationInMinutes = durationMinutes,
     supervisionAppointmentUrn = "urn:test:123",
   )
-
-  private val eventCreationFlag = "calendar-event-creation"
 
   @BeforeEach
   fun setup() {
@@ -128,8 +126,7 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.isEnabledForUser(eventCreationFlag, mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
-      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       val templateId = UUID.randomUUID().toString()
       val notificationId = UUID.randomUUID()
       whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
@@ -222,8 +219,7 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.isEnabledForUser(eventCreationFlag, mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
-      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(false)
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(false)
 
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
@@ -266,7 +262,6 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.isEnabledForUser(eventCreationFlag, mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
 
       // Graph returns null -> event creation failed
       whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(null)
@@ -294,7 +289,6 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.isEnabledForUser(eventCreationFlag, mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       val eventRequestWithoutSms = mockEventRequest.copy(smsEventRequest = null)
       val event = mockEvent()
 
@@ -327,8 +321,7 @@ class CalendarServiceTest {
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
       )
-      whenever(featureFlags.isEnabledForUser(eventCreationFlag, mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
-      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
         anyString(),
         anyString(),
@@ -390,7 +383,6 @@ class CalendarServiceTest {
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       whenever(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
-      whenever(featureFlags.isEnabledForUser(eventCreationFlag, mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)
@@ -591,7 +583,6 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.isEnabledForUser(eventCreationFlag, mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       val futureEventRequest = mockEventRequest.copy(supervisionAppointmentUrn = newUrn)
       val rescheduleRequest = RescheduleEventRequest(futureEventRequest, oldUrn)
       val futureEndDateTime = futureEventRequest.start.plusMinutes(durationMinutes)

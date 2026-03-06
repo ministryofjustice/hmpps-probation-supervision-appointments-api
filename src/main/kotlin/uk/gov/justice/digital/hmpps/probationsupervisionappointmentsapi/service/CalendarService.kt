@@ -64,21 +64,6 @@ class CalendarService(
       )
     }
 
-    val eventCreationFlag = "calendar-event-creation"
-    if (!featureFlagsService.isEnabledForUser(eventCreationFlag, eventRequest.recipients.first().emailAddress)) {
-      telemetryService.trackEvent(
-        name = "CalendarEventCreationSkippedDueToFeatureFlag",
-        properties = mapOf(
-          "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
-          "recipientEmail" to eventRequest.recipients.first().emailAddress,
-          "flagEnabled" to featureFlagsService.isEnabled(eventCreationFlag).toString(),
-          "isEnabledForUser" to featureFlagsService.isEnabledForUser(eventCreationFlag, eventRequest.recipients.first().emailAddress).toString(),
-        ),
-      )
-
-      return null
-    }
-
     val event = buildEvent(eventRequest)
     val response = createEvent(fromEmail, event)
 
@@ -107,7 +92,7 @@ class CalendarService(
   }
 
   fun sendSMSNotification(eventRequest: EventRequest) {
-    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabled("sms-notification-toggle")) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabledForUser("sms-notification-toggle", eventRequest.recipients.first().emailAddress)) {
       sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
 
       // WELSH sms

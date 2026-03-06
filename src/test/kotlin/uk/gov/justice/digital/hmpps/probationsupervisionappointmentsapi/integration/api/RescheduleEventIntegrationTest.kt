@@ -20,7 +20,7 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `test successful rescheduling of appointment from future to future date via delete and create`() {
-    val fromEmail = "MPoP-Digital-Team@justice.gov.uk"
+    val fromEmail = "from@example.com"
     val attendeeEmail = "attendee@example.com"
     val oldSupervisionAppointmentUrn = "urn:uk.gov:hmpps:manage-supervision-service:appointment:old-123"
     val newSupervisionAppointmentUrn = "urn:uk.gov:hmpps:manage-supervision-service:appointment:new-456"
@@ -93,7 +93,7 @@ class RescheduleEventIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `test successful rescheduling of appointment to a past date results in delete only`() {
-    val fromEmail = "MPoP-Digital-Team@justice.gov.uk"
+    val fromEmail = "from@example.com"
     val attendeeEmail = "attendee@example.com"
     val oldSupervisionAppointmentUrn = "urn:uk.gov:hmpps:manage-supervision-service:appointment:old-124"
     val newSupervisionAppointmentUrn = "urn:uk.gov:hmpps:manage-supervision-service:appointment:new-457"

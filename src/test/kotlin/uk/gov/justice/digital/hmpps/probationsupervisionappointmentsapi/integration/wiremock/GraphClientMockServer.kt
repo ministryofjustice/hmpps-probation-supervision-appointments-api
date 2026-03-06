@@ -161,7 +161,7 @@ class MsGraphMockServer :
     )
   }
 
-  fun stubCreateRescheduledEvent(attendeesEmail: String? = "MPoP-Digital-Team@justice.gov.uk", eventId: String, startDateTime: String? = "2025-11-16T15:03:29Z", endDateTime: String? = "2025-11-16T15:48:29Z") {
+  fun stubCreateRescheduledEvent(attendeesEmail: String? = "from@example.com", eventId: String, startDateTime: String? = "2025-11-16T15:03:29Z", endDateTime: String? = "2025-11-16T15:48:29Z") {
     val body = mapOf(
       "id" to eventId,
       "subject" to "Rescheduled Meeting Subject",

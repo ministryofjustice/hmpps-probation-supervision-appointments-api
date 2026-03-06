@@ -29,7 +29,7 @@ graph-client:
   client-secret: secret
   tenant-id: id
 
-calendar-from-email: MPoP-Digital-Team@justice.gov.uk
+calendar-from-email: from@example.com
 
 
 flipt:

@@ -260,7 +260,7 @@ class CalendarService(
 
   fun getCalendarEventByOutlookId(outlookId: String): Event? = graphClient
     .users()
-    .byUserId("MPoP-Digital-Team@justice.gov.uk")
+    .byUserId(fromEmail)
     .calendar()
     .events()
     .byEventId(outlookId)[

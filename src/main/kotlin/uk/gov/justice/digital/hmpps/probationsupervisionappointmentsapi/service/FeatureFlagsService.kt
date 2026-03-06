@@ -21,4 +21,15 @@ class FeatureFlagsService(
     log.warn("Error retrieving feature flag '$key', defaulting to disabled", e)
     false
   }
+
+  fun isEnabledForUser(key: String, emailAddress: String) = try {
+    client.evaluateBoolean(
+      key,
+      emailAddress,
+      mapOf("recipientEmail" to emailAddress),
+    ).isEnabled
+  } catch (e: Exception) {
+    log.warn("Error retrieving feature flag '$key', defaulting to disabled", e)
+    false
+  }
 }

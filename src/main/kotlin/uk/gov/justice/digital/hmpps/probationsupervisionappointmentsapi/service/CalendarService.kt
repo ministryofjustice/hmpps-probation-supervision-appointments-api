@@ -92,7 +92,7 @@ class CalendarService(
   }
 
   fun sendSMSNotification(eventRequest: EventRequest) {
-    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabled("sms-notification-toggle")) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabledForUser("sms-notification-toggle", eventRequest.recipients.first().emailAddress)) {
       sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
 
       // WELSH sms

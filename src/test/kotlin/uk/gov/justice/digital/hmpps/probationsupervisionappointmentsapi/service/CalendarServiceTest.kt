@@ -95,7 +95,7 @@ class CalendarServiceTest {
   @Captor
   private lateinit var notificationMappingCaptor: ArgumentCaptor<NotificationMapping>
 
-  private val fromEmail = "MPoP-Digital-Team@justice.gov.uk"
+  private val fromEmail = "from@justice.gov.uk"
   private lateinit var calendarService: CalendarService
 
   private val fixedStartDateTime: ZonedDateTime = ZonedDateTime.parse("2050-01-01T10:00:00Z")
@@ -126,7 +126,7 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       val templateId = UUID.randomUUID().toString()
       val notificationId = UUID.randomUUID()
       whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
@@ -219,7 +219,7 @@ class CalendarServiceTest {
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
-      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(false)
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(false)
 
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
@@ -321,7 +321,7 @@ class CalendarServiceTest {
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
       )
-      whenever(featureFlags.isEnabled("sms-notification-toggle")).thenReturn(true)
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
         anyString(),
         anyString(),

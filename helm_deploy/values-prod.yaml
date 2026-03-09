@@ -13,6 +13,7 @@ generic-service:
     GOVUK-NOTIFY_TEMPLATEIDS_WELSH-WITH-NAME-DATE: "TBC"
     GOVUK-NOTIFY_TEMPLATEIDS_WELSH_WITH-WITH-NAME-DATE-LOCATION: "TBC"
     SENTRY_ENVIRONMENT: prod
+    SUPERVISION_API_URL: 'https://probation-supervision-appointments-api.hmpps.service.justice.gov.uk'
     OUTLOOK_ENVIRONMENT: prod
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack

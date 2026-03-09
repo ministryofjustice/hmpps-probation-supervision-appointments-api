@@ -44,6 +44,7 @@ class CalendarService(
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   private val templateResolverService: SmsTemplateResolverService,
+  private val domainEventService: DomainEventService,
   @Value("\${calendar-from-email}") private val fromEmail: String,
   @Value("\${outlook-environment}") private val outLookEnv: String,
 ) {
@@ -161,7 +162,10 @@ class CalendarService(
           message = smsResponse.body,
         ),
       ).let {
-        // publish sqs event for PI
+        domainEventService.buildAndPublishContactEvent(
+          crn = eventRequest.smsEventRequest?.crn!!,
+          notificationId = smsResponse.notificationId,
+        )
       }
 
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)

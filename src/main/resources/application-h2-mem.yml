@@ -4,6 +4,9 @@ wiremock:
 hmpps-auth:
   url: "http://localhost:${wiremock.port}/auth"
 
+services:
+  supervision-api:
+    base-url: http://localhost:9094
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE

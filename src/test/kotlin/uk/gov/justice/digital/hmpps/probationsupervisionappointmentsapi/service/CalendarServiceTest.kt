@@ -91,6 +91,9 @@ class CalendarServiceTest {
   @Mock
   private lateinit var smsTemplateResolverService: SmsTemplateResolverService
 
+  @Mock
+  private lateinit var domainEventService: DomainEventService
+
   @Captor
   private lateinit var mappingCaptor: ArgumentCaptor<DeliusOutlookMapping>
 
@@ -116,7 +119,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, "dev")
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, domainEventService, fromEmail, "dev")
   }
 
   @Nested
@@ -214,6 +217,8 @@ class CalendarServiceTest {
       assertEquals(notificationId, notificationMapping.notificationId)
       assertEquals(UUID.fromString(templateId), notificationMapping.templateId)
       assertEquals("Reminder: Dear name. Appointment on Saturday 1 January at 10am.", notificationMapping.message)
+
+      verify(domainEventService).buildAndPublishContactEvent("crn", notificationMapping.notificationId)
     }
 
     @Test

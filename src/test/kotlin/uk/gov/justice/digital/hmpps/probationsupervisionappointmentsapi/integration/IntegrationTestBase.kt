@@ -5,10 +5,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.web.reactive.server.WebTestClient
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.config.MockConfig
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.FliptExtension
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.FliptExtension.Companion.flipt
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.HmppsAuthApiExtension
@@ -21,7 +23,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrat
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @ExtendWith(HmppsAuthApiExtension::class, MsGraphApiExtension::class, FliptExtension::class)
-@SpringBootTest(webEnvironment = RANDOM_PORT)
+@SpringBootTest(webEnvironment = RANDOM_PORT, properties = ["spring.autoconfigure.exclude=uk.gov.justice.hmpps.sqs.HmppsSqsConfiguration"])
+@Import(MockConfig::class)
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
 @ContextConfiguration(classes = [MsGraphTestConfig::class])

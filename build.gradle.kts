@@ -15,6 +15,7 @@ val microsoftGraphVersion = "6.62.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.38"
 val springdocVersion = "3.0.2"
+val sqsVersion = "5.6.3"
 
 idea {
   module {
@@ -38,6 +39,9 @@ dependencies {
   implementation("io.flipt:flipt-client-java:$fliptVersion")
   implementation("uk.gov.service.notify:notifications-java-client:$notifyVersion")
   implementation("io.sentry:sentry-spring-boot-4:$sentryVersion")
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:$sqsVersion")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+  implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.0")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")

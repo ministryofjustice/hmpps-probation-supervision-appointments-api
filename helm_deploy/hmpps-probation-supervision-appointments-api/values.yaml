@@ -45,6 +45,8 @@ generic-service:
       DB_NAME: "database_name"
     hmpps-probation-supervision-appointments-api-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
+    hmpps-domain-events-topic:
+      HMPPS_SQS_TOPICS_HMPPSEVENTTOPIC_ARN: "topic_arn"
 
   allowlist:
     groups:

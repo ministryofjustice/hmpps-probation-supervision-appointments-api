@@ -1,2 +1,6 @@
 hmpps-auth:
   url: "http://localhost:8090/auth"
+
+services:
+  supervision-api:
+    base-url: http://localhost:9094

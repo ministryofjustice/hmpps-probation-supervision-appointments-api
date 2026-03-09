@@ -36,6 +36,11 @@ spring:
     error:
       include-message: always
 
+services:
+  supervision-api:
+    base-url: ${SUPERVISION-API_BASE_URL}
+
+
 server:
   port: 8080
   servlet:

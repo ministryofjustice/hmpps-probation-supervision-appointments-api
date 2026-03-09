@@ -98,7 +98,6 @@ class CalendarServiceTest {
   private lateinit var notificationMappingCaptor: ArgumentCaptor<NotificationMapping>
 
   private val fromEmail = "from@example.com"
-  private val fromUser = "fromUser"
 
   private lateinit var calendarService: CalendarService
 
@@ -117,7 +116,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, fromUser, "dev")
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, "dev")
   }
 
   @Nested
@@ -657,7 +656,7 @@ class CalendarServiceTest {
       "prod,attendee@example.com",
     )
     fun `buildEvent should correctly map request to MS Graph Event object`(env: String, email: String) {
-      val service = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, fromUser, env)
+      val service = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, env)
       val event = service.buildEvent(mockEventRequest)
 
       assertEquals(mockEventRequest.subject, event.subject)

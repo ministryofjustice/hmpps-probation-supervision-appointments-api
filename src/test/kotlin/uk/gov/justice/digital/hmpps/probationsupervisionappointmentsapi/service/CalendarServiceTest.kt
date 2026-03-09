@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
@@ -648,16 +650,22 @@ class CalendarServiceTest {
   @Nested
   inner class HelperMethodTests {
 
-    @Test
-    fun `buildEvent should correctly map request to MS Graph Event object`() {
-      val event = calendarService.buildEvent(mockEventRequest)
+    @ParameterizedTest
+    @CsvSource(
+      "dev,from@example.com",
+      "preprod,from@example.com",
+      "prod,attendee@example.com",
+    )
+    fun `buildEvent should correctly map request to MS Graph Event object`(env: String, email: String) {
+      val service = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, fromUser, env)
+      val event = service.buildEvent(mockEventRequest)
 
       assertEquals(mockEventRequest.subject, event.subject)
       assertEquals(EVENT_TIMEZONE, event.start?.timeZone)
       assertEquals(fixedStartDateTime.toString(), event.start?.dateTime)
       assertEquals(fixedStartDateTime.plusMinutes(durationMinutes).toString(), event.end?.dateTime)
       assertEquals(1, event.attendees?.size)
-      assertEquals(fromEmail, event.attendees?.first()?.emailAddress?.address)
+      assertEquals(email, event.attendees?.first()?.emailAddress?.address)
       assertEquals(mockEventRequest.message, event.body?.content)
       assertEquals(BodyType.Html, event.body?.contentType)
     }

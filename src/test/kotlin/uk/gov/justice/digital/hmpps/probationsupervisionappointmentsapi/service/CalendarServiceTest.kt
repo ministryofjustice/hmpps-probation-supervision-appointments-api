@@ -96,6 +96,7 @@ class CalendarServiceTest {
   private lateinit var notificationMappingCaptor: ArgumentCaptor<NotificationMapping>
 
   private val fromEmail = "from@example.com"
+  private val fromUser = "fromUser"
 
   private lateinit var calendarService: CalendarService
 
@@ -114,7 +115,7 @@ class CalendarServiceTest {
 
   @BeforeEach
   fun setup() {
-    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail)
+    calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, fromUser, "dev")
   }
 
   @Nested
@@ -656,7 +657,7 @@ class CalendarServiceTest {
       assertEquals(fixedStartDateTime.toString(), event.start?.dateTime)
       assertEquals(fixedStartDateTime.plusMinutes(durationMinutes).toString(), event.end?.dateTime)
       assertEquals(1, event.attendees?.size)
-      assertEquals(mockRecipient.emailAddress, event.attendees?.first()?.emailAddress?.address)
+      assertEquals(fromEmail, event.attendees?.first()?.emailAddress?.address)
       assertEquals(mockEventRequest.message, event.body?.content)
       assertEquals(BodyType.Html, event.body?.contentType)
     }

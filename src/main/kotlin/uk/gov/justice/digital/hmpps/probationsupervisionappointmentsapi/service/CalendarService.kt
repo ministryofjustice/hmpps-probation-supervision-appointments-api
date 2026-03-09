@@ -44,7 +44,9 @@ class CalendarService(
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   private val templateResolverService: SmsTemplateResolverService,
-  @Value("\${calendar-from-email}") private val fromEmail: String,
+  @Value("\${calendar.from-email}") private val fromEmail: String,
+  @Value("\${calendar.from-user}") private val fromUser: String,
+  @Value("\${outlook-env}") private val outLookEnv: String,
 ) {
 
   fun sendEvent(eventRequest: EventRequest): EventResponse? {
@@ -208,7 +210,7 @@ class CalendarService(
       dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
       timeZone = EVENT_TIMEZONE
     }
-    attendees = getAttendees(eventRequest.recipients)
+    attendees = if (outLookEnv != "prod") getAttendees(listOf(Recipient(fromEmail, fromUser))) else getAttendees(eventRequest.recipients)
     body = ItemBody().apply {
       contentType = BodyType.Html
       content = eventRequest.message

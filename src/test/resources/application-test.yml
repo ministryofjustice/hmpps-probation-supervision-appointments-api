@@ -29,8 +29,11 @@ graph-client:
   client-secret: secret
   tenant-id: id
 
-calendar-from-email: from@example.com
+calendar:
+  from-email: from@example.com
+  from-user:  from
 
+outlook-env: dev
 
 flipt:
   url: "http://localhost:8092"

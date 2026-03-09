@@ -33,6 +33,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
@@ -219,6 +220,100 @@ class CalendarServiceTest {
       assertEquals("Reminder: Dear name. Appointment on Saturday 1 January at 10am.", notificationMapping.message)
 
       verify(domainEventService).buildAndPublishContactEvent("crn", notificationMapping.notificationId)
+    }
+
+    @Test
+    fun `should not publish domain event when notification mapping save fails`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress))
+        .thenReturn(true)
+
+      val templateId = UUID.randomUUID().toString()
+      val notificationId = UUID.randomUUID()
+
+      whenever(
+        smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+      ).thenReturn(
+        Template(
+          notifyTemplateJson(
+            templateId,
+            "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME)).",
+          ),
+        ),
+      )
+
+      whenever(notificationClient.sendSms(anyString(), anyString(), any(), anyString()))
+        .thenReturn(
+          SendSmsResponse(
+            """
+        {
+          "id": "$notificationId",
+          "reference": "crn",
+          "content": {
+            "body": "Reminder: Dear name. Appointment on Saturday 1 January at 10am.",
+            "from_number": "447700900000"
+          },
+          "uri": "https://api.notifications.service.gov.uk/v2/notifications/$notificationId",
+          "template": {
+            "id": "$templateId",
+            "version": 1,
+            "uri": "https://api.notifications.service.gov.uk/v2/templates/$templateId"
+          }
+        }
+            """.trimIndent(),
+          ),
+        )
+
+      val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
+
+      val mockGraphEventResponse = Event().apply {
+        id = outlookId
+        subject = mockEventRequest.subject
+        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
+        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        attendees = listOf(
+          com.microsoft.graph.models.Attendee().apply {
+            emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
+          },
+        )
+      }
+
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] }
+
+      whenever(notificationMappingRepository.save(any(NotificationMapping::class.java)))
+        .thenThrow(RuntimeException("DB failure"))
+
+      calendarService.sendEvent(
+        mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+        ),
+      )
+
+      verify(notificationClient).sendSms(
+        eq(templateId),
+        eq("mobile"),
+        any(),
+        eq("crn"),
+      )
+
+      verify(domainEventService, never())
+        .buildAndPublishContactEvent("crn", notificationId)
+
+      verify(telemetryService).trackEvent(
+        "AppointmentReminderFailure",
+        mapOf(
+          "crn" to "crn",
+          "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
+          "smsLanguage" to SmsLanguage.ENGLISH.name,
+        ),
+      )
     }
 
     @Test

@@ -45,7 +45,7 @@ class DomainEventServiceTest {
 
     val event = eventCaptor.firstValue
 
-    assertEquals("probation-case.appointment.sms-sent", event.eventType)
+    assertEquals("probation.appointment.sms-sent-to-pop", event.eventType)
     assertEquals("An sms has been sent, please create a contact", event.description)
     assertEquals(1, event.version)
 

@@ -661,7 +661,7 @@ class CalendarServiceTest {
       "prod,attendee@example.com",
     )
     fun `buildEvent should correctly map request to MS Graph Event object`(env: String, email: String) {
-      val service = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, fromEmail, env)
+      val service = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, domainEventService, fromEmail, env)
       val event = service.buildEvent(mockEventRequest)
 
       assertEquals(mockEventRequest.subject, event.subject)

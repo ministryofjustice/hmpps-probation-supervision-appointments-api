@@ -15,7 +15,7 @@ val microsoftGraphVersion = "6.62.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.39"
 val springdocVersion = "3.0.2"
-
+val sqsVersion = "7.0.1"
 idea {
   module {
     resourceDirs.add(file("src/wiremock-stubs"))
@@ -39,6 +39,10 @@ dependencies {
   implementation("uk.gov.service.notify:notifications-java-client:$notifyVersion")
   implementation("io.sentry:sentry-spring-boot-4:$sentryVersion")
 
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:$sqsVersion")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+  implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.0")
+
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
   runtimeOnly("org.flywaydb:flyway-core")
@@ -54,6 +58,14 @@ dependencies {
   testImplementation("io.swagger.parser.v3:swagger-parser:$swaggerParserVersion") {
     exclude(group = "io.swagger.core.v3")
   }
+
+  testImplementation("org.awaitility:awaitility-kotlin")
+  testImplementation("org.testcontainers:testcontainers:2.0.3")
+  testImplementation("org.testcontainers:postgresql:1.21.4")
+  testImplementation("org.testcontainers:localstack:1.21.4")
+  testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+  testImplementation("org.jetbrains.kotlin:kotlin-test")
+
 }
 
 kotlin {

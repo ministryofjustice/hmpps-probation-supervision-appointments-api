@@ -8,7 +8,10 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.events.LocalStackContainer
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.FliptExtension
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.FliptExtension.Companion.flipt
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.HmppsAuthApiExtension
@@ -38,6 +41,19 @@ abstract class IntegrationTestBase {
 
   @Autowired
   protected lateinit var notificationMappingRepository: NotificationMappingRepository
+
+  companion object {
+    private val lsContainer = LocalStackContainer.instance
+
+    @JvmStatic
+    @DynamicPropertySource
+    fun properties(registry: DynamicPropertyRegistry) {
+      lsContainer?.run {
+        registry.add("hmpps.sqs.localstackUrl") { lsContainer.getEndpointOverride(org.testcontainers.containers.localstack.LocalStackContainer.Service.SNS) }
+        registry.add("hmpps.sqs.region") { lsContainer.region }
+      }
+    }
+  }
 
   internal fun setAuthorisation(
     username: String? = "AUTH_ADM",

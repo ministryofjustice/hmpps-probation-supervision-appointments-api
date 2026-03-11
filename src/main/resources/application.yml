@@ -65,3 +65,9 @@ management:
     info:
       cache:
         time-to-live: 2000ms
+
+services:
+  supervision-api:
+    base-url: http://localhost:9104
+
+outlook-environment: dev

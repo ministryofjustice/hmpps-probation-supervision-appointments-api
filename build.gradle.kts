@@ -15,6 +15,7 @@ val microsoftGraphVersion = "6.62.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.38"
 val springdocVersion = "3.0.2"
+val jacksonVersion = "3.1.0"
 
 idea {
   module {
@@ -38,6 +39,7 @@ dependencies {
   implementation("io.flipt:flipt-client-java:$fliptVersion")
   implementation("uk.gov.service.notify:notifications-java-client:$notifyVersion")
   implementation("io.sentry:sentry-spring-boot-4:$sentryVersion")
+  implementation(platform("tools.jackson:jackson-bom:$jacksonVersion"))
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")

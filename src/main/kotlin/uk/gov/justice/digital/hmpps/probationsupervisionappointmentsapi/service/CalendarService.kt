@@ -140,7 +140,7 @@ class CalendarService(
     smsLanguage: SmsLanguage,
   ) {
     val telemetryProperties = mapOf(
-      "crn" to eventRequest.smsEventRequest?.crn,
+      "crn" to eventRequest.smsEventRequest!!.crn,
       "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
       "smsLanguage" to smsLanguage.name,
     )
@@ -149,9 +149,9 @@ class CalendarService(
       val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest?.appointmentLocation)
       val smsResponse = notificationClient.sendSms(
         template.id.toString(),
-        eventRequest.smsEventRequest?.mobileNumber,
+        eventRequest.smsEventRequest.mobileNumber,
         templateValues,
-        eventRequest.smsEventRequest?.crn,
+        eventRequest.smsEventRequest.crn,
       )
 
       notificationMappingRepository.save(
@@ -163,7 +163,7 @@ class CalendarService(
         ),
       ).let {
         domainEventService.buildAndPublishContactEvent(
-          crn = eventRequest.smsEventRequest?.crn!!,
+          crn = eventRequest.smsEventRequest.crn,
           notificationId = smsResponse.notificationId,
         )
       }

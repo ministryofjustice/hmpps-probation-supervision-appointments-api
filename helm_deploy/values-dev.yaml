@@ -15,7 +15,7 @@ generic-service:
     GOVUK-NOTIFY_TEMPLATEIDS_WELSH-WITH-NAME-DATE: "887554f6-7765-4df3-a77d-aa833b22116e"
     GOVUK-NOTIFY_TEMPLATEIDS_WELSH-WITH-NAME-DATE-LOCATION: "b562b777-0931-4f9d-bd6f-ef99a23bdef9"
     SENTRY_ENVIRONMENT: dev
-    SUPERVISION-API_BASE_URL: 'https://probation-supervision-appointments-api-dev.hmpps.service.justice.gov.uk'
+    SUPERVISION-API_BASE-URL: 'https://probation-supervision-appointments-api-dev.hmpps.service.justice.gov.uk'
     OUTLOOK_ENVIRONMENT: dev
 
 

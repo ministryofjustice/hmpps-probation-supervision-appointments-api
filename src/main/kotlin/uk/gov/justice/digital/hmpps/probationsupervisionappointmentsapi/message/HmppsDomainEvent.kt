@@ -2,8 +2,6 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message
 
 import java.time.ZonedDateTime
 
-const val DOMAIN_EVENT_VERSION = 1
-
 data class HmppsDomainEvent(
   val eventType: String,
   val version: Int,

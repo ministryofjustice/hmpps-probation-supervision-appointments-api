@@ -56,8 +56,20 @@ services:
   supervision-api:
     base-url: http://localhost:9094
 
-hmpps:
-  sqs:
-    topics:
-      hmppseventtopic:
-        arn: arn:aws:sns:eu-west-2:000000000000:hmppseventtopic
+
+hmpps.sqs:
+  provider: localstack
+  queues:
+    hmppsdomaineventsqueue:
+      queueName: hmpps_domain_events_queue
+      dlqName: hmpps_domain_events_dlq
+      subscribeTopicId: hmppsdomaineventstopic
+      subscribeFilter: '{"eventType":["probation.appointment.sms-sent-to-pop"] }'
+      asyncQueueClient: true
+
+  topics:
+    hmppsdomaineventstopic:
+      arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
+
+hmppsdomaineventsqueue:
+  queueName: hmpps_domain_events_queue

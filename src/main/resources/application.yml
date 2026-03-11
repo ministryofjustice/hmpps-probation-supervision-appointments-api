@@ -38,7 +38,7 @@ spring:
 
 services:
   supervision-api:
-    base-url: ${SUPERVISION-API_BASE_URL}
+    base-url: ${SUPERVISION-API_BASE-URL}
 
 
 server:

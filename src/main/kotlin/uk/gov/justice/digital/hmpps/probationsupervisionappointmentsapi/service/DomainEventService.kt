@@ -20,7 +20,7 @@ class DomainEventService(
   private fun buildContactEvent(crn: String, notificationId: UUID) = HmppsDomainEvent(
     eventType = "probation.appointment.sms-sent-to-pop",
     description = "An sms has been sent, please create a contact",
-    version = HmppsDomainEvent.DOMAIN_EVENT_VERSION,
+    version = 1,
     detailUrl = "$supervisionApiBaseUrl/sms/message?notificationId=$notificationId",
     personReference = forCrn(crn),
     additionalInformation = mapOf(

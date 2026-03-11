@@ -58,6 +58,12 @@ dependencies {
   testImplementation("io.swagger.parser.v3:swagger-parser:$swaggerParserVersion") {
     exclude(group = "io.swagger.core.v3")
   }
+  testImplementation("org.awaitility:awaitility-kotlin")
+  testImplementation("org.testcontainers:testcontainers:2.0.3")
+  testImplementation("org.testcontainers:postgresql:1.21.4")
+  testImplementation("org.testcontainers:localstack:1.21.4")
+  testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+  testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 
 kotlin {

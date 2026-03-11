@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -20,6 +22,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrat
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.MsGraphTestConfig
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
+import uk.gov.justice.hmpps.sqs.HmppsQueueService
+import uk.gov.justice.hmpps.sqs.MissingQueueException
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @ExtendWith(HmppsAuthApiExtension::class, MsGraphApiExtension::class, FliptExtension::class)
@@ -41,6 +45,20 @@ abstract class IntegrationTestBase {
 
   @Autowired
   protected lateinit var notificationMappingRepository: NotificationMappingRepository
+
+  @Autowired
+  lateinit var hmppsQueueService: HmppsQueueService
+
+  val domainEventQueue by lazy {
+    hmppsQueueService.findByQueueId("hmppsdomaineventsqueue")
+      ?: throw MissingQueueException("HmppsQueue hmppsdomaineventsqueue not found")
+  }
+  val domainEventQueueDlqClient by lazy { domainEventQueue.sqsDlqClient }
+  val domainEventQueueClient by lazy { domainEventQueue.sqsClient }
+
+  val objectMapper = jacksonObjectMapper().apply {
+    registerModule(JavaTimeModule())
+  }
 
   internal fun setAuthorisation(
     username: String? = "AUTH_ADM",

@@ -20,7 +20,7 @@ object LocalStackContainer {
     val logConsumer = Slf4jLogConsumer(log).withPrefix("localstack")
 
     return LocalStackContainer(
-      DockerImageName.parse("localstack/localstack").withTag("0.12.10"),
+      DockerImageName.parse("localstack/localstack").withTag("3"),
     ).apply {
       withServices(LocalStackContainer.Service.SNS, LocalStackContainer.Service.SQS)
       withEnv("HOSTNAME_EXTERNAL", "localhost")
@@ -33,7 +33,8 @@ object LocalStackContainer {
 
   private fun isLocalStackRunning(): Boolean = try {
     val serverSocket = ServerSocket(4566)
-    serverSocket.localPort == 0
+    serverSocket.close()
+    false
   } catch (e: IOException) {
     true
   }

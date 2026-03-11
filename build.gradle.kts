@@ -65,7 +65,6 @@ dependencies {
   testImplementation("org.testcontainers:localstack:1.21.4")
   testImplementation("org.testcontainers:junit-jupiter:1.21.4")
   testImplementation("org.jetbrains.kotlin:kotlin-test")
-
 }
 
 kotlin {

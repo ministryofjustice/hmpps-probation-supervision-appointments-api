@@ -49,9 +49,14 @@ abstract class IntegrationTestBase {
     @DynamicPropertySource
     fun properties(registry: DynamicPropertyRegistry) {
       lsContainer?.run {
-        registry.add("hmpps.sqs.localstackUrl") { lsContainer.getEndpointOverride(org.testcontainers.containers.localstack.LocalStackContainer.Service.SNS) }
-        registry.add("hmpps.sqs.region") { lsContainer.region }
+        registry.add("hmpps.sqs.localstackUrl") {
+          getEndpointOverride(org.testcontainers.containers.localstack.LocalStackContainer.Service.SQS).toString()
+        }
+        registry.add("hmpps.sqs.region") { region }
       }
+      registry.add("spring.cloud.aws.credentials.access-key") { "test" }
+      registry.add("spring.cloud.aws.credentials.secret-key") { "test" }
+      registry.add("spring.cloud.aws.region.static") { "eu-west-2" }
     }
   }
 

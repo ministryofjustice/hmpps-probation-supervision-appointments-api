@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import software.amazon.awssdk.services.sns.model.PublishResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.DomainEventPublisher
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.HmppsDomainEvent
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.PersonReference
@@ -33,8 +34,8 @@ class DomainEventService(
   )
 
   private fun forCrn(crn: String) = PersonReference(listOf(PersonReference.PersonIdentifier("CRN", crn)))
-  fun buildAndPublishContactEvent(crn: String, notificationId: UUID) {
+  fun buildAndPublishContactEvent(crn: String, notificationId: UUID): PublishResponse? {
     val buildContactEvent = buildContactEvent(crn, notificationId)
-    domainEventPublisher.publish(buildContactEvent)
+    return domainEventPublisher.publish(buildContactEvent)
   }
 }

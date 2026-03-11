@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.events
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
@@ -9,16 +8,14 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import software.amazon.awssdk.services.sqs.model.PurgeQueueRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.DomainEventPublisher
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.DomainEventService
 import uk.gov.justice.hmpps.sqs.HmppsQueueService
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
 import java.util.UUID
 
-class DomainEventsListenerIntegrationTest: IntegrationTestBase() {
+class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   protected lateinit var hmppsQueueService: HmppsQueueService
@@ -32,7 +29,6 @@ class DomainEventsListenerIntegrationTest: IntegrationTestBase() {
   }
   internal val testSqsClient by lazy { testQueue.sqsClient }
   internal val testQueueUrl by lazy { testQueue.queueUrl }
-
 
   @DisplayName("Publish Domain Event")
   @Nested
@@ -51,11 +47,14 @@ class DomainEventsListenerIntegrationTest: IntegrationTestBase() {
         testSqsClient.countMessagesOnQueue(testQueue.queueUrl).get()
       } matches { it == 0 }
 
-      domainEventService.buildAndPublishContactEvent(crn, notificationId)
+      val buildAndPublishContactEvent = domainEventService.buildAndPublishContactEvent(crn, notificationId)
 
       await untilCallTo {
         testSqsClient.countMessagesOnQueue(testQueue.queueUrl).get()
       } matches { it == 1 }
+
+      val returnResult = buildAndPublishContactEvent?.messageId()
+      println(returnResult)
     }
   }
 }

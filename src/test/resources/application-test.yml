@@ -62,3 +62,7 @@ hmpps.sqs:
   topics:
     hmppseventtopic:
       arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
+
+services:
+  supervision-api:
+    base-url: http://localhost:9104

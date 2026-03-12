@@ -38,7 +38,8 @@ class ResourceSecurityTest : IntegrationTestBase() {
       mapping.handlerMethods.forEach { (mappingInfo, method) ->
         val classAnnotation = method.beanType.getAnnotation(PreAuthorize::class.java)
         val annotation = method.getMethodAnnotation(PreAuthorize::class.java)
-        if (classAnnotation == null && annotation == null &&
+        if (classAnnotation == null &&
+          annotation == null &&
           method.beanType.packageName.startsWith("uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi")
         ) {
           mappingInfo.getMappings().forEach {

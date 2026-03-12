@@ -68,6 +68,6 @@ management:
 
 services:
   supervision-api:
-    base-url: http://localhost:9104
+    base-url: http://localhost:333
 
 outlook-environment: dev

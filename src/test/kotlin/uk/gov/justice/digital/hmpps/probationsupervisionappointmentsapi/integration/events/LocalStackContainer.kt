@@ -5,8 +5,10 @@ import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
-import java.io.IOException
-import java.net.ServerSocket
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 
 object LocalStackContainer {
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -32,10 +34,17 @@ object LocalStackContainer {
   }
 
   private fun isLocalStackRunning(): Boolean = try {
-    val serverSocket = ServerSocket(4566)
-    serverSocket.close()
+    val client = HttpClient.newHttpClient()
+
+    val request = HttpRequest.newBuilder()
+      .uri(URI.create("http://localhost:4566/_localstack/health"))
+      .GET()
+      .build()
+
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+    response.statusCode() == 200
+  } catch (e: Exception) {
     false
-  } catch (e: IOException) {
-    true
   }
 }

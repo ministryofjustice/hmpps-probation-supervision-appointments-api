@@ -32,7 +32,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   internal val testQueue by lazy {
     hmppsQueueService.findByQueueId("domaineventsqueue")
-      ?: throw RuntimeException("Queue with name domaineventstestqueue doesn't exist")
+      ?: throw RuntimeException("Queue with name domaineventsqueue doesn't exist")
   }
   internal val testSqsClient by lazy { testQueue.sqsClient }
   internal val testQueueUrl by lazy { testQueue.queueUrl }

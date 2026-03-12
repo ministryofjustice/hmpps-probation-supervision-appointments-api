@@ -65,9 +65,3 @@ management:
     info:
       cache:
         time-to-live: 2000ms
-
-services:
-  supervision-api:
-    base-url: http://localhost:333
-
-outlook-environment: dev

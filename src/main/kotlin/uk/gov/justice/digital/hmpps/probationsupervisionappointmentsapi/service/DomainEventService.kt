@@ -34,7 +34,7 @@ class DomainEventService(
 
   private fun forCrn(crn: String) = PersonReference(listOf(PersonReference.PersonIdentifier("CRN", crn)))
   fun buildAndPublishContactEvent(crn: String, notificationId: UUID) {
-    val buildContactEvent = buildContactEvent(crn, notificationId)
-    domainEventPublisher.publish(buildContactEvent)
+    val contactEvent = buildContactEvent(crn, notificationId)
+    domainEventPublisher.publish(contactEvent)
   }
 }

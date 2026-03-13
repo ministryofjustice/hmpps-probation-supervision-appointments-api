@@ -44,6 +44,7 @@ class CalendarService(
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   private val templateResolverService: SmsTemplateResolverService,
+  private val domainEventService: DomainEventService,
   @Value("\${calendar-from-email}") private val fromEmail: String,
   @Value("\${outlook-environment}") private val outLookEnv: String,
 ) {
@@ -93,7 +94,12 @@ class CalendarService(
   }
 
   fun sendSMSNotification(eventRequest: EventRequest) {
-    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabledForUser("sms-notification-toggle", eventRequest.recipients.first().emailAddress)) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true &&
+      featureFlagsService.isEnabledForUser(
+        "sms-notification-toggle",
+        eventRequest.recipients.first().emailAddress,
+      )
+    ) {
       sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
 
       // WELSH sms
@@ -139,18 +145,18 @@ class CalendarService(
     smsLanguage: SmsLanguage,
   ) {
     val telemetryProperties = mapOf(
-      "crn" to eventRequest.smsEventRequest?.crn,
+      "crn" to eventRequest.smsEventRequest!!.crn,
       "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
       "smsLanguage" to smsLanguage.name,
     )
 
     try {
-      val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest?.appointmentLocation)
+      val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest.appointmentLocation)
       val smsResponse = notificationClient.sendSms(
         template.id.toString(),
-        eventRequest.smsEventRequest?.mobileNumber,
+        eventRequest.smsEventRequest.mobileNumber,
         templateValues,
-        eventRequest.smsEventRequest?.crn,
+        eventRequest.smsEventRequest.crn,
       )
 
       notificationMappingRepository.save(
@@ -160,9 +166,12 @@ class CalendarService(
           templateId = smsResponse.templateId,
           message = smsResponse.body,
         ),
-      ).let {
-        // publish sqs event for PI
-      }
+      )
+
+      domainEventService.buildAndPublishContactEvent(
+        crn = eventRequest.smsEventRequest.crn,
+        notificationId = smsResponse.notificationId,
+      )
 
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
     } catch (e: Exception) {
@@ -209,7 +218,18 @@ class CalendarService(
       dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
       timeZone = EVENT_TIMEZONE
     }
-    attendees = if (outLookEnv != "prod") getAttendees(listOf(Recipient(fromEmail, fromEmail.substringBefore("@")))) else getAttendees(eventRequest.recipients)
+    attendees = if (outLookEnv != "prod") {
+      getAttendees(
+        listOf(
+          Recipient(
+            fromEmail,
+            fromEmail.substringBefore("@"),
+          ),
+        ),
+      )
+    } else {
+      getAttendees(eventRequest.recipients)
+    }
     body = ItemBody().apply {
       contentType = BodyType.Html
       content = eventRequest.message

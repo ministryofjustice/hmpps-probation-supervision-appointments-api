@@ -94,7 +94,12 @@ class CalendarService(
   }
 
   fun sendSMSNotification(eventRequest: EventRequest) {
-    if (eventRequest.smsEventRequest?.smsOptIn == true && featureFlagsService.isEnabledForUser("sms-notification-toggle", eventRequest.recipients.first().emailAddress)) {
+    if (eventRequest.smsEventRequest?.smsOptIn == true &&
+      featureFlagsService.isEnabledForUser(
+        "sms-notification-toggle",
+        eventRequest.recipients.first().emailAddress,
+      )
+    ) {
       sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
 
       // WELSH sms
@@ -161,12 +166,11 @@ class CalendarService(
           templateId = smsResponse.templateId,
           message = smsResponse.body,
         ),
-      ).let {
-        domainEventService.buildAndPublishContactEvent(
-          crn = eventRequest.smsEventRequest!!.crn,
-          notificationId = smsResponse.notificationId,
-        )
-      }
+      )
+      domainEventService.buildAndPublishContactEvent(
+        crn = eventRequest.smsEventRequest!!.crn,
+        notificationId = smsResponse.notificationId,
+      )
 
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
     } catch (e: Exception) {
@@ -213,7 +217,18 @@ class CalendarService(
       dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
       timeZone = EVENT_TIMEZONE
     }
-    attendees = if (outLookEnv != "prod") getAttendees(listOf(Recipient(fromEmail, fromEmail.substringBefore("@")))) else getAttendees(eventRequest.recipients)
+    attendees = if (outLookEnv != "prod") {
+      getAttendees(
+        listOf(
+          Recipient(
+            fromEmail,
+            fromEmail.substringBefore("@"),
+          ),
+        ),
+      )
+    } else {
+      getAttendees(eventRequest.recipients)
+    }
     body = ItemBody().apply {
       contentType = BodyType.Html
       content = eventRequest.message

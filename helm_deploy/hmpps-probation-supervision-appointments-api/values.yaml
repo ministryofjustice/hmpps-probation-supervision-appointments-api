@@ -49,6 +49,7 @@ generic-service:
   allowlist:
     groups:
       - internal
+  serviceAccountName: manage-people-on-probation-api
 
 generic-prometheus-alerts:
   targetApplication: hmpps-probation-supervision-appointments-api

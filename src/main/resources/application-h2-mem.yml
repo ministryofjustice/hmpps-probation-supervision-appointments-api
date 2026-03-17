@@ -34,3 +34,4 @@ graph-client:
 flipt:
   url: "http://localhost:${wiremock.port}"
   token:  "test-token"
+

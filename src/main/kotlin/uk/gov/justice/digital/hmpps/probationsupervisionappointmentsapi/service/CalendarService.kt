@@ -179,11 +179,11 @@ class CalendarService(
     } catch (e: Exception) {
       when (e) {
         is NotificationClientException ->
-          trackTelemetry(e, "AppointmentReminderFailure-NotificationClientException", telemetryProperties)
+          trackTelemetry(e, "AppointmentReminderFailureNotificationClientException", telemetryProperties)
         is IllegalArgumentException ->
-          trackTelemetry(e, "AppointmentReminderFailure-InvalidArgument", telemetryProperties)
+          trackTelemetry(e, "AppointmentReminderFailureInvalidArgument", telemetryProperties)
         is DataAccessException ->
-          trackTelemetry(e, "AppointmentReminderFailure-NotificationMappingDatabaseFailure", telemetryProperties)
+          trackTelemetry(e, "AppointmentReminderFailureNotificationMappingDatabaseFailure", telemetryProperties)
         else ->
           trackTelemetry(e, "AppointmentReminderFailure", telemetryProperties)
       }

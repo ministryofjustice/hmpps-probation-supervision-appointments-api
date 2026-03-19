@@ -446,7 +446,7 @@ class CalendarServiceTest {
 
       verify(telemetryService)
         .trackEvent(
-          "AppointmentReminderFailure-NotificationClientException",
+          "AppointmentReminderFailureNotificationClientException",
           telemetryProperties,
         )
 
@@ -494,7 +494,7 @@ class CalendarServiceTest {
 
       verify(telemetryService)
         .trackEvent(
-          "AppointmentReminderFailure-InvalidArgument",
+          "AppointmentReminderFailureInvalidArgument",
           telemetryProperties,
         )
 
@@ -542,7 +542,7 @@ class CalendarServiceTest {
 
       verify(telemetryService)
         .trackEvent(
-          "AppointmentReminderFailure-NotificationMappingDatabaseFailure",
+          "AppointmentReminderFailureNotificationMappingDatabaseFailure",
           telemetryProperties,
         )
 

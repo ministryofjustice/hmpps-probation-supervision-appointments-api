@@ -159,7 +159,7 @@ class CalendarService(
         eventRequest.smsEventRequest.mobileNumber,
         templateValues,
         eventRequest.smsEventRequest.crn,
-      ).let {
+      ).also {
         notificationMappingRepository.save(
           NotificationMapping(
             deliusExternalReference = eventRequest.supervisionAppointmentUrn,

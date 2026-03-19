@@ -26,7 +26,7 @@ class FeatureFlagsService(
     client.evaluateBoolean(
       key,
       emailAddress,
-      mapOf("recipientEmail" to emailAddress),
+      mapOf("recipientEmail" to emailAddress.lowercase()),
     ).isEnabled
   } catch (e: Exception) {
     log.warn("Error retrieving feature flag '$key', defaulting to disabled", e)

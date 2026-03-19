@@ -36,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.dao.OptimisticLockingFailureException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
@@ -46,6 +47,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrat
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.service.notify.NotificationClient
+import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
@@ -410,6 +412,150 @@ class CalendarServiceTest {
     }
 
     @Test
+    fun `should track telemetry and capture exception if sendSms fails with NotificationClientException`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      val eventRequest = mockEventRequest
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
+      val exception = NotificationClientException("SMS failure")
+      val templateId = UUID.randomUUID().toString()
+      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
+      doThrow(exception).whenever(notificationClient).sendSms(
+        anyString(),
+        anyString(),
+        any<Map<String, String>>(),
+        anyString(),
+      )
+
+      val event = mockEvent()
+
+      val response = calendarService.sendEvent(eventRequest)
+
+      val telemetryProperties = mapOf(
+        "crn" to "crn",
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+        "smsLanguage" to SmsLanguage.ENGLISH.name,
+      )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderFailureNotificationClientException",
+          telemetryProperties,
+        )
+
+      verify(telemetryService)
+        .trackException(
+          exception,
+          telemetryProperties,
+        )
+
+      assertEquals(event.toEventResponse(), response)
+    }
+
+    @Test
+    fun `should track telemetry and capture exception if sendSms fails with IllegalArgumentException`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      val eventRequest = mockEventRequest
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
+      val exception = IllegalArgumentException("SMS failure")
+      val templateId = UUID.randomUUID().toString()
+      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
+      doThrow(exception).whenever(notificationClient).sendSms(
+        anyString(),
+        anyString(),
+        any<Map<String, String>>(),
+        anyString(),
+      )
+
+      val event = mockEvent()
+
+      val response = calendarService.sendEvent(eventRequest)
+
+      val telemetryProperties = mapOf(
+        "crn" to "crn",
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+        "smsLanguage" to SmsLanguage.ENGLISH.name,
+      )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderFailureInvalidArgument",
+          telemetryProperties,
+        )
+
+      verify(telemetryService)
+        .trackException(
+          exception,
+          telemetryProperties,
+        )
+
+      assertEquals(event.toEventResponse(), response)
+    }
+
+    @Test
+    fun `should track telemetry and capture exception if sendSms fails with OptimisticLockingFailureException`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      val eventRequest = mockEventRequest
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
+      val exception = OptimisticLockingFailureException("SMS failure")
+      val templateId = UUID.randomUUID().toString()
+      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
+      doThrow(exception).whenever(notificationClient).sendSms(
+        anyString(),
+        anyString(),
+        any<Map<String, String>>(),
+        anyString(),
+      )
+
+      val event = mockEvent()
+
+      val response = calendarService.sendEvent(eventRequest)
+
+      val telemetryProperties = mapOf(
+        "crn" to "crn",
+        "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
+        "smsLanguage" to SmsLanguage.ENGLISH.name,
+      )
+
+      verify(telemetryService)
+        .trackEvent(
+          "AppointmentReminderFailureNotificationMappingDatabaseFailure",
+          telemetryProperties,
+        )
+
+      verify(telemetryService)
+        .trackException(
+          exception,
+          telemetryProperties,
+        )
+
+      assertEquals(event.toEventResponse(), response)
+    }
+
+    @Test
     fun `should track telemetry and capture exception if sendSms fails`() {
       whenever(graphClient.users()).thenReturn(usersRequestBuilder)
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
@@ -428,7 +574,7 @@ class CalendarServiceTest {
       doThrow(exception).whenever(notificationClient).sendSms(
         anyString(),
         anyString(),
-        any(),
+        any<Map<String, String>>(),
         anyString(),
       )
 

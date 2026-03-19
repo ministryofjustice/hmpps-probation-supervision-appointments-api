@@ -9,6 +9,7 @@ import com.microsoft.graph.models.Event
 import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.dao.DataAccessException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
@@ -29,6 +30,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
+import uk.gov.service.notify.NotificationClientException
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -152,32 +154,45 @@ class CalendarService(
 
     try {
       val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest.appointmentLocation)
-      val smsResponse = notificationClient.sendSms(
+      notificationClient.sendSms(
         template.id.toString(),
         eventRequest.smsEventRequest.mobileNumber,
         templateValues,
         eventRequest.smsEventRequest.crn,
-      )
+      ).also {
+        notificationMappingRepository.save(
+          NotificationMapping(
+            deliusExternalReference = eventRequest.supervisionAppointmentUrn,
+            notificationId = it.notificationId,
+            templateId = it.templateId,
+            message = it.body,
+          ),
+        )
 
-      notificationMappingRepository.save(
-        NotificationMapping(
-          deliusExternalReference = eventRequest.supervisionAppointmentUrn,
-          notificationId = smsResponse.notificationId,
-          templateId = smsResponse.templateId,
-          message = smsResponse.body,
-        ),
-      )
+        domainEventService.buildAndPublishContactEvent(
+          crn = eventRequest.smsEventRequest.crn,
+          notificationId = it.notificationId,
+        )
 
-      domainEventService.buildAndPublishContactEvent(
-        crn = eventRequest.smsEventRequest.crn,
-        notificationId = smsResponse.notificationId,
-      )
-
-      telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
+        telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
+      }
     } catch (e: Exception) {
-      telemetryService.trackEvent("AppointmentReminderFailure", telemetryProperties)
-      telemetryService.trackException(e, telemetryProperties)
+      when (e) {
+        is NotificationClientException ->
+          trackTelemetry(e, "AppointmentReminderFailureNotificationClientException", telemetryProperties)
+        is IllegalArgumentException ->
+          trackTelemetry(e, "AppointmentReminderFailureInvalidArgument", telemetryProperties)
+        is DataAccessException ->
+          trackTelemetry(e, "AppointmentReminderFailureNotificationMappingDatabaseFailure", telemetryProperties)
+        else ->
+          trackTelemetry(e, "AppointmentReminderFailure", telemetryProperties)
+      }
     }
+  }
+
+  private fun trackTelemetry(exception: Exception, eventName: String, telemetryProperties: Map<String, String>) {
+    telemetryService.trackEvent(eventName, telemetryProperties)
+    telemetryService.trackException(exception, telemetryProperties)
   }
 
   fun rescheduleEvent(rescheduleEventRequest: RescheduleEventRequest): EventResponse? {

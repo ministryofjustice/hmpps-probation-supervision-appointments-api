@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsService
 import java.util.UUID
 
@@ -29,5 +30,5 @@ class SmsController(val smsService: SmsService) {
   @ResponseStatus(HttpStatus.OK)
   fun getSmsMessageByNotificationId(
     @RequestParam notificationId: UUID,
-  ) = smsService.getSmsByNotificationId(notificationId)
+  ): SmsNotificationResponse = smsService.getSmsByNotificationId(notificationId)
 }

@@ -35,3 +35,8 @@ flipt:
   url: "http://localhost:${wiremock.port}"
   token:  "test-token"
 
+services:
+  supervision-api:
+    base-url: http://localhost:3333
+
+outlook-environment: local

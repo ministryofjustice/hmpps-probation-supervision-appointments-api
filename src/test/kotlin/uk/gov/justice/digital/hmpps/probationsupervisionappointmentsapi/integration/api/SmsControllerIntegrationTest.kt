@@ -6,8 +6,11 @@ import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
+import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.module.kotlin.readValue
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
@@ -16,8 +19,9 @@ import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.String
+import kotlin.test.assertEquals
 
-class SmsPreviewIntegrationTest : IntegrationTestBase() {
+class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   private val fixedStartDateTime =
     ZonedDateTime.parse("2050-01-01T10:00:00Z")
@@ -134,14 +138,14 @@ class SmsPreviewIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `test successful retrieval of sms by notificationId`() {
+  fun `Retrieval of sms by notificationId is successful`() {
     val notificationId = UUID.randomUUID()
     val message = "Test SMS message"
-
+    val deliusExternalReference = "urn:uk:gov:hmpps:manage-supervision-service:appointment:e9c73ac0-ad16-42de-8e72-16c868c078x1"
     notificationMappingRepository.save(
       NotificationMapping(
         notificationId = notificationId,
-        deliusExternalReference = "",
+        deliusExternalReference = deliusExternalReference,
         templateId = UUID.randomUUID(),
         message = message,
       ),
@@ -159,8 +163,9 @@ class SmsPreviewIntegrationTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody(String::class.java)
       .consumeWith { response ->
-        val body = response.responseBody!!
-        assert(body == message)
+        val body = jacksonObjectMapper().readValue<SmsNotificationResponse>(response.responseBody!!)
+        assertEquals(body.smsMessage, message)
+        assertEquals(body.deliusExternalReference, deliusExternalReference)
       }
   }
 

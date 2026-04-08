@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getNotificationMappingByNotificationId
@@ -75,7 +76,12 @@ class SmsService(
     acc.replace("(($key))", value)
   }
 
-  fun getSmsByNotificationId(notificationId: UUID) = notificationMappingRepository.getNotificationMappingByNotificationId(notificationId).message
+  fun getSmsByNotificationId(notificationId: UUID): SmsNotificationResponse {
+    val notificationMapping =
+      notificationMappingRepository.getNotificationMappingByNotificationId(notificationId)
+
+    return SmsNotificationResponse(notificationMapping.message, notificationMapping.deliusExternalReference)
+  }
 }
 
 private val DATE_FORMATTER =

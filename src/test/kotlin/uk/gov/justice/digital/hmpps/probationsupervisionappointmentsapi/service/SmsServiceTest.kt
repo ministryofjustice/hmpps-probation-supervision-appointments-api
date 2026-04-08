@@ -133,11 +133,13 @@ class SmsServiceTest {
   fun `should return sms message when notification mapping exists`() {
     val notificationId = UUID.randomUUID()
     val templateId = UUID.randomUUID()
-    val expectedMessage = "Test SMS message"
-
+    val expectedMessage = "[DEV]Dear Aubrey,\n" +
+      "You have an appointment at Wrexham Team Office on Wednesday 25 March at 3:15pm.\n" +
+      "This is an automated message. Do not reply."
+    val deliusExternalReference = "urn:uk:gov:hmpps:manage-supervision-service:appointment:e9c73ac0-ad16-42de-8e72-16c868c078x1"
     val mapping = NotificationMapping(
       id = 100L,
-      deliusExternalReference = "",
+      deliusExternalReference = deliusExternalReference,
       notificationId = notificationId,
       message = expectedMessage,
       templateId = templateId,
@@ -149,7 +151,8 @@ class SmsServiceTest {
 
     val result = service.getSmsByNotificationId(notificationId)
 
-    assertEquals(expectedMessage, result)
+    assertEquals(expectedMessage, result.smsMessage)
+    assertEquals(deliusExternalReference, result.deliusExternalReference)
     verify(notificationMappingRepository).findByNotificationId(notificationId)
   }
 

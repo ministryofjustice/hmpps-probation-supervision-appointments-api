@@ -36,6 +36,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
+private val UK_ZONE = ZoneId.of(EVENT_TIMEZONE)
 
 @Service
 class CalendarService(
@@ -225,13 +226,21 @@ class CalendarService(
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
     subject = eventRequest.subject
+    val startInUk = eventRequest.start
+      .withZoneSameInstant(UK_ZONE)
+
+    val endInUk = eventRequest.start
+      .plusMinutes(eventRequest.durationInMinutes)
+      .withZoneSameInstant(UK_ZONE)
+
     start = DateTimeTimeZone().apply {
       timeZone = EVENT_TIMEZONE
-      dateTime = eventRequest.start.toString()
+      dateTime = startInUk.toLocalDateTime().toString()
     }
+
     end = DateTimeTimeZone().apply {
-      dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
       timeZone = EVENT_TIMEZONE
+      dateTime = endInUk.toLocalDateTime().toString()
     }
     attendees = if (outLookEnv != "prod") {
       getAttendees(
@@ -322,8 +331,8 @@ fun Event.toEventResponse(): EventResponse = EventResponse(
 )
 
 fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse = DeliusOutlookMappingsResponse(
-  supervisionAppointmentUrn,
-  outlookId,
-  createdAt.toString(),
-  updatedAt.toString(),
+  supervisionAppointmentUrn = supervisionAppointmentUrn,
+  outlookId = outlookId,
+  createdAt = createdAt.toString(),
+  updatedAt = updatedAt.toString(),
 )

@@ -50,6 +50,7 @@ import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -902,15 +903,44 @@ class CalendarServiceTest {
       "prod,attendee@example.com",
     )
     fun `buildEvent should correctly map request to MS Graph Event object`(env: String, email: String) {
-      val service = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, domainEventService, fromEmail, env)
+      val service = CalendarService(
+        graphClient,
+        deliusOutlookMappingRepository,
+        notificationMappingRepository,
+        featureFlags,
+        notificationClient,
+        telemetryService,
+        smsTemplateResolverService,
+        domainEventService,
+        fromEmail,
+        env,
+      )
+
       val event = service.buildEvent(mockEventRequest)
 
+      val ukZone = ZoneId.of(EVENT_TIMEZONE)
+
+      val expectedStart = fixedStartDateTime
+        .withZoneSameInstant(ukZone)
+        .toLocalDateTime()
+        .toString()
+
+      val expectedEnd = fixedStartDateTime
+        .plusMinutes(durationMinutes)
+        .withZoneSameInstant(ukZone)
+        .toLocalDateTime()
+        .toString()
+
       assertEquals(mockEventRequest.subject, event.subject)
+
       assertEquals(EVENT_TIMEZONE, event.start?.timeZone)
-      assertEquals(fixedStartDateTime.toString(), event.start?.dateTime)
-      assertEquals(fixedStartDateTime.plusMinutes(durationMinutes).toString(), event.end?.dateTime)
+
+      assertEquals(expectedStart, event.start?.dateTime)
+      assertEquals(expectedEnd, event.end?.dateTime)
+
       assertEquals(1, event.attendees?.size)
       assertEquals(email, event.attendees?.first()?.emailAddress?.address)
+
       assertEquals(mockEventRequest.message, event.body?.content)
       assertEquals(BodyType.Html, event.body?.contentType)
     }

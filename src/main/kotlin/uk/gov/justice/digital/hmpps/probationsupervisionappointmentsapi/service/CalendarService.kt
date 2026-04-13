@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
@@ -31,6 +32,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
+import uk.gov.service.notify.SendSmsResponse
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -84,8 +86,8 @@ class CalendarService(
         mapOf("supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
       )
 
-      sendSMSNotification(eventRequest)
-      response.toEventResponse()
+      val smsResponse = sendSMSNotification(eventRequest)
+      response.toEventResponse(smsResponse)
     } ?: run {
       telemetryService.trackEvent(
         "AppointmentCalendarEventCreationFailed",
@@ -95,20 +97,28 @@ class CalendarService(
     }
   }
 
-  fun sendSMSNotification(eventRequest: EventRequest) {
+  fun sendSMSNotification(eventRequest: EventRequest): SmsResponse? {
     if (eventRequest.smsEventRequest?.smsOptIn == true &&
       featureFlagsService.isEnabledForUser(
         "sms-notification-toggle",
         eventRequest.recipients.first().emailAddress,
       )
     ) {
-      sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
-
+      val sendSmsEnglishResponse =
+        sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
       // WELSH sms
+      var sendSmsWelshResponse : SendSmsResponse? = null
       if (eventRequest.smsEventRequest.includeWelshTranslation) {
-        sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.WELSH), SmsLanguage.WELSH)
+        sendSmsWelshResponse =
+          sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.WELSH), SmsLanguage.WELSH)
       }
+      return SmsResponse(
+        sendSmsEnglishResponse?.notificationId!!,
+        sendSmsWelshResponse?.notificationId,
+      )
     }
+    // when user has opted out
+    return null
   }
 
   fun buildTemplateValues(eventRequest: EventRequest, smsLanguage: SmsLanguage): Map<String, String> {
@@ -145,7 +155,7 @@ class CalendarService(
     eventRequest: EventRequest,
     templateValues: Map<String, String> = emptyMap(),
     smsLanguage: SmsLanguage,
-  ) {
+  ): SendSmsResponse? {
     val telemetryProperties = mapOf(
       "crn" to eventRequest.smsEventRequest!!.crn,
       "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
@@ -154,39 +164,41 @@ class CalendarService(
 
     try {
       val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest.appointmentLocation)
-      notificationClient.sendSms(
+      val smsResponse = notificationClient.sendSms(
         template.id.toString(),
         eventRequest.smsEventRequest.mobileNumber,
         templateValues,
         eventRequest.smsEventRequest.crn,
-      ).also {
-        notificationMappingRepository.save(
-          NotificationMapping(
-            deliusExternalReference = eventRequest.supervisionAppointmentUrn,
-            notificationId = it.notificationId,
-            templateId = it.templateId,
-            message = it.body,
-          ),
-        )
-
-        domainEventService.buildAndPublishContactEvent(
-          crn = eventRequest.smsEventRequest.crn,
-          notificationId = it.notificationId,
-        )
-
-        telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
-      }
+      )
+      notificationMappingRepository.save(
+        NotificationMapping(
+          deliusExternalReference = eventRequest.supervisionAppointmentUrn,
+          notificationId = smsResponse.notificationId,
+          templateId = smsResponse.templateId,
+          message = smsResponse.body,
+        ),
+      )
+      domainEventService.buildAndPublishContactEvent(
+        crn = eventRequest.smsEventRequest.crn,
+        notificationId = smsResponse.notificationId,
+      )
+      telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
+      return smsResponse
     } catch (e: Exception) {
       when (e) {
         is NotificationClientException ->
           trackTelemetry(e, "AppointmentReminderFailureNotificationClientException", telemetryProperties)
+
         is IllegalArgumentException ->
           trackTelemetry(e, "AppointmentReminderFailureInvalidArgument", telemetryProperties)
+
         is DataAccessException ->
           trackTelemetry(e, "AppointmentReminderFailureNotificationMappingDatabaseFailure", telemetryProperties)
+
         else ->
           trackTelemetry(e, "AppointmentReminderFailure", telemetryProperties)
       }
+      return null
     }
   }
 
@@ -313,17 +325,19 @@ class CalendarService(
   ]
 }
 
-fun Event.toEventResponse(): EventResponse = EventResponse(
+fun Event.toEventResponse(smsResponse: SmsResponse? = null): EventResponse = EventResponse(
   id = id,
   subject = subject,
   startDate = start?.dateTime,
   endDate = end?.dateTime,
   attendees = attendees?.mapNotNull { it?.emailAddress?.address },
+  smsResponse = smsResponse
 )
 
-fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse = DeliusOutlookMappingsResponse(
+fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse =
+  DeliusOutlookMappingsResponse(
     supervisionAppointmentUrn = supervisionAppointmentUrn,
     outlookId = outlookId,
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
-)
+  )

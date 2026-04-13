@@ -6,4 +6,10 @@ data class EventResponse(
   val startDate: String?,
   val endDate: String?,
   val attendees: List<String>? = emptyList(),
+  val smsResponse: SmsResponse? = null
+)
+
+data class SmsResponse(
+  val englishNotificationId: String,
+  val welshNotificationId: String?,
 )

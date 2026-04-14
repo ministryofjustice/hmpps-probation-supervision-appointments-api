@@ -36,7 +36,6 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
-private val UK_ZONE = ZoneId.of(EVENT_TIMEZONE)
 
 @Service
 class CalendarService(
@@ -226,21 +225,15 @@ class CalendarService(
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
     subject = eventRequest.subject
-    val startInUk = eventRequest.start
-      .withZoneSameInstant(UK_ZONE)
-
-    val endInUk = eventRequest.start
-      .plusMinutes(eventRequest.durationInMinutes)
-      .withZoneSameInstant(UK_ZONE)
 
     start = DateTimeTimeZone().apply {
       timeZone = EVENT_TIMEZONE
-      dateTime = startInUk.toLocalDateTime().toString()
+      dateTime = eventRequest.start.toString()
     }
 
     end = DateTimeTimeZone().apply {
       timeZone = EVENT_TIMEZONE
-      dateTime = endInUk.toLocalDateTime().toString()
+      dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
     }
     attendees = if (outLookEnv != "prod") {
       getAttendees(

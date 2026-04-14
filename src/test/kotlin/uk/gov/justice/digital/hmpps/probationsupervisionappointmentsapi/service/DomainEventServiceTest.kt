@@ -57,7 +57,7 @@ class DomainEventServiceTest {
     assertEquals("CRN", event.personReference?.identifiers?.first()?.type)
     assertEquals(crn, event.personReference?.identifiers?.first()?.value)
 
-    assertTrue(event.additionalInformation!!.containsKey("applicationId"))
+    assertTrue(event.additionalInformation.containsKey("applicationId"))
 
     assertNotNull(event.occurredAt)
   }

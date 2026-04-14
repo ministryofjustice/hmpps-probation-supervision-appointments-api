@@ -589,7 +589,7 @@ class CalendarServiceTest {
         "APPOINTMENT_LOCATION" to "",
         "APPOINTMENT_TYPE" to "",
 
-        )
+      )
       verify(notificationClient).sendSms(
         templateId,
         "mobile",

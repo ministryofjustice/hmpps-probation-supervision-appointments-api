@@ -8,7 +8,7 @@ data class EventResponse(
   val startDate: String?,
   val endDate: String?,
   val attendees: List<String>? = emptyList(),
-  val smsResponse: SmsResponse? = null
+  val smsResponse: SmsResponse? = null,
 )
 
 data class SmsResponse(

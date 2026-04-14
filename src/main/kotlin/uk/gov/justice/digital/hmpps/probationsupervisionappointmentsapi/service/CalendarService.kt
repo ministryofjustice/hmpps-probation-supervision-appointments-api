@@ -107,7 +107,7 @@ class CalendarService(
       val sendSmsEnglishResponse =
         sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
       // WELSH sms
-      var sendSmsWelshResponse : SendSmsResponse? = null
+      var sendSmsWelshResponse: SendSmsResponse? = null
       if (eventRequest.smsEventRequest.includeWelshTranslation) {
         sendSmsWelshResponse =
           sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.WELSH), SmsLanguage.WELSH)
@@ -331,13 +331,12 @@ fun Event.toEventResponse(smsResponse: SmsResponse? = null): EventResponse = Eve
   startDate = start?.dateTime,
   endDate = end?.dateTime,
   attendees = attendees?.mapNotNull { it?.emailAddress?.address },
-  smsResponse = smsResponse
+  smsResponse = smsResponse,
 )
 
-fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse =
-  DeliusOutlookMappingsResponse(
-    supervisionAppointmentUrn = supervisionAppointmentUrn,
-    outlookId = outlookId,
-    createdAt = createdAt.toString(),
-    updatedAt = updatedAt.toString(),
-  )
+fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse = DeliusOutlookMappingsResponse(
+  supervisionAppointmentUrn = supervisionAppointmentUrn,
+  outlookId = outlookId,
+  createdAt = createdAt.toString(),
+  updatedAt = updatedAt.toString(),
+)

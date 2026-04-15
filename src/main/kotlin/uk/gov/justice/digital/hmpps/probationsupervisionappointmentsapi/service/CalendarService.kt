@@ -31,7 +31,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
-import java.time.LocalDateTime
+import java.time.LocalDateTime.parse
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -63,8 +64,15 @@ class CalendarService(
       return EventResponse(
         id = null,
         subject = eventRequest.subject,
-        startDate = eventRequest.start.toString(),
-        endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
+        startDate = eventRequest.start
+          .withZoneSameInstant(UK_ZONE)
+          .toOffsetDateTime()
+          .toString(),
+        endDate = eventRequest.start
+          .plusMinutes(eventRequest.durationInMinutes)
+          .withZoneSameInstant(UK_ZONE)
+          .toOffsetDateTime()
+          .toString(),
         attendees = eventRequest.recipients.map { it.emailAddress },
       )
     }
@@ -208,8 +216,8 @@ class CalendarService(
     findEventDetails(oldSupervisionAppointmentUrn)?.let { event ->
       val eventId = event.id ?: return
 
-      val eventStart = LocalDateTime.parse(requireNotNull(event.startDate))
-        .atZone(ZoneId.of("UTC"))
+      val eventStart = OffsetDateTime.parse(requireNotNull(event.startDate))
+        .atZoneSameInstant(UK_ZONE)
 
       val now = ZonedDateTime.now()
 
@@ -325,8 +333,14 @@ class CalendarService(
 fun Event.toEventResponse(): EventResponse = EventResponse(
   id = id,
   subject = subject,
-  startDate = start?.dateTime,
-  endDate = end?.dateTime,
+  startDate = start?.let {
+    OffsetDateTime.parse(it.dateTime)
+      .toString()
+  },
+  endDate = end?.let {
+    OffsetDateTime.parse(it.dateTime)
+      .toString()
+  },
   attendees = attendees?.mapNotNull { it?.emailAddress?.address },
 )
 

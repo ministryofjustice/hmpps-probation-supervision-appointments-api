@@ -108,7 +108,7 @@ class CalendarServiceTest {
 
   private lateinit var calendarService: CalendarService
 
-  private val fixedStartDateTime: ZonedDateTime = ZonedDateTime.parse("2050-01-01T10:00:00Z")
+  private val fixedStartDateTime: ZonedDateTime = ZonedDateTime.parse("2050-01-01T10:00Z")
   private val durationMinutes: Long = 45
 
   private val mockRecipient = Recipient("attendee@example.com", "Attendee Name")
@@ -169,8 +169,14 @@ class CalendarServiceTest {
       val mockGraphEventResponse = Event().apply {
         id = outlookId
         subject = mockEventRequest.subject
-        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
-        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        start = DateTimeTimeZone().apply {
+          dateTime = fixedStartDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = fixedEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
+        }
         attendees = listOf(
           com.microsoft.graph.models.Attendee().apply {
             emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
@@ -276,8 +282,14 @@ class CalendarServiceTest {
       val mockGraphEventResponse = Event().apply {
         id = outlookId
         subject = mockEventRequest.subject
-        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
-        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        start = DateTimeTimeZone().apply {
+          dateTime = fixedStartDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = fixedEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
+        }
         attendees = listOf(
           com.microsoft.graph.models.Attendee().apply {
             emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
@@ -332,8 +344,14 @@ class CalendarServiceTest {
       val mockGraphEventResponse = Event().apply {
         id = outlookId
         subject = mockEventRequest.subject
-        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
-        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        start = DateTimeTimeZone().apply {
+          dateTime = fixedStartDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = fixedEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
+        }
         attendees = listOf(
           com.microsoft.graph.models.Attendee().apply {
             emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
@@ -646,9 +664,11 @@ class CalendarServiceTest {
         subject = "Old Subject"
         start = DateTimeTimeZone().apply {
           dateTime = futureEventRequest.start.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         end = DateTimeTimeZone().apply {
           dateTime = futureEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         attendees = listOf()
       }
@@ -663,9 +683,11 @@ class CalendarServiceTest {
         subject = futureEventRequest.subject
         start = DateTimeTimeZone().apply {
           dateTime = futureEventRequest.start.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         end = DateTimeTimeZone().apply {
           dateTime = futureEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         attendees = listOf(
           Attendee().apply {
@@ -710,9 +732,11 @@ class CalendarServiceTest {
         subject = "Old Subject"
         start = DateTimeTimeZone().apply {
           dateTime = futureEventRequest.start.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         end = DateTimeTimeZone().apply {
           dateTime = futureEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         attendees = listOf()
       }
@@ -724,9 +748,11 @@ class CalendarServiceTest {
         subject = futureEventRequest.subject
         start = DateTimeTimeZone().apply {
           dateTime = futureEventRequest.start.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         end = DateTimeTimeZone().apply {
           dateTime = futureEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         attendees = listOf(
           Attendee().apply {
@@ -762,7 +788,9 @@ class CalendarServiceTest {
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       whenever(eventsRequestBuilder.byEventId(anyString())).thenReturn(eventItemRequestBuilder)
-      val pastStart = ZonedDateTime.now().minusDays(1)
+      val pastStart = ZonedDateTime.now()
+        .minusDays(1)
+        .withNano(0)
       val pastEventRequest = EventRequest(
         recipients = listOf(mockRecipient),
         message = "Test Message Body",
@@ -781,11 +809,13 @@ class CalendarServiceTest {
         id = oldOutlookId
         subject = "Old Subject"
         start = com.microsoft.graph.models.DateTimeTimeZone().apply {
-          dateTime = ZonedDateTime.now().plusDays(1).toLocalDateTime().toString()
+          dateTime = ZonedDateTime.now().plusDays(1).withNano(0).toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         end = com.microsoft.graph.models.DateTimeTimeZone().apply {
-          dateTime = ZonedDateTime.now().plusDays(1).plusMinutes(durationMinutes)
+          dateTime = ZonedDateTime.now().plusDays(1).withNano(0).plusMinutes(durationMinutes)
             .toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         attendees = listOf()
       }
@@ -848,9 +878,11 @@ class CalendarServiceTest {
         subject = futureEventRequest.subject
         start = DateTimeTimeZone().apply {
           dateTime = futureEventRequest.start.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         end = DateTimeTimeZone().apply {
           dateTime = futureEndDateTime.toLocalDateTime().toString()
+          timeZone = EVENT_TIMEZONE
         }
         attendees = listOf(
           Attendee().apply {
@@ -949,18 +981,24 @@ class CalendarServiceTest {
     fun `toEventResponse should correctly map MS Graph Event to EventResponse`() {
       val mockId = UUID.randomUUID().toString()
       val mockSubject = "Mock Subject"
-      val mockStart = "2024-10-10T11:00:00Z"
-      val mockEnd = "2024-10-10T12:00:00Z"
+      val mockStart = "2024-10-10T11:00:00"
+      val mockEnd = "2024-10-10T12:00:00"
       val mockAttendeeAddress = "mock@example.com"
 
       val graphEvent = Event().apply {
         id = mockId
         subject = mockSubject
-        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = mockStart }
-        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = mockEnd }
+        start = DateTimeTimeZone().apply {
+          dateTime = mockStart
+          timeZone = EVENT_TIMEZONE
+        }
+        end = DateTimeTimeZone().apply {
+          dateTime = mockEnd
+          timeZone = EVENT_TIMEZONE
+        }
         attendees = listOf(
-          com.microsoft.graph.models.Attendee().apply {
-            emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockAttendeeAddress }
+          Attendee().apply {
+            emailAddress = EmailAddress().apply { address = mockAttendeeAddress }
           },
         )
       }
@@ -969,8 +1007,10 @@ class CalendarServiceTest {
 
       assertEquals(mockId, response.id)
       assertEquals(mockSubject, response.subject)
-      assertEquals(mockStart, response.startDate)
-      assertEquals(mockEnd, response.endDate)
+
+      assertEquals("2024-10-10T11:00+01:00", response.startDate)
+      assertEquals("2024-10-10T12:00+01:00", response.endDate)
+
       assertEquals(listOf(mockAttendeeAddress), response.attendees)
     }
 

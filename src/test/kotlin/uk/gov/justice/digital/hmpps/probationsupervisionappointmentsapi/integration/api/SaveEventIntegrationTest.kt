@@ -105,7 +105,8 @@ class SaveEventIntegrationTest(@Autowired private val webListenerRegistry: WebLi
       start = "2025-09-16T10:00Z",
       end = "2025-09-16T10:30Z",
       outlookId = null,
-      supervisionAppointmentUrn = null,
+      supervisionAppointmentUrn =
+        "urn:uk:gov:hmpps:manage-supervision-service:appointment:8afbd895-c8e7-4a49-8eaa-3149243e7932",
       expected = EventResponse(
         null,
         "3 Way Meeting (Non NS) with Jon Smith",

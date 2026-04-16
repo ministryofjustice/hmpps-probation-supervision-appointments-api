@@ -20,6 +20,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
 
+private val UK_ZONE_ID = ZoneId.of("Europe/London")
+
 @Service
 class SmsService(
   private val smsTemplateResolverService: SmsTemplateResolverService,
@@ -88,9 +90,6 @@ class SmsService(
 private val DATE_FORMATTER =
   DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.UK)
 
-private val TIME_FORMATTER =
-  DateTimeFormatter.ofPattern("h:mma", Locale.UK)
-
 private val HOUR_ONLY_FORMATTER =
   DateTimeFormatter.ofPattern("ha", Locale.UK)
 
@@ -98,14 +97,14 @@ private val HOUR_MINUTE_FORMATTER =
   DateTimeFormatter.ofPattern("h:mma", Locale.UK)
 
 fun ZonedDateTime.toNotifyTime(): String {
-  val ukTime = this.withZoneSameInstant(ZoneId.of("Europe/London"))
+  val ukTime = this.withZoneSameInstant(UK_ZONE_ID)
 
   return if (ukTime.minute == 0) {
     ukTime.format(HOUR_ONLY_FORMATTER)
   } else {
     ukTime.format(HOUR_MINUTE_FORMATTER)
-  }.lowercase()
+  }.lowercase(Locale.UK)
 }
 
-fun ZonedDateTime.toNotifyDate(): String = this.withZoneSameInstant(ZoneId.of("Europe/London"))
+fun ZonedDateTime.toNotifyDate(): String = this.withZoneSameInstant(UK_ZONE_ID)
   .format(DATE_FORMATTER)

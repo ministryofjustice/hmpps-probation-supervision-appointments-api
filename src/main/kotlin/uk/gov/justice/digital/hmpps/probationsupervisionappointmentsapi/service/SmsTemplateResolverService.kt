@@ -7,7 +7,6 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.S
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.TemplateVariant
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.service.notify.NotificationClient
-import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
 
 @Service
@@ -40,10 +39,5 @@ class SmsTemplateResolverService(
     log.info("Template Id fetched : $templateId")
 
     return notificationClient.getTemplateById(templateId)
-  }
-
-  fun sendSms(templateId: String, mobileNumber: String?, templateValues: Map<String, String>, crn: String): SendSmsResponse? {
-
-    return notificationClient.sendSms(templateId, mobileNumber, templateValues, crn)
   }
 }

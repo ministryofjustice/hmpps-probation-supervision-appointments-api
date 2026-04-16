@@ -45,6 +45,7 @@ class CalendarService(
   private val deliusOutlookMappingRepository: DeliusOutlookMappingRepository,
   private val notificationMappingRepository: NotificationMappingRepository,
   private val featureFlagsService: FeatureFlagsService,
+  private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   private val templateResolverService: SmsTemplateResolverService,
   private val domainEventService: DomainEventService,
@@ -163,7 +164,7 @@ class CalendarService(
 
     try {
       val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest.appointmentLocation)
-      val smsResponse = templateResolverService.sendSms(
+      val smsResponse = notificationClient.sendSms(
         template.id.toString(),
         eventRequest.smsEventRequest.mobileNumber,
         templateValues,

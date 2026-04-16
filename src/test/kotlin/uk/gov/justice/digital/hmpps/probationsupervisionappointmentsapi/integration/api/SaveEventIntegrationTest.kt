@@ -19,7 +19,7 @@ import java.util.UUID
 class SaveEventIntegrationTest : IntegrationTestBase() {
 
   @MockitoBean
-  private lateinit var notificationClient: NotificationClient
+  lateinit var notificationTestClient: NotificationClient
 
   @Test
   fun `unauthorized status returned`() {
@@ -39,7 +39,7 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
 
     val templateId = "7a3c8a69-30fb-4361-8a3b-125be59aeddf"
     val notificationId = UUID.randomUUID().toString()
-    whenever(notificationClient.getTemplateById(templateId)).thenReturn(
+    whenever(notificationTestClient.getTemplateById(templateId)).thenReturn(
       Template(
         """
         {
@@ -57,7 +57,7 @@ class SaveEventIntegrationTest : IntegrationTestBase() {
         """.trimIndent(),
       ),
     )
-    whenever(notificationClient.sendSms(anyString(), anyString(), any(), any())).thenReturn(
+    whenever(notificationTestClient.sendSms(anyString(), anyString(), any(), any())).thenReturn(
       SendSmsResponse(
         """
           {

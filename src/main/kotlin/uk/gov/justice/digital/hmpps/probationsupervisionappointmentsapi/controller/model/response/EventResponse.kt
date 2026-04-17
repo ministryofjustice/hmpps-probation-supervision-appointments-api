@@ -12,6 +12,6 @@ data class EventResponse(
 )
 
 data class SmsResponse(
-  val englishNotificationId: UUID,
+  val englishNotificationId: UUID? = null,
   val welshNotificationId: UUID? = null,
 )

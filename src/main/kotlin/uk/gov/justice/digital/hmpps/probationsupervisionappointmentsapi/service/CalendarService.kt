@@ -113,7 +113,7 @@ class CalendarService(
           sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.WELSH), SmsLanguage.WELSH)
       }
       return SmsResponse(
-        sendSmsEnglishResponse?.notificationId!!,
+        sendSmsEnglishResponse?.notificationId,
         sendSmsWelshResponse?.notificationId,
       )
     }

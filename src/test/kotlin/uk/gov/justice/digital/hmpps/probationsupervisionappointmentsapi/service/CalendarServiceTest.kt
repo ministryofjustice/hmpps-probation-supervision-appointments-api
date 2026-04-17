@@ -42,6 +42,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsEventRequest
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
@@ -117,8 +118,10 @@ class CalendarServiceTest {
     subject = "Test Subject",
     start = fixedStartDateTime,
     durationInMinutes = durationMinutes,
-    supervisionAppointmentUrn = "urn:test:123"
+    supervisionAppointmentUrn = "urn:test:123",
   )
+
+  private val emptySmsResponse = SmsResponse()
 
   @BeforeEach
   fun setup() {
@@ -213,7 +216,8 @@ class CalendarServiceTest {
         ),
       )
 
-      assertEquals(mockGraphEventResponse.toEventResponse(), result)
+      val smsResponse = SmsResponse(englishNotificationId = notificationId, welshNotificationId = null)
+      assertEquals(mockGraphEventResponse.toEventResponse(smsResponse), result)
 
       val notificationMapping = notificationMappingCaptor.value
       assertEquals(mockEventRequest.supervisionAppointmentUrn, notificationMapping.deliusExternalReference)
@@ -248,7 +252,7 @@ class CalendarServiceTest {
         ),
       )
 
-      whenever(notificationClient.sendSms(anyString(), anyString(), any(), anyString()))
+      whenever(notificationClient.sendSms(any(), any(), any(), any()))
         .thenReturn(
           SendSmsResponse(
             """
@@ -428,10 +432,10 @@ class CalendarServiceTest {
       )
       whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
-        anyString(),
-        anyString(),
-        any<Map<String, String>>(),
-        anyString(),
+        any(),
+        any(),
+        any(),
+        any(),
       )
 
       val event = mockEvent()
@@ -455,8 +459,7 @@ class CalendarServiceTest {
           exception,
           telemetryProperties,
         )
-
-      assertEquals(event.toEventResponse(), response)
+      assertEquals(event.toEventResponse(emptySmsResponse), response)
     }
 
     @Test
@@ -476,10 +479,10 @@ class CalendarServiceTest {
       )
       whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
-        anyString(),
-        anyString(),
-        any<Map<String, String>>(),
-        anyString(),
+        any(),
+        any(),
+        any(),
+        any(),
       )
 
       val event = mockEvent()
@@ -504,7 +507,7 @@ class CalendarServiceTest {
           telemetryProperties,
         )
 
-      assertEquals(event.toEventResponse(), response)
+      assertEquals(event.toEventResponse(emptySmsResponse), response)
     }
 
     @Test
@@ -524,10 +527,10 @@ class CalendarServiceTest {
       )
       whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
-        anyString(),
-        anyString(),
-        any<Map<String, String>>(),
-        anyString(),
+        any(),
+        any(),
+        any(),
+        any(),
       )
 
       val event = mockEvent()
@@ -552,7 +555,7 @@ class CalendarServiceTest {
           telemetryProperties,
         )
 
-      assertEquals(event.toEventResponse(), response)
+      assertEquals(event.toEventResponse(emptySmsResponse), response)
     }
 
     @Test
@@ -572,10 +575,10 @@ class CalendarServiceTest {
       )
       whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       doThrow(exception).whenever(notificationClient).sendSms(
-        anyString(),
-        anyString(),
-        any<Map<String, String>>(),
-        anyString(),
+        any(),
+        any(),
+        any(),
+        any(),
       )
 
       val event = mockEvent()
@@ -614,7 +617,7 @@ class CalendarServiceTest {
           telemetryProperties,
         )
 
-      assertEquals(event.toEventResponse(), response)
+      assertEquals(event.toEventResponse(emptySmsResponse), response)
     }
   }
 

@@ -237,13 +237,15 @@ class CalendarService(
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
     subject = eventRequest.subject
+
     start = DateTimeTimeZone().apply {
       timeZone = EVENT_TIMEZONE
       dateTime = eventRequest.start.toString()
     }
+
     end = DateTimeTimeZone().apply {
-      dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
       timeZone = EVENT_TIMEZONE
+      dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
     }
     attendees = if (outLookEnv != "prod") {
       getAttendees(

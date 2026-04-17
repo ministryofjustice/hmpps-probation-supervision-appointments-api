@@ -225,13 +225,15 @@ class CalendarService(
 
   fun buildEvent(eventRequest: EventRequest) = Event().apply {
     subject = eventRequest.subject
+
     start = DateTimeTimeZone().apply {
       timeZone = EVENT_TIMEZONE
       dateTime = eventRequest.start.toString()
     }
+
     end = DateTimeTimeZone().apply {
-      dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
       timeZone = EVENT_TIMEZONE
+      dateTime = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString()
     }
     attendees = if (outLookEnv != "prod") {
       getAttendees(
@@ -322,8 +324,8 @@ fun Event.toEventResponse(): EventResponse = EventResponse(
 )
 
 fun DeliusOutlookMapping.toDeliusOutlookMappingsResponse(): DeliusOutlookMappingsResponse = DeliusOutlookMappingsResponse(
-  supervisionAppointmentUrn,
-  outlookId,
-  createdAt.toString(),
-  updatedAt.toString(),
+  supervisionAppointmentUrn = supervisionAppointmentUrn,
+  outlookId = outlookId,
+  createdAt = createdAt.toString(),
+  updatedAt = updatedAt.toString(),
 )

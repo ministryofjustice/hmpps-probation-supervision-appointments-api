@@ -14,10 +14,13 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
+
+private val UK_ZONE_ID = ZoneId.of("Europe/London")
 
 @Service
 class SmsService(
@@ -87,19 +90,21 @@ class SmsService(
 private val DATE_FORMATTER =
   DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.UK)
 
-private val TIME_FORMATTER =
-  DateTimeFormatter.ofPattern("h:mma", Locale.UK)
-
 private val HOUR_ONLY_FORMATTER =
   DateTimeFormatter.ofPattern("ha", Locale.UK)
 
 private val HOUR_MINUTE_FORMATTER =
   DateTimeFormatter.ofPattern("h:mma", Locale.UK)
 
-fun ZonedDateTime.toNotifyTime(): String = if (this.minute == 0) {
-  this.format(HOUR_ONLY_FORMATTER)
-} else {
-  this.format(HOUR_MINUTE_FORMATTER)
-}.lowercase()
+fun ZonedDateTime.toNotifyTime(): String {
+  val ukTime = this.withZoneSameInstant(UK_ZONE_ID)
 
-fun ZonedDateTime.toNotifyDate(): String = this.format(DATE_FORMATTER)
+  return if (ukTime.minute == 0) {
+    ukTime.format(HOUR_ONLY_FORMATTER)
+  } else {
+    ukTime.format(HOUR_MINUTE_FORMATTER)
+  }.lowercase(Locale.UK)
+}
+
+fun ZonedDateTime.toNotifyDate(): String = this.withZoneSameInstant(UK_ZONE_ID)
+  .format(DATE_FORMATTER)

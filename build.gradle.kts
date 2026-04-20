@@ -1,21 +1,21 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.0.5"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.1"
   id("org.jetbrains.kotlin.plugin.jpa") version "2.3.20"
   kotlin("plugin.spring") version "2.3.20"
   id("idea")
-  id("io.sentry.jvm.gradle") version "6.2.0"
+  id("io.sentry.jvm.gradle") version "6.4.0"
 }
 
 val hmppsSpringBootStarterVersion = "2.1.0"
 val azureIdentityVersion = "1.18.2"
-val fliptVersion = "1.3.0"
-val sentryVersion = "8.36.0"
+val fliptVersion = "1.3.1"
+val sentryVersion = "8.39.1"
 val notifyVersion = "6.0.0-RELEASE"
-val microsoftGraphVersion = "6.62.0"
+val microsoftGraphVersion = "6.63.0"
 val wiremockVersion = "3.13.2"
-val swaggerParserVersion = "2.1.39"
-val springdocVersion = "3.0.2"
-val sqsVersion = "7.1.0"
+val swaggerParserVersion = "2.1.40"
+val springdocVersion = "3.0.3"
+val sqsVersion = "7.3.0"
 idea {
   module {
     resourceDirs.add(file("src/wiremock-stubs"))
@@ -41,7 +41,7 @@ dependencies {
 
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:$sqsVersion")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-  implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.1")
+  implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.2")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
@@ -60,7 +60,7 @@ dependencies {
   }
 
   testImplementation("org.awaitility:awaitility-kotlin")
-  testImplementation("org.testcontainers:testcontainers:2.0.4")
+  testImplementation("org.testcontainers:testcontainers:2.0.5")
   testImplementation("org.testcontainers:postgresql:1.21.4")
   testImplementation("org.testcontainers:localstack:1.21.4")
   testImplementation("org.testcontainers:junit-jupiter:1.21.4")

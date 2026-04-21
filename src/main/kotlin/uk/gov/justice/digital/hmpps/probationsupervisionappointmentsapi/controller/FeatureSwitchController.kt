@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.FeatureSwitchResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsService
 
 @RestController
 @Tag(name = "Feature switch", description = "Feature switch service to check if a feature is enabled/disabled")
@@ -30,7 +29,6 @@ class FeatureSwitchController(val featureSwitchService: FeatureFlagsService) {
     @Parameter(description = "Name of the feature switch") @RequestParam(
       value = "featureSwitchName",
       required = true,
-    ) featureSwitchName: String
+    ) featureSwitchName: String,
   ) = FeatureSwitchResponse(featureSwitchService.isEnabledForUser(featureSwitchName, email))
-
 }

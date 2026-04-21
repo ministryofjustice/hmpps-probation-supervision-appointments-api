@@ -21,7 +21,7 @@ class FeatureSwitchController(val featureSwitchService: FeatureFlagsService) {
     value = ["/isFeatureEnabledForUser"],
     produces = ["application/json"],
   )
-  fun isUserEnabledForAFeature(
+  fun isFeatureEnabledForAUser(
     @Parameter(description = "The persons email address") @RequestParam(
       value = "email",
       required = true,

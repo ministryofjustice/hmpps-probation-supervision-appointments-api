@@ -1,12 +1,14 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller
 
-import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.HttpStatus
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.FeatureSwitchEnabledForUserRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.FeatureSwitchResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
 
@@ -16,19 +18,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 @RequestMapping("/feature-switch")
 class FeatureSwitchController(val featureSwitchService: FeatureFlagsService) {
 
-  @RequestMapping(
-    method = [RequestMethod.GET],
-    value = ["/isFeatureEnabledForUser"],
-    produces = ["application/json"],
-  )
-  fun isFeatureEnabledForAUser(
-    @Parameter(description = "The persons email address") @RequestParam(
-      value = "email",
-      required = true,
-    ) email: String,
-    @Parameter(description = "Name of the feature switch") @RequestParam(
-      value = "featureSwitchName",
-      required = true,
-    ) featureSwitchName: String,
-  ) = FeatureSwitchResponse(featureSwitchService.isEnabledForUser(featureSwitchName, email))
+  @PostMapping("/isFeatureEnabledForUser")
+  @ResponseStatus(HttpStatus.OK)
+  fun isFeatureEnabledForAUser(@RequestBody featureSwitchEnabledForUserRequest: FeatureSwitchEnabledForUserRequest) = FeatureSwitchResponse(featureSwitchService.isEnabledForUser(featureSwitchEnabledForUserRequest.featureSwitchName, featureSwitchEnabledForUserRequest.email))
 }

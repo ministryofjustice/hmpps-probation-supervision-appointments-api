@@ -1,21 +1,21 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.1"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.3"
   id("org.jetbrains.kotlin.plugin.jpa") version "2.3.21"
   kotlin("plugin.spring") version "2.3.21"
   id("idea")
   id("io.sentry.jvm.gradle") version "6.5.0"
 }
 
-val hmppsSpringBootStarterVersion = "2.1.0"
+val hmppsSpringBootStarterVersion = "2.1.1"
 val azureIdentityVersion = "1.18.2"
 val fliptVersion = "1.3.1"
 val sentryVersion = "8.40.0"
 val notifyVersion = "6.0.0-RELEASE"
 val microsoftGraphVersion = "6.63.0"
 val wiremockVersion = "3.13.2"
-val swaggerParserVersion = "2.1.40"
+val swaggerParserVersion = "2.1.41"
 val springdocVersion = "3.0.3"
-val sqsVersion = "7.3.0"
+val sqsVersion = "7.3.1"
 idea {
   module {
     resourceDirs.add(file("src/wiremock-stubs"))

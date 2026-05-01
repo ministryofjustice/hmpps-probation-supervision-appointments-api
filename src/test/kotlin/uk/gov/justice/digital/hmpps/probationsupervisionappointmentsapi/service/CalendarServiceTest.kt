@@ -11,9 +11,11 @@ import com.microsoft.graph.users.item.UserItemRequestBuilder
 import com.microsoft.graph.users.item.calendar.CalendarRequestBuilder
 import com.microsoft.graph.users.item.calendar.events.EventsRequestBuilder
 import com.microsoft.graph.users.item.calendar.events.item.EventItemRequestBuilder
+import io.sentry.Sentry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -28,14 +30,18 @@ import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doThrow
+import org.mockito.Mockito.mockStatic
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.dao.DataAccessException
+import org.springframework.dao.DataAccessResourceFailureException
 import org.springframework.dao.OptimisticLockingFailureException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
@@ -43,6 +49,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.RescheduleEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.AppointmentCalendarEventCreationFailedException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
@@ -622,6 +629,161 @@ class CalendarServiceTest {
   }
 
   @Nested
+  inner class ExceptionHandlingAndSentryTests {
+    @Test
+    fun `should capture exception in Sentry when NotificationClientException occurs`() {
+      mockStatic(Sentry::class.java).use { sentryMock ->
+
+        val eventRequest = mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+        )
+
+        val exception = NotificationClientException("SMS failure")
+
+        whenever(
+          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+        ).thenReturn(
+          Template(
+            notifyTemplateJson(UUID.randomUUID().toString(), "body"),
+          ),
+        )
+
+        doThrow(exception).whenever(notificationClient).sendSms(
+          any(),
+          any(),
+          any(),
+          any(),
+        )
+
+        val captor = argumentCaptor<Throwable>()
+
+        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+
+        assertNull(result)
+
+        sentryMock.verify {
+          Sentry.captureException(captor.capture())
+        }
+
+        assertTrue(captor.firstValue is NotificationClientException)
+      }
+    }
+
+    @Test
+    fun `should capture exception in Sentry when IllegalArgumentException occurs`() {
+      mockStatic(Sentry::class.java).use { sentryMock ->
+
+        val eventRequest = mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+        )
+
+        val exception = IllegalArgumentException("Invalid input")
+
+        whenever(
+          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+        ).thenReturn(
+          Template(notifyTemplateJson(UUID.randomUUID().toString(), "body")),
+        )
+
+        doThrow(exception).whenever(notificationClient).sendSms(
+          any(),
+          any(),
+          any(),
+          any(),
+        )
+
+        val captor = argumentCaptor<Throwable>()
+
+        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+
+        assertNull(result)
+
+        sentryMock.verify {
+          Sentry.captureException(captor.capture())
+        }
+
+        assertTrue(captor.firstValue is IllegalArgumentException)
+      }
+    }
+
+    @Test
+    fun `should capture exception in Sentry when DataAccessException occurs`() {
+      mockStatic(Sentry::class.java).use { sentryMock ->
+
+        val eventRequest = mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+        )
+
+        val exception = DataAccessResourceFailureException("DB error")
+
+        whenever(
+          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+        ).thenReturn(
+          Template(notifyTemplateJson(UUID.randomUUID().toString(), "body")),
+        )
+
+        whenever(notificationClient.sendSms(any(), any(), any(), any()))
+          .thenReturn(
+            SendSmsResponse(
+              """{ "id": ${UUID.randomUUID()}, "reference": "crn", "content": { "body": "msg" }, "template": { "id": ${UUID.randomUUID()}, "version": "1", "uri": "" } }""",
+            ),
+          )
+
+        doThrow(exception).whenever(notificationMappingRepository).save(any())
+
+        val captor = argumentCaptor<Throwable>()
+
+        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+
+        assertNull(result)
+
+        sentryMock.verify {
+          Sentry.captureException(captor.capture())
+        }
+
+        assertTrue(captor.firstValue is DataAccessException)
+      }
+    }
+
+    @Test
+    fun `should capture exception in Sentry when unexpected exception occurs`() {
+      mockStatic(Sentry::class.java).use { sentryMock ->
+
+        val eventRequest = mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+        )
+
+        val exception = RuntimeException("Unexpected failure")
+
+        whenever(
+          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+        ).thenReturn(
+          Template(notifyTemplateJson(UUID.randomUUID().toString(), "body")),
+        )
+
+        doThrow(exception).whenever(notificationClient).sendSms(
+          any(),
+          any(),
+          any(),
+          any(),
+        )
+
+        val captor = argumentCaptor<Throwable>()
+
+        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+
+        assertNull(result)
+
+        sentryMock.verify {
+          Sentry.captureException(captor.capture())
+        }
+
+        assertTrue(captor.firstValue is RuntimeException)
+      }
+    }
+  }
+
+  @Nested
   inner class RescheduleEventTests {
     private val oldUrn = "urn:old:456"
     private val newUrn = "urn:new:789"
@@ -961,6 +1123,45 @@ class CalendarServiceTest {
       assertEquals("User One", attendees[0].emailAddress?.name)
       assertEquals("user2@example.com", attendees[1].emailAddress?.address)
       assertEquals("User Two", attendees[1].emailAddress?.name)
+    }
+
+    @Test
+    fun `should capture exception in Sentry when calendar event creation fails`() {
+      mockStatic(Sentry::class.java).use { sentryMock ->
+
+        // Arrange
+        whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+        whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+        whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+        whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+
+        // Force failure (no event created)
+        whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(null)
+
+        val captor = argumentCaptor<Throwable>()
+
+        // Act
+        val result = calendarService.sendEvent(mockEventRequest)
+
+        // Assert
+        assertNull(result)
+
+        verify(telemetryService).trackEvent(
+          "AppointmentCalendarEventCreationFailed",
+          mapOf("supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn),
+        )
+
+        // Verify Sentry was called
+        sentryMock.verify {
+          Sentry.captureException(captor.capture())
+        }
+
+        val exception = captor.firstValue
+        assertTrue(exception is AppointmentCalendarEventCreationFailedException)
+        assertTrue(
+          exception.message!!.contains(mockEventRequest.supervisionAppointmentUrn),
+        )
+      }
     }
   }
 }

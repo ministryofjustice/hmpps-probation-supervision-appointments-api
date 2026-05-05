@@ -190,16 +190,14 @@ class CalendarService(
     } catch (e: Exception) {
       when (e) {
         is NotificationClientException ->
-          trackTelemetry(e, "AppointmentReminderFailureNotificationClientException", telemetryProperties).also { Sentry.captureException(e) }
+          trackTelemetry(e, "AppointmentReminderFailureNotificationClientException", telemetryProperties)
         is IllegalArgumentException ->
-          trackTelemetry(e, "AppointmentReminderFailureInvalidArgument", telemetryProperties).also { Sentry.captureException(e) }
-
+          trackTelemetry(e, "AppointmentReminderFailureInvalidArgument", telemetryProperties)
         is DataAccessException ->
-          trackTelemetry(e, "AppointmentReminderFailureNotificationMappingDatabaseFailure", telemetryProperties).also { Sentry.captureException(e) }
-
+          trackTelemetry(e, "AppointmentReminderFailureNotificationMappingDatabaseFailure", telemetryProperties)
         else ->
-          trackTelemetry(e, "AppointmentReminderFailure", telemetryProperties).also { Sentry.captureException(e) }
-      }
+          trackTelemetry(e, "AppointmentReminderFailure", telemetryProperties)
+      }.also { Sentry.captureException(e) }
       return null
     }
   }

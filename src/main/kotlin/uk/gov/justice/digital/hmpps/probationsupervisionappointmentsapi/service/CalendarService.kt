@@ -8,6 +8,7 @@ import com.microsoft.graph.models.EmailAddress
 import com.microsoft.graph.models.Event
 import com.microsoft.graph.models.ItemBody
 import com.microsoft.graph.serviceclient.GraphServiceClient
+import io.sentry.Sentry
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.dao.DataAccessException
 import org.springframework.stereotype.Service
@@ -19,6 +20,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.DeliusOutlookMappingsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.AppointmentCalendarEventCreationFailedException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.DeliusOutlookMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
@@ -93,6 +95,7 @@ class CalendarService(
         "AppointmentCalendarEventCreationFailed",
         mapOf("supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
       )
+      Sentry.captureException(AppointmentCalendarEventCreationFailedException("Failed to create calendar event for supervisionAppointmentUrn ${eventRequest.supervisionAppointmentUrn}"))
       null
     }
   }
@@ -188,16 +191,13 @@ class CalendarService(
       when (e) {
         is NotificationClientException ->
           trackTelemetry(e, "AppointmentReminderFailureNotificationClientException", telemetryProperties)
-
         is IllegalArgumentException ->
           trackTelemetry(e, "AppointmentReminderFailureInvalidArgument", telemetryProperties)
-
         is DataAccessException ->
           trackTelemetry(e, "AppointmentReminderFailureNotificationMappingDatabaseFailure", telemetryProperties)
-
         else ->
           trackTelemetry(e, "AppointmentReminderFailure", telemetryProperties)
-      }
+      }.also { Sentry.captureException(e) }
       return null
     }
   }

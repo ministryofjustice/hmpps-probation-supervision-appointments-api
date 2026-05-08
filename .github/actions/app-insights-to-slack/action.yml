@@ -130,7 +130,8 @@ runs:
                     type: "header",
                     text: {
                       type: "plain_text",
-                      text: ":information_source: \($title)"
+                      text: ":information_source: \($title)",
+                      emoji: true 
                     }
                   },
 

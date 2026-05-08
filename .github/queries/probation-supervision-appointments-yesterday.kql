@@ -1,0 +1,10 @@
+let startOfYesterday = startofday(datetime_utc_to_local(now(), "Europe/London") - 1d);
+let startOfToday = startofday(datetime_utc_to_local(now(), "Europe/London"));
+let startOfYesterdayUtc = datetime_local_to_utc(startOfYesterday, "Europe/London");
+let startOfTodayUtc = datetime_local_to_utc(startOfToday, "Europe/London");
+
+customEvents
+| where timestamp >= startOfYesterdayUtc and timestamp < startOfTodayUtc
+| where cloud_RoleName in ("hmpps-probation-supervision-appointments-api")
+| summarize count() by name
+| order by count_ desc

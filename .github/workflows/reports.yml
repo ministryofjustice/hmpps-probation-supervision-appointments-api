@@ -19,10 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
+      - name: Get report date
+        id: report-date
+        run: |
+          echo "date=$(TZ=Europe/London date -d 'yesterday' +'%d-%m-%Y')" >> "$GITHUB_OUTPUT"
+
       - uses: ./.github/actions/app-insights-to-slack
         with:
           title: Probation Supervision Appointments API Events
-          summary: Custom event totals for yesterday.
+          summary: Custom event totals for ${{ steps.report-date.outputs.date }}.
           query: |
             let startOfTodayLocal = startofday(datetime_utc_to_local(now(), "Europe/London"));
             let startOfYesterdayLocal = startOfTodayLocal - 1d;

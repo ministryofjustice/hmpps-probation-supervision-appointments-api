@@ -65,10 +65,13 @@ runs:
             --query accessToken \
             -o tsv)
 
+          python3 -c 'import json, os; print(json.dumps({"query": os.environ["query"]}))' > request.json
+
           curl -fsSL \
             -H "Authorization: Bearer $token" \
-            --data-urlencode "query=$query" \
-            --get "$url" > result.json
+            -H "Content-Type: application/json" \
+            --data @request.json \
+            "$url" > result.json
       env:
         query: ${{ inputs.query }}
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query

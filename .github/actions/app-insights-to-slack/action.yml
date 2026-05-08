@@ -141,34 +141,22 @@ runs:
 
                   {
                     type: "section",
-                    fields: [
-                      {
-                        type: "mrkdwn",
-                        text: "*Event*"
-                      },
-                      {
-                        type: "mrkdwn",
-                        text: "*Count*"
-                      }
-                    ]
+                    text: {
+                      type: "mrkdwn",
+                      text:
+                        (
+                          "*Event* | *Count*\n" +
+                          (
+                            $rows
+                            | map(
+                                "`" + (.Event | tostring) + "` | *" + (.Count | tostring) + "*"
+                              )
+                            | join("\n")
+                          )
+                        )
+                    }
                   }
                 ]
-
-                +
-
-                ($rows | map({
-                  type: "section",
-                  fields: [
-                    {
-                      type: "plain_text",
-                      text: (.Event | tostring)
-                    },
-                    {
-                      type: "mrkdwn",
-                      text: (.Count | tostring)
-                    }
-                  ]
-                }))
 
                 +
 

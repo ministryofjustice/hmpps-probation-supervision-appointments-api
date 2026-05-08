@@ -5,33 +5,42 @@ inputs:
   title:
     description: Report title
     required: true
+
   summary:
     description: Report summary
     required: true
+
   query:
     description: KQL query to execute
     required: true
+
   slack_channel:
     description: Slack channel to post to
     required: true
+
   slack_token:
     description: Slack bot token
     required: true
+
   azure_app_id:
     description: Azure Application Insights Application ID
     required: true
+
   azure_client_id:
     description: Azure Client ID
     required: true
+
   azure_tenant_id:
     description: Azure Tenant ID
     required: true
+
   azure_subscription_id:
     description: Azure Subscription ID
     required: true
 
 runs:
   using: composite
+
   steps:
     - name: Show query being executed
       shell: bash
@@ -64,11 +73,26 @@ runs:
         query: ${{ inputs.query }}
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query
 
+    - name: Debug response shape
+      shell: bash
+      run: |
+        jq '
+          if .error then
+            { error: .error }
+          else
+            {
+              columns: (.tables[0].columns | map(.name)),
+              rowCount: (.tables[0].rows | length)
+            }
+          end
+        ' result.json
+
     - name: Transform results into Slack message
       id: transform
       shell: bash
       run: |
         count=$(jq -r '.tables[0].rows | length // 0' result.json)
+
         echo "Found $count results."
 
         if [[ "$count" -eq 0 ]]; then
@@ -77,6 +101,7 @@ runs:
 
         {
           echo 'payload<<EOF'
+
           jq -c \
             --arg slack_channel "${{ inputs.slack_channel }}" \
             --arg title "${{ inputs.title }}" \
@@ -89,11 +114,13 @@ runs:
               reduce range(0; $columns | length) as $i
                 ({}; . + { ($columns[$i]): ($row[$i] // "N/A") })
             )) as $rows |
+
             {
               channel: $slack_channel,
               unfurl_links: false,
               unfurl_media: false,
               text: $title,
+
               blocks: (
                 [
                   {
@@ -103,27 +130,48 @@ runs:
                       text: ":information_source: \($title)"
                     }
                   },
+
                   {
                     type: "section",
                     text: {
                       type: "mrkdwn",
                       text: $summary
                     }
+                  },
+
+                  {
+                    type: "section",
+                    fields: [
+                      {
+                        type: "mrkdwn",
+                        text: "*Event*"
+                      },
+                      {
+                        type: "mrkdwn",
+                        text: "*Count*"
+                      }
+                    ]
                   }
                 ]
+
                 +
+
                 ($rows | map({
                   type: "section",
-                  text: {
-                    type: "mrkdwn",
-                    text: (
-                      to_entries
-                      | map("*\(.key):* `\(.value | tostring)`")
-                      | join("\n")
-                    )
-                  }
+                  fields: [
+                    {
+                      type: "plain_text",
+                      text: (.Event | tostring)
+                    },
+                    {
+                      type: "mrkdwn",
+                      text: (.Count | tostring)
+                    }
+                  ]
                 }))
+
                 +
+
                 [
                   {
                     type: "context",
@@ -138,6 +186,7 @@ runs:
               )
             }
             ' result.json
+
           echo EOF
         } >> "$GITHUB_OUTPUT"
 

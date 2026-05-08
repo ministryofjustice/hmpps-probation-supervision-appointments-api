@@ -1,5 +1,5 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.3"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.4"
   id("org.jetbrains.kotlin.plugin.jpa") version "2.3.21"
   kotlin("plugin.spring") version "2.3.21"
   id("idea")
@@ -15,7 +15,7 @@ val microsoftGraphVersion = "6.64.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.41"
 val springdocVersion = "3.0.3"
-val sqsVersion = "7.3.1"
+val sqsVersion = "7.3.2"
 idea {
   module {
     resourceDirs.add(file("src/wiremock-stubs"))
@@ -40,7 +40,7 @@ dependencies {
   implementation("io.sentry:sentry-spring-boot-4:$sentryVersion")
 
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:$sqsVersion")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
   implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.2")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")

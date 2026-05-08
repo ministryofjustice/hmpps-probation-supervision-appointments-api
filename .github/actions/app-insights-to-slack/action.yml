@@ -8,8 +8,8 @@ inputs:
   summary:
     description: Report summary
     required: true
-  query_file:
-    description: Path to KQL query file, relative to repository root
+  query:
+    description: KQL query to execute
     required: true
   slack_channel:
     description: Slack channel to post to
@@ -36,8 +36,9 @@ runs:
     - name: Show query being executed
       shell: bash
       run: |
-        echo "Query file: ${{ github.workspace }}/${{ inputs.query_file }}"
-        cat "${{ github.workspace }}/${{ inputs.query_file }}"
+        echo "$query"
+      env:
+        query: ${{ inputs.query }}
 
     - name: Azure CLI Login
       uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43
@@ -57,9 +58,10 @@ runs:
 
           curl -fsSL \
             -H "Authorization: Bearer $token" \
-            --data-urlencode "query=$(cat '${{ github.workspace }}/${{ inputs.query_file }}')" \
+            --data-urlencode "query=$query" \
             --get "$url" > result.json
       env:
+        query: ${{ inputs.query }}
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query
 
 #    - name: Debug response shape

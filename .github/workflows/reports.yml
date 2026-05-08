@@ -1,8 +1,6 @@
 name: Application Insights reports
 
 on:
-#  schedule:
-#    - cron: "30 7 * * *"
   push:
     branches:
       - MTRSB-58-get-app-insights-data
@@ -23,7 +21,16 @@ jobs:
         with:
           title: Probation Supervision Appointments API Events
           summary: Custom event totals for yesterday, using Europe/London calendar day.
-          query_file: queries/probation-supervision-appointments-yesterday.kql
+          query: |
+            let startOfYesterday = startofday(datetime_utc_to_local(now(), "Europe/London") - 1d);
+            let startOfToday = startofday(datetime_utc_to_local(now(), "Europe/London"));
+            let startOfYesterdayUtc = datetime_local_to_utc(startOfYesterday, "Europe/London");
+            let startOfTodayUtc = datetime_local_to_utc(startOfToday, "Europe/London");
+            customEvents
+            | where timestamp >= startOfYesterdayUtc and timestamp < startOfTodayUtc
+            | where cloud_RoleName == "hmpps-probation-supervision-appointments-api"
+            | summarize Count = count() by Event = name
+            | order by Count desc
           slack_channel: manage-people-on-probation-alerts
           slack_token: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
           azure_app_id: ${{ secrets.AZURE_APPLICATION_INSIGHTS_APP_ID }}

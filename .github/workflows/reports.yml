@@ -1,11 +1,8 @@
 name: Application Insights reports
 
 on:
-#  schedule:
-#    - cron: "30 7 * * *"
-  push:
-    branches:
-      - MTRSB-58-get-app-insights-data
+  schedule:
+    - cron: "30 7 * * *"
   workflow_dispatch:
 
 jobs:

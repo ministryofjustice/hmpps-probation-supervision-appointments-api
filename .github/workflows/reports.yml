@@ -21,10 +21,10 @@ jobs:
           title: Probation Supervision Appointments API Events
           summary: Custom event totals for yesterday.
           query: |
-            let startOfYesterday = startofday(datetime_utc_to_local(now(), "Europe/London") - 1d);
-            let startOfToday = startofday(datetime_utc_to_local(now(), "Europe/London"));
-            let startOfYesterdayUtc = datetime_local_to_utc(startOfYesterday, "Europe/London");
-            let startOfTodayUtc = datetime_local_to_utc(startOfToday, "Europe/London");
+            let startOfTodayLocal = startofday(datetime_utc_to_local(now(), "Europe/London"));
+            let startOfYesterdayLocal = startOfTodayLocal - 1d;
+            let startOfYesterdayUtc = datetime_local_to_utc(startOfYesterdayLocal, "Europe/London");
+            let startOfTodayUtc = datetime_local_to_utc(startOfTodayLocal, "Europe/London");
             customEvents
             | where timestamp >= startOfYesterdayUtc and timestamp < startOfTodayUtc
             | where cloud_RoleName == "hmpps-probation-supervision-appointments-api"

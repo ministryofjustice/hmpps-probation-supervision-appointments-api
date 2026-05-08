@@ -64,20 +64,6 @@ runs:
         query: ${{ inputs.query }}
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query
 
-#    - name: Debug response shape
-#      shell: bash
-#      run: |
-#        jq '
-#          if .error then
-#            { error: .error }
-#          else
-#            {
-#              columns: (.tables[0].columns | map(.name)),
-#              rowCount: (.tables[0].rows | length)
-#            }
-#          end
-#        ' result.json
-
     - name: Transform results into Slack message
       id: transform
       shell: bash

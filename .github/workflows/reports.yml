@@ -1,9 +1,8 @@
 name: Application Insights reports
 
 on:
-  push:
-    branches:
-      - MTRSB-58-get-app-insights-data
+  schedule:
+    - cron: "30 7 * * *"
   workflow_dispatch:
 
 jobs:
@@ -20,7 +19,7 @@ jobs:
       - uses: ./.github/actions/app-insights-to-slack
         with:
           title: Probation Supervision Appointments API Events
-          summary: Custom event totals for yesterday, using Europe/London calendar day.
+          summary: Custom event totals for yesterday.
           query: |
             let startOfYesterday = startofday(datetime_utc_to_local(now(), "Europe/London") - 1d);
             let startOfToday = startofday(datetime_utc_to_local(now(), "Europe/London"));

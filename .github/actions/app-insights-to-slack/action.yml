@@ -3,27 +3,42 @@ description: Run an Application Insights KQL query and publish the result to Sla
 
 inputs:
   title:
+    description: Report title
     required: true
   summary:
+    description: Report summary
     required: true
   query_file:
+    description: Path to KQL query file, relative to repository root
     required: true
   slack_channel:
+    description: Slack channel to post to
     required: true
   slack_token:
+    description: Slack bot token
     required: true
   azure_app_id:
+    description: Azure Application Insights Application ID
     required: true
   azure_client_id:
+    description: Azure Client ID
     required: true
   azure_tenant_id:
+    description: Azure Tenant ID
     required: true
   azure_subscription_id:
+    description: Azure Subscription ID
     required: true
 
 runs:
   using: composite
   steps:
+    - name: Show query being executed
+      shell: bash
+      run: |
+        echo "Query file: ${{ github.workspace }}/${{ inputs.query_file }}"
+        cat "${{ github.workspace }}/${{ inputs.query_file }}"
+
     - name: Azure CLI Login
       uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43
       with:
@@ -42,10 +57,24 @@ runs:
 
           curl -fsSL \
             -H "Authorization: Bearer $token" \
-            --data-urlencode "query=$(cat '${{ inputs.query_file }}')" \
+            --data-urlencode "query=$(cat '${{ github.workspace }}/${{ inputs.query_file }}')" \
             --get "$url" > result.json
       env:
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query
+
+#    - name: Debug response shape
+#      shell: bash
+#      run: |
+#        jq '
+#          if .error then
+#            { error: .error }
+#          else
+#            {
+#              columns: (.tables[0].columns | map(.name)),
+#              rowCount: (.tables[0].rows | length)
+#            }
+#          end
+#        ' result.json
 
     - name: Transform results into Slack message
       id: transform

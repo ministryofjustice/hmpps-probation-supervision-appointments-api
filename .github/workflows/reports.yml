@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - uses: ./.github/actions/app-insights-query-to-slack
+      - uses: ./.github/actions/app-insights-to-slack
         with:
           title: Probation Supervision Appointments API Events
           summary: Custom event totals for yesterday, using Europe/London calendar day.

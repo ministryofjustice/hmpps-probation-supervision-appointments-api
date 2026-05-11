@@ -65,7 +65,7 @@ runs:
             --query accessToken \
             -o tsv)
 
-          python3 -c 'import json, os; print(json.dumps({"query": os.environ["query"]}))' > request.json
+          jq -nc --arg query "$query" '{query: $query}' > request.json
 
           curl -fsSL \
             -H "Authorization: Bearer $token" \
@@ -98,10 +98,6 @@ runs:
 
         echo "Found $count results."
 
-        if [[ "$count" -eq 0 ]]; then
-          exit 0
-        fi
-
         {
           echo 'payload<<EOF'
 
@@ -131,7 +127,7 @@ runs:
                     text: {
                       type: "plain_text",
                       text: ":information_source: \($title)",
-                      emoji: true 
+                      emoji: true
                     }
                   },
 
@@ -149,14 +145,20 @@ runs:
                       type: "mrkdwn",
                       text:
                         (
-                          "*Event* | *Count*\n" +
-                          (
-                            $rows
-                            | map(
-                                "`" + (.Event | tostring) + "` | *" + (.Count | tostring) + "*"
+                          if ($rows | length) == 0 then
+                            "No events found."
+                          else
+                            (
+                              "*Event* | *Count*\n" +
+                              (
+                                $rows
+                                | map(
+                                    (.Event | tostring) + " | *" + (.Count | tostring) + "*"
+                                  )
+                                | join("\n")
                               )
-                            | join("\n")
-                          )
+                            )
+                          end
                         )
                     }
                   }

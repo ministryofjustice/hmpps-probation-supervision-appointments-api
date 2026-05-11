@@ -145,11 +145,12 @@ Install:
 
 - Azure CLI
 - jq
+- curl
 
 MacOS:
 
 ```bash
-brew install azure-cli jq
+brew install azure-cli jq curl
 ```
 
 ### Azure login: complete 2-factor authentication and then pick subscription if prompted

@@ -65,16 +65,25 @@ runs:
             --query accessToken \
             -o tsv)
 
-          jq -nc --arg query "$query" '{query: $query}' > request.json
+          temp_dir="${RUNNER_TEMP:-/tmp}"
+          request_file=$(mktemp "${temp_dir}/app-insights-request-XXXXXX.json")
+          result_file=$(mktemp "${temp_dir}/app-insights-result-XXXXXX.json")
+
+          echo "app_insights_request_file=$request_file" >> "$GITHUB_ENV"
+          echo "app_insights_result_file=$result_file" >> "$GITHUB_ENV"
+
+          jq -nc --arg query "$query" '{query: $query}' > "$request_file"
 
           http_status=$(curl -sSL \
-            -o result.json \
+            -o "$result_file" \
             -w '%{http_code}' \
             -H "Authorization: Bearer $token" \
             -H "Content-Type: application/json" \
-            --data @request.json \
+            --data @"$request_file" \
             "$url")
           curl_exit_code=$?
+
+          rm -f "$request_file"
 
           if [ "$curl_exit_code" -ne 0 ]; then
             echo "curl failed with exit code $curl_exit_code"

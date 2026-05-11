@@ -76,19 +76,19 @@ runs:
         query: ${{ inputs.query }}
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query
 
-    - name: Debug response shape
+    - name: Validate Application Insights response
       shell: bash
       run: |
-        jq '
-          if .error then
-            { error: .error }
-          else
-            {
-              columns: (.tables[0].columns | map(.name)),
-              rowCount: (.tables[0].rows | length)
-            }
-          end
-        ' result.json
+        if jq -e '.error' result.json > /dev/null; then
+          echo "Application Insights query failed:"
+          jq '.error' result.json
+          exit 1
+        fi
+        
+        jq '{
+          columns: (.tables[0].columns | map(.name)),
+          rowCount: (.tables[0].rows | length)
+        }' result.json
 
     - name: Transform results into Slack message
       id: transform

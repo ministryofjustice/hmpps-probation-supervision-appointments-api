@@ -11,6 +11,8 @@ volume/
 
 application-local.yml
 
+azure-queries/*json
+
 # CMake
 cmake-build-debug/
 

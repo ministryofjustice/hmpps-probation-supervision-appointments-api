@@ -152,7 +152,7 @@ MacOS:
 brew install azure-cli jq
 ```
 
-### Azure login complete 2factor authentication and then pick subscription if prompted
+### Azure login: complete 2-factor authentication and then pick subscription if prompted
 
 ```bash
 az login

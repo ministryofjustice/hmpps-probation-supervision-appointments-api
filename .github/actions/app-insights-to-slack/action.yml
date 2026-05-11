@@ -184,10 +184,10 @@ runs:
           echo EOF
         } >> "$GITHUB_OUTPUT"
 
-#    - name: Send message to Slack
-#      if: steps.transform.outputs.payload != ''
-#      uses: slackapi/slack-github-action@03ea5433c137af7c0495bc0cad1af10403fc800c
-#      with:
-#        method: chat.postMessage
-#        token: ${{ inputs.slack_token }}
-#        payload: ${{ steps.transform.outputs.payload }}
+    - name: Send message to Slack
+      if: steps.transform.outputs.payload != ''
+      uses: slackapi/slack-github-action@03ea5433c137af7c0495bc0cad1af10403fc800c
+      with:
+        method: chat.postMessage
+        token: ${{ inputs.slack_token }}
+        payload: ${{ steps.transform.outputs.payload }}

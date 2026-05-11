@@ -3,9 +3,6 @@ name: Application Insights reports
 on:
   schedule:
     - cron: "30 7 * * *"
-  push:
-    branches:
-      - MTRSB-58-fix-failed-action
   workflow_dispatch:
 
 jobs:

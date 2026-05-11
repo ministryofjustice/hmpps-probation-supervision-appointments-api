@@ -167,8 +167,8 @@ export APP_ID="<application-insights-app-id>"
 set -x APP_ID "<application-insights-app-id>"
 ```
 
-### exceute query and output to console
+### execute query and output to console
 ```bash
-cd auzure-queries
-./custom-query.sh
+cd azure-queries
+./custom-events.sh
 ```

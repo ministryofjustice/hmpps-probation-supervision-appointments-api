@@ -67,11 +67,23 @@ runs:
 
           jq -nc --arg query "$query" '{query: $query}' > request.json
 
-          curl -fsSL \
+          http_status=$(curl -sSL \
+            -o result.json \
+            -w '%{http_code}' \
             -H "Authorization: Bearer $token" \
             -H "Content-Type: application/json" \
             --data @request.json \
-            "$url" > result.json
+            "$url")
+          curl_exit_code=$?
+
+          if [ "$curl_exit_code" -ne 0 ]; then
+            echo "curl failed with exit code $curl_exit_code"
+            exit "$curl_exit_code"
+          fi
+
+          if [ "$http_status" -ge 400 ]; then
+            echo "Application Insights returned HTTP $http_status; validating response body next."
+          fi
       env:
         query: ${{ inputs.query }}
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query

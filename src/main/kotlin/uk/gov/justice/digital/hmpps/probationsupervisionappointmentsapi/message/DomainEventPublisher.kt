@@ -26,9 +26,9 @@ class DomainEventPublisher(
         domainEvent.eventType,
         objectMapper.writeValueAsString(domainEvent),
       )
-      telemetryService.trackEvent("smsContactEventSent", telemetryProperties)
+      telemetryService.trackEvent("PersonOnProbationSMSReminderSent", telemetryProperties)
     } catch (ex: Exception) {
-      telemetryService.trackEvent("smsContactEventFailed", telemetryProperties)
+      telemetryService.trackEvent("PersonOnProbationSMSReminderSentFailed", telemetryProperties)
       telemetryService.trackException(ex, telemetryProperties)
     }
   }

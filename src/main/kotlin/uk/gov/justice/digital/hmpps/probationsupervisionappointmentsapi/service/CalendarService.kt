@@ -185,7 +185,6 @@ class CalendarService(
         crn = eventRequest.smsEventRequest.crn,
         notificationId = smsResponse.notificationId,
       )
-      telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
       return smsResponse
     } catch (e: Exception) {
       when (e) {

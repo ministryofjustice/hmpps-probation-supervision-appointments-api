@@ -214,15 +214,6 @@ class CalendarServiceTest {
         "crn",
       )
 
-      verify(telemetryService).trackEvent(
-        "AppointmentReminderSent",
-        mapOf(
-          "crn" to "crn",
-          "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
-          "smsLanguage" to SmsLanguage.ENGLISH.name,
-        ),
-      )
-
       val smsResponse = SmsResponse(englishNotificationId = notificationId, welshNotificationId = null)
       assertEquals(mockGraphEventResponse.toEventResponse(smsResponse), result)
 

@@ -69,7 +69,6 @@ runs:
           request_file=$(mktemp "${temp_dir}/app-insights-request-XXXXXX.json")
           result_file=$(mktemp "${temp_dir}/app-insights-result-XXXXXX.json")
 
-          echo "app_insights_request_file=$request_file" >> "$GITHUB_ENV"
           echo "app_insights_result_file=$result_file" >> "$GITHUB_ENV"
 
           jq -nc --arg query "$query" '{query: $query}' > "$request_file"
@@ -93,7 +92,7 @@ runs:
           if [ "$http_status" -ge 400 ]; then
             echo "Application Insights returned HTTP $http_status"
             echo "Response body:"
-            cat result.json
+            cat "$result_file"
             exit 1
           fi
       env:
@@ -103,22 +102,22 @@ runs:
     - name: Validate Application Insights response
       shell: bash
       run: |
-        if jq -e '.error' result.json > /dev/null; then
+        if jq -e '.error' "$app_insights_result_file" > /dev/null; then
           echo "Application Insights query failed:"
-          jq '.error' result.json
+          jq '.error' "$app_insights_result_file"
           exit 1
         fi
-        
+
         jq '{
           columns: (.tables[0].columns | map(.name)),
           rowCount: (.tables[0].rows | length)
-        }' result.json
+        }' "$app_insights_result_file"
 
     - name: Transform results into Slack message
       id: transform
       shell: bash
       run: |
-        count=$(jq -r '.tables[0].rows | length // 0' result.json)
+        count=$(jq -r '.tables[0].rows | length // 0' "$app_insights_result_file")
 
         echo "Found $count results."
 
@@ -203,7 +202,7 @@ runs:
                 ]
               )
             }
-            ' result.json
+            ' "$app_insights_result_file"
 
           echo EOF
         } >> "$GITHUB_OUTPUT"

@@ -22,12 +22,23 @@ token=$(az account get-access-token \
 
 jq -nc --arg query "$QUERY" '{query: $query}' > "$REQUEST_FILE"
 
-curl -fsSL \
+if ! curl --fail-with-body -sSL \
   -H "Authorization: Bearer $token" \
   -H "Content-Type: application/json" \
   --data @"$REQUEST_FILE" \
   "https://api.applicationinsights.io/v1/apps/$APP_ID/query" \
-  > "$RESULT_FILE"
+  > "$RESULT_FILE"; then
+  if jq -e '.error' "$RESULT_FILE" > /dev/null 2>&1; then
+    echo "Application Insights query failed:"
+    jq '.error' "$RESULT_FILE"
+  else
+    echo "Application Insights query failed."
+    if [[ -s "$RESULT_FILE" ]]; then
+      cat "$RESULT_FILE"
+    fi
+  fi
+  exit 1
+fi
 
 if jq -e '.error' "$RESULT_FILE" > /dev/null; then
   echo "Application Insights query failed:"

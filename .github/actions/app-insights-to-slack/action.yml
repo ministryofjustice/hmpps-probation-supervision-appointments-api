@@ -91,7 +91,10 @@ runs:
           fi
 
           if [ "$http_status" -ge 400 ]; then
-            echo "Application Insights returned HTTP $http_status; validating response body next."
+            echo "Application Insights returned HTTP $http_status"
+            echo "Response body:"
+            cat result.json
+            exit 1
           fi
       env:
         query: ${{ inputs.query }}

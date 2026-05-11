@@ -19,7 +19,7 @@ jobs:
       - name: Get report date
         id: report-date
         run: |
-          echo "date=$(TZ=Europe/London date -d 'yesterday' +'%d-%m-%Y')" >> "$GITHUB_OUTPUT"
+          echo "date=$(TZ=Europe/London date -d '%A %d-%m-%Y')" >> "$GITHUB_OUTPUT"
 
       - uses: ./.github/actions/app-insights-to-slack
         with:

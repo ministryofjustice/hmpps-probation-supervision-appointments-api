@@ -65,37 +65,13 @@ runs:
             --query accessToken \
             -o tsv)
 
-          temp_dir="${RUNNER_TEMP:-/tmp}"
-          request_file=$(mktemp "${temp_dir}/app-insights-request-XXXXXX.json")
-          result_file=$(mktemp "${temp_dir}/app-insights-result-XXXXXX.json")
+          jq -nc --arg query "$query" '{query: $query}' > request.json
 
-          echo "app_insights_request_file=$request_file" >> "$GITHUB_ENV"
-          echo "app_insights_result_file=$result_file" >> "$GITHUB_ENV"
-
-          jq -nc --arg query "$query" '{query: $query}' > "$request_file"
-
-          http_status=$(curl -sSL \
-            -o "$result_file" \
-            -w '%{http_code}' \
+          curl -fsSL \
             -H "Authorization: Bearer $token" \
             -H "Content-Type: application/json" \
-            --data @"$request_file" \
-            "$url")
-          curl_exit_code=$?
-
-          rm -f "$request_file"
-
-          if [ "$curl_exit_code" -ne 0 ]; then
-            echo "curl failed with exit code $curl_exit_code"
-            exit "$curl_exit_code"
-          fi
-
-          if [ "$http_status" -ge 400 ]; then
-            echo "Application Insights returned HTTP $http_status"
-            echo "Response body:"
-            cat result.json
-            exit 1
-          fi
+            --data @request.json \
+            "$url" > result.json
       env:
         query: ${{ inputs.query }}
         url: https://api.applicationinsights.io/v1/apps/${{ inputs.azure_app_id }}/query
@@ -108,7 +84,7 @@ runs:
           jq '.error' result.json
           exit 1
         fi
-        
+
         jq '{
           columns: (.tables[0].columns | map(.name)),
           rowCount: (.tables[0].rows | length)

@@ -7,7 +7,7 @@ plugins {
 }
 
 val hmppsSpringBootStarterVersion = "2.2.0"
-val azureIdentityVersion = "1.18.3"
+val azureIdentityVersion = "1.19.0"
 val fliptVersion = "1.3.1"
 val sentryVersion = "8.41.0"
 val notifyVersion = "6.0.0-RELEASE"
@@ -16,6 +16,8 @@ val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.42"
 val springdocVersion = "3.0.3"
 val sqsVersion = "7.3.2"
+val postgresqlVersion = "42.7.11"
+
 idea {
   module {
     resourceDirs.add(file("src/wiremock-stubs"))
@@ -44,7 +46,7 @@ dependencies {
   implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.2")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql")
+  runtimeOnly("org.postgresql:postgresql:$postgresqlVersion")
   runtimeOnly("org.flywaydb:flyway-core")
 
   compileOnly("org.wiremock:wiremock-standalone:$wiremockVersion")

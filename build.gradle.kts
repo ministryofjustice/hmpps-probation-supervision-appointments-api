@@ -3,10 +3,10 @@ plugins {
   id("org.jetbrains.kotlin.plugin.jpa") version "2.3.21"
   kotlin("plugin.spring") version "2.3.21"
   id("idea")
-  id("io.sentry.jvm.gradle") version "6.7.0"
+  id("io.sentry.jvm.gradle") version "6.7.1"
 }
 
-val hmppsSpringBootStarterVersion = "2.2.0"
+val hmppsSpringBootStarterVersion = "2.3.0"
 val azureIdentityVersion = "1.18.3"
 val fliptVersion = "1.3.1"
 val sentryVersion = "8.41.0"

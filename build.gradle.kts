@@ -1,21 +1,23 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.4"
-  id("org.jetbrains.kotlin.plugin.jpa") version "2.3.21"
-  kotlin("plugin.spring") version "2.3.21"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.5.0"
+  id("org.jetbrains.kotlin.plugin.jpa") version "2.4.0"
+  kotlin("plugin.spring") version "2.4.0"
   id("idea")
-  id("io.sentry.jvm.gradle") version "6.6.0"
+  id("io.sentry.jvm.gradle") version "6.11.0"
 }
 
-val hmppsSpringBootStarterVersion = "2.2.0"
-val azureIdentityVersion = "1.18.3"
+val hmppsSpringBootStarterVersion = "2.5.0"
+val azureIdentityVersion = "1.18.4"
 val fliptVersion = "1.3.1"
-val sentryVersion = "8.41.0"
+val sentryVersion = "8.43.2"
 val notifyVersion = "6.0.0-RELEASE"
-val microsoftGraphVersion = "6.64.0"
+val microsoftGraphVersion = "6.65.0"
 val wiremockVersion = "3.13.2"
-val swaggerParserVersion = "2.1.41"
+val swaggerParserVersion = "2.1.44"
 val springdocVersion = "3.0.3"
-val sqsVersion = "7.3.2"
+val sqsVersion = "7.4.0"
+val postgresqlVersion = "42.7.11"
+
 idea {
   module {
     resourceDirs.add(file("src/wiremock-stubs"))
@@ -24,6 +26,10 @@ idea {
 
 configurations {
   testImplementation { exclude(group = "org.junit.vintage") }
+}
+
+dependencyCheck {
+  suppressionFiles.add("azure-dependency-check-suppress.xml")
 }
 
 dependencies {
@@ -44,7 +50,7 @@ dependencies {
   implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.2")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql")
+  runtimeOnly("org.postgresql:postgresql:$postgresqlVersion")
   runtimeOnly("org.flywaydb:flyway-core")
 
   compileOnly("org.wiremock:wiremock-standalone:$wiremockVersion")

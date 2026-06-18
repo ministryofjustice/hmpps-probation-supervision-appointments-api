@@ -28,12 +28,13 @@ generic-service:
   #     [name of environment variable as seen by app]: [key of kubernetes secret to load]
 
   namespace_secrets:
+    govuk-notify:
+      GOVUK_NOTIFY_API_KEY: 'NOTIFY_API_KEY'
     hmpps-probation-supervision-appointments-api:
       GRAPH_CLIENT_CLIENT_ID: GRAPH_CLIENT_ID
       GRAPH_CLIENT_CLIENT_SECRET: GRAPH_CLIENT_SECRET
       GRAPH_CLIENT_TENANT_ID: GRAPH_TENANT_ID
       CALENDAR_FROM_EMAIL: CALENDAR_FROM_EMAIL
-      GOVUK_NOTIFY_API_KEY: NOTIFY_API_KEY
       FLIPT_URL: FLIPT_URL
       FLIPT_TOKEN: FLIPT_TOKEN
       SENTRY_DSN: "SENTRY_DSN"

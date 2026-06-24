@@ -1,5 +1,5 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.5.1"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.5.2"
   id("org.jetbrains.kotlin.plugin.jpa") version "2.4.0"
   kotlin("plugin.spring") version "2.4.0"
   id("idea")
@@ -13,7 +13,7 @@ val sentryVersion = "8.44.1"
 val notifyVersion = "6.0.0-RELEASE"
 val microsoftGraphVersion = "6.65.0"
 val wiremockVersion = "3.13.2"
-val swaggerParserVersion = "2.1.44"
+val swaggerParserVersion = "2.1.45"
 val springdocVersion = "3.0.3"
 val sqsVersion = "7.4.0"
 val postgresqlVersion = "42.7.11"

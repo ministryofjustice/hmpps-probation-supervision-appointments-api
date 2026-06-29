@@ -47,7 +47,7 @@ dependencies {
 
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:$sqsVersion")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-  implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.2")
+  implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.3")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:$postgresqlVersion")

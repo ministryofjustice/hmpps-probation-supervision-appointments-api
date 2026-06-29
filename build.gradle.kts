@@ -16,7 +16,7 @@ val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.45"
 val springdocVersion = "3.0.3"
 val sqsVersion = "7.4.0"
-val postgresqlVersion = "42.7.11"
+val postgresqlVersion = "42.7.12"
 
 idea {
   module {

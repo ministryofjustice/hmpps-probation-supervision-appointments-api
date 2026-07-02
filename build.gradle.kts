@@ -3,20 +3,20 @@ plugins {
   id("org.jetbrains.kotlin.plugin.jpa") version "2.4.0"
   kotlin("plugin.spring") version "2.4.0"
   id("idea")
-  id("io.sentry.jvm.gradle") version "6.13.0"
+  id("io.sentry.jvm.gradle") version "6.14.0"
 }
 
 val hmppsSpringBootStarterVersion = "2.5.0"
 val azureIdentityVersion = "1.18.4"
-val fliptVersion = "1.3.2"
-val sentryVersion = "8.46.0"
+val fliptVersion = "1.3.3"
+val sentryVersion = "8.47.0"
 val notifyVersion = "6.0.0-RELEASE"
 val microsoftGraphVersion = "6.65.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.45"
 val springdocVersion = "3.0.3"
 val sqsVersion = "7.4.0"
-val postgresqlVersion = "42.7.11"
+val postgresqlVersion = "42.7.12"
 
 idea {
   module {

@@ -63,33 +63,16 @@
         <cve>CVE-2026-33117</cve>
     </suppress>
     <suppress>
-        <notes>
-            <![CDATA[
-    DOMPurify vulnerabilities are bundled only in WireMock Swagger UI assets.
-    WireMock is a development/test dependency and is not included in production runtime.
-    ]]>
-        </notes>
+        <notes><![CDATA[
+    DOMPurify vulnerabilities are bundled only within WireMock Swagger UI assets
+    inside org.wiremock:wiremock-standalone:3.13.2.
+
+    WireMock is a development/test dependency and is not included in the
+    production application runtime. Swagger UI is not exposed in production.
+    ]]></notes>
         <sha1>8bfbad28c85f7b4927694491f2c8030c898c72a9</sha1>
         <vulnerabilityName>GHSA-h8r8-wccr-v5f2</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>
-            <![CDATA[
-    DOMPurify vulnerabilities are bundled only in WireMock Swagger UI assets.
-    WireMock is a development/test dependency and is not included in production runtime.
-    ]]>
-        </notes>
-        <sha1>8bfbad28c85f7b4927694491f2c8030c898c72a9</sha1>
         <vulnerabilityName>GHSA-cjmm-f4jc-qw8r</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>
-            <![CDATA[
-    DOMPurify vulnerabilities are bundled only in WireMock Swagger UI assets.
-    WireMock is a development/test dependency and is not included in production runtime.
-    ]]>
-        </notes>
-        <sha1>8bfbad28c85f7b4927694491f2c8030c898c72a9</sha1>
         <vulnerabilityName>GHSA-cj63-jhhr-wcxv</vulnerabilityName>
     </suppress>
 </suppressions>

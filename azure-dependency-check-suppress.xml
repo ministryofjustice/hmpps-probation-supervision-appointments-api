@@ -1,11 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-  <suppress>
-    <notes><![CDATA[
+<suppressions
+        xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes>
+            <![CDATA[
     file name: azure-identity-1.18.4.jar
     Suppressed as this is an Azure SDK dependency, not application insights.
+    ]]>
+        </notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.4$</packageUrl>
+        <cve>CVE-2026-33117</cve>
+    </suppress>
+    <suppress>
+        <notes>
+            <![CDATA[
+    CVE-2026-33117 is reported through Azure SDK transitive dependencies:
+    com.azure:azure-core-http-netty:1.16.5 and com.azure:azure-core:1.58.1.
+
+    The application uses Azure Identity but does not include or use the
+    affected Azure Key Vault Keys library or the affected local cryptographic
+    verification path.
+
+    Suppressed after dependency analysis. Azure SDK versions will be reviewed
+    during scheduled dependency upgrades.
+    ]]>
+        </notes>
+        <sha1>a02009f2e8997e07c0e3488dc67b3b0146b88176</sha1>
+        <cve>CVE-2026-33117</cve>
+    </suppress>
+    <suppress>
+        <notes>
+            <![CDATA[
+    CVE-2026-33117 is reported through Azure SDK transitive dependencies:
+    com.azure:azure-core:1.58.1.
+
+    The application uses Azure Identity but does not include or use the
+    affected Azure Key Vault Keys library or the affected local cryptographic
+    verification path.
+
+    Suppressed after dependency analysis. Azure SDK versions will be reviewed
+    during scheduled dependency upgrades.
+    ]]>
+        </notes>
+        <sha1>7fdb311f93e291abb4d694404959c1e3cf9e76bd</sha1>
+        <cve>CVE-2026-33117</cve>
+    </suppress>
+    <suppress>
+        <notes>
+            <![CDATA[
+    CVE-2026-33117 is reported through Azure SDK transitive dependency:
+    com.azure:azure-json:1.5.1.
+
+    The application uses Azure Identity but does not include or use the
+    affected Azure Key Vault Keys library or the affected local cryptographic
+    verification path.
+
+    Suppressed after dependency analysis. Azure SDK versions will be reviewed
+    during scheduled dependency upgrades.
+    ]]>
+        </notes>
+        <sha1>29c6d074e9c72d877e0a6bfd65e725b9e34c7a4c</sha1>
+        <cve>CVE-2026-33117</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+    DOMPurify vulnerabilities are bundled only within WireMock Swagger UI assets
+    inside org.wiremock:wiremock-standalone:3.13.2.
+
+    WireMock is a development/test dependency and is not included in the
+    production application runtime. Swagger UI is not exposed in production.
     ]]></notes>
-      <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.4$</packageUrl>
-    <cve>CVE-2026-33117</cve>
-  </suppress>
+        <sha1>8bfbad28c85f7b4927694491f2c8030c898c72a9</sha1>
+        <vulnerabilityName>GHSA-h8r8-wccr-v5f2</vulnerabilityName>
+        <vulnerabilityName>GHSA-cjmm-f4jc-qw8r</vulnerabilityName>
+        <vulnerabilityName>GHSA-cj63-jhhr-wcxv</vulnerabilityName>
+    </suppress>
 </suppressions>

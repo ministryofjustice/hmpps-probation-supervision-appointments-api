@@ -15,6 +15,8 @@ val microsoftGraphVersion = "6.67.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.46"
 val springdocVersion = "3.1.0"
+val swaggerUiVersion = "5.32.13"
+val httpclient5Version = "5.6.3"
 val sqsVersion = "7.4.0"
 val postgresqlVersion = "42.7.13"
 
@@ -24,15 +26,26 @@ idea {
   }
 }
 
+// Overrides Spring Boot's managed httpclient5 version (see spring-boot-dependencies BOM) to
+// pick up the fix for CVE-2026-64607 (classic transport fails to release the underlying
+// connection when it encounters an invalid/unsupported Content-Encoding header).
+extra["httpclient5.version"] = httpclient5Version
+
 configurations {
   testImplementation { exclude(group = "org.junit.vintage") }
 }
 
 dependencyCheck {
-  suppressionFiles.add("azure-dependency-check-suppress.xml")
+  suppressionFiles.add("owasp-suppressions.xml")
 }
 
 dependencies {
+  constraints {
+    implementation("org.webjars:swagger-ui:$swaggerUiVersion") {
+      because("CVE fix: DOMPurify 3.4.13 resolves GHSA-55q2-fjhq-7xh7 XSS vulnerability bundled in swagger-ui's swagger-ui-bundle.js")
+    }
+  }
+
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:$hmppsSpringBootStarterVersion")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-webclient")

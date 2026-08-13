@@ -88,6 +88,7 @@
         <vulnerabilityName>GHSA-76mc-f452-cxcm</vulnerabilityName>
         <vulnerabilityName>GHSA-cmwh-pvxp-8882</vulnerabilityName>
         <vulnerabilityName>GHSA-v2wj-7wpq-c8vv</vulnerabilityName>
+        <vulnerabilityName>GHSA-55q2-fjhq-7xh7</vulnerabilityName>
         <cve>CVE-2025-15599</cve>
         <cve>CVE-2026-66010</cve>
         <cve>CVE-2026-65901</cve>
@@ -97,5 +98,24 @@
         <cve>CVE-2026-65902</cve>
         <cve>CVE-2026-65898</cve>
         <cve>CVE-2026-0540</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+    DOMPurify (GHSA-55q2-fjhq-7xh7, "IN_PLACE hook removal leaves a detached subtree
+    executable, causing XSS") is bundled within org.webjars:swagger-ui:5.32.11.jar,
+    pinned as a transitive dependency of springdoc-openapi-starter-webmvc-ui:3.1.0.
+
+    Unlike the WireMock suppressions above, this Swagger UI is served in production by
+    this API. Forcing a newer org.webjars:swagger-ui version via a Gradle dependency
+    constraint was attempted but breaks springdoc's resource resolution for
+    /swagger-ui/index.html (springdoc 3.1.0 hardcodes swagger-ui 5.32.11 internally),
+    so an in-place version bump is not currently viable.
+
+    Suppressed as an accepted risk pending a springdoc-openapi upgrade that bundles a
+    patched swagger-ui/DOMPurify version. To be revisited when springdoc-openapi is
+    next upgraded.
+    ]]></notes>
+        <sha1>87f61a7e69ca597db9d1825e6c3d03035d74ee26</sha1>
+        <vulnerabilityName>GHSA-55q2-fjhq-7xh7</vulnerabilityName>
     </suppress>
 </suppressions>

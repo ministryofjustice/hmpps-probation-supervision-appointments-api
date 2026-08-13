@@ -15,7 +15,6 @@ val microsoftGraphVersion = "6.67.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.46"
 val springdocVersion = "3.1.0"
-val swaggerUiVersion = "5.32.13"
 val httpclient5Version = "5.6.3"
 val sqsVersion = "7.4.0"
 val postgresqlVersion = "42.7.13"
@@ -40,12 +39,6 @@ dependencyCheck {
 }
 
 dependencies {
-  constraints {
-    implementation("org.webjars:swagger-ui:$swaggerUiVersion") {
-      because("CVE fix: DOMPurify 3.4.13 resolves GHSA-55q2-fjhq-7xh7 XSS vulnerability bundled in swagger-ui's swagger-ui-bundle.js")
-    }
-  }
-
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:$hmppsSpringBootStarterVersion")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-webclient")

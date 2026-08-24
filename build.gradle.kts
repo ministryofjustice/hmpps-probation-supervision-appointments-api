@@ -15,7 +15,7 @@ val microsoftGraphVersion = "6.67.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.46"
 val springdocVersion = "3.1.0"
-val httpclient5Version = "5.6.3"
+val httpclient5Version = "5.6.4"
 val sqsVersion = "7.4.0"
 val postgresqlVersion = "42.7.13"
 

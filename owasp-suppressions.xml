@@ -115,6 +115,13 @@
     project's bundled Swagger UI assets (3.2.6 in wiremock-standalone, 3.4.12 in
     org.webjars:swagger-ui) rather than a wildcard match, so a future real DOMPurify
     dependency (a different version) would not be silently suppressed.
+
+    CVE-2026-75838 affects DOMPurify versions before 3.4.13 and is therefore
+    applicable to the bundled 3.4.12 copy. The finding is accepted for the
+    same reasons above: the affected copy is bundled in Swagger UI rather
+    than resolved as an independent Gradle dependency, and the WireMock copy
+    is test-only and not exposed in production. Remediation remains pending
+    an upstream artifact containing DOMPurify >= 3.4.13.
     ]]></notes>
         <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6|3\.4\.12)$</packageUrl>
         <vulnerabilityName>GHSA-h8r8-wccr-v5f2</vulnerabilityName>
@@ -142,5 +149,6 @@
         <cve>CVE-2026-65913</cve>
         <cve>CVE-2026-65914</cve>
         <cve>CVE-2026-0540</cve>
+        <cve>CVE-2026-75838</cve>
     </suppress>
 </suppressions>

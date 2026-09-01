@@ -9,15 +9,15 @@
     <suppress>
         <notes>
             <![CDATA[
-    file name: azure-identity-1.18.4.jar
+    file name: azure-identity-1.18.5.jar
     Suppressed as this is an Azure SDK dependency, not application insights.
 
     CVE-2023-36415 (fixed in azure-identity 1.10.0) and CVE-2024-35255 (fixed in
     azure-identity 1.12.2) are false positives here: the project resolves
-    com.azure:azure-identity:1.18.4, well above the vulnerable ranges for either CVE.
+    com.azure:azure-identity:1.18.5, well above the vulnerable ranges for either CVE.
     ]]>
         </notes>
-        <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.4$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.5$</packageUrl>
         <cve>CVE-2026-33117</cve>
         <cve>CVE-2023-36415</cve>
         <cve>CVE-2024-35255</cve>

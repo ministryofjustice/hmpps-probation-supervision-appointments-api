@@ -9,6 +9,8 @@
 build/
 volume/
 
+docs
+
 application-local.yml
 
 azure-queries/*json
@@ -71,6 +73,7 @@ dist
 # AWS DOcker build
 ecr.repo
 dps-gradle-spring-boot-suppressions.xml
+.snyk
 .editorconfig
 sonar-project.properties
 

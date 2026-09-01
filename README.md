@@ -18,6 +18,10 @@ Please raise any questions or queries there. Contributions welcome!
 
 Our security policy is located [here](https://github.com/ministryofjustice/hmpps-probation-supervision-appointments-api/security/policy).
 
+Run `./gradlew dependencyCheckAnalyze` to check for OWASP dependency-check CVE failures, and
+`./gradlew dependencyInsight --dependency <name> --configuration compileClasspath` to inspect
+resolved dependency versions when fixing them.
+
 Documentation to create new service is located [here](https://tech-docs.hmpps.service.justice.gov.uk/creating-new-services/).
 
 ## Creating a Cloud Platform namespace

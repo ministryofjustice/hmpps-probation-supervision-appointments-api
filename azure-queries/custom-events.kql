@@ -5,5 +5,6 @@ let startOfTodayUtc = datetime_local_to_utc(startOfTodayLocal, "Europe/London");
 customEvents
 | where timestamp >= startOfYesterdayUtc and timestamp < startOfTodayUtc
 | where cloud_RoleName == "hmpps-probation-supervision-appointments-api"
+| where name != "ServiceProfilerIndex"
 | summarize Count = count() by Event = name
 | order by Count desc

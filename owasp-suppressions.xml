@@ -14,7 +14,7 @@
 
     CVE-2023-36415 (fixed in azure-identity 1.10.0) and CVE-2024-35255 (fixed in
     azure-identity 1.12.2) are false positives here: the project resolves
-    com.azure:azure-identity:1.18.4, well above the vulnerable ranges for either CVE.
+    com.azure:azure-identity:1.18.5, well above the vulnerable ranges for either CVE.
     ]]>
         </notes>
         <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.5$</packageUrl>

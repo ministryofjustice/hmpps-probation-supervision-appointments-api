@@ -18,61 +18,74 @@
     ]]>
         </notes>
         <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.5$</packageUrl>
-        <cve>CVE-2026-33117</cve>
         <cve>CVE-2023-36415</cve>
         <cve>CVE-2024-35255</cve>
     </suppress>
+
     <suppress>
         <notes>
             <![CDATA[
-    CVE-2026-33117 is reported through Azure SDK transitive dependencies:
-    com.azure:azure-core-http-netty:1.16.5 and com.azure:azure-core:1.58.1.
+    CVE-2026-33117 is reported against an Azure SDK transitive dependency.
 
-    The application uses Azure Identity but does not include or use the
-    affected Azure Key Vault Keys library or the affected local cryptographic
-    verification path.
+    The CVE affects the Java Key Vault Keys library's local cryptographic
+    verification path. This application does not include
+    com.azure:azure-security-keyvault-keys and does not use the affected
+    local cryptographic verification path.
 
-    Suppressed after dependency analysis. Azure SDK versions will be reviewed
-    during scheduled dependency upgrades.
+    This SHA-1 identifies the exact azure-core-http-netty JAR resolved by this
+    application. The suppression is intentionally scoped to this artifact and
+    should be reviewed if the dependency version changes.
     ]]>
         </notes>
-        <sha1>a02009f2e8997e07c0e3488dc67b3b0146b88176</sha1>
+        <sha1>98f107e7a534ac6416bb44192bc6544b37b6533e</sha1>
         <cve>CVE-2026-33117</cve>
     </suppress>
+
     <suppress>
         <notes>
             <![CDATA[
-    CVE-2026-33117 is reported through Azure SDK transitive dependencies:
-    com.azure:azure-core:1.58.1.
+    CVE-2026-33117 is reported against an Azure SDK transitive dependency.
 
-    The application uses Azure Identity but does not include or use the
-    affected Azure Key Vault Keys library or the affected local cryptographic
-    verification path.
+    The CVE affects the Java Key Vault Keys library's local cryptographic
+    verification path. This application does not include
+    com.azure:azure-security-keyvault-keys and does not use the affected
+    local cryptographic verification path.
 
-    Suppressed after dependency analysis. Azure SDK versions will be reviewed
-    during scheduled dependency upgrades.
+    com.azure:azure-core:1.59.0 is resolved transitively through Azure Identity
+    and Microsoft Graph dependencies and is not the affected Key Vault Keys
+    library.
+
+    This SHA-1 identifies the exact azure-core JAR resolved by this application.
+    The suppression is intentionally scoped to this artifact and should be
+    reviewed if the dependency version changes.
     ]]>
         </notes>
-        <sha1>7fdb311f93e291abb4d694404959c1e3cf9e76bd</sha1>
+        <sha1>98f107e7a534ac6416bb44192bc6544b37b6533e</sha1>
         <cve>CVE-2026-33117</cve>
     </suppress>
+
     <suppress>
         <notes>
             <![CDATA[
-    CVE-2026-33117 is reported through Azure SDK transitive dependency:
-    com.azure:azure-json:1.5.1.
+    CVE-2026-33117 is reported against an Azure SDK transitive dependency.
 
-    The application uses Azure Identity but does not include or use the
-    affected Azure Key Vault Keys library or the affected local cryptographic
-    verification path.
+    The CVE affects the Java Key Vault Keys library's local cryptographic
+    verification path. This application does not include
+    com.azure:azure-security-keyvault-keys and does not use the affected
+    local cryptographic verification path.
 
-    Suppressed after dependency analysis. Azure SDK versions will be reviewed
-    during scheduled dependency upgrades.
+    com.azure:azure-json:1.5.1 is resolved transitively through Azure Identity
+    and Azure Core dependencies and is not the affected Key Vault Keys library.
+
+    This SHA-1 identifies the exact azure-json JAR resolved by this application.
+    The suppression is intentionally scoped to this artifact and should be
+    reviewed if the dependency version changes.
     ]]>
         </notes>
         <sha1>29c6d074e9c72d877e0a6bfd65e725b9e34c7a4c</sha1>
         <cve>CVE-2026-33117</cve>
     </suppress>
+
     <suppress>
         <notes>
             <![CDATA[
@@ -80,12 +93,13 @@
     CVE-2024-35255 (Azure Identity / MSAL elevation of privilege) affects
     com.microsoft.azure:msal4j versions >= 1.14.4-beta and < 1.15.1, fixed in 1.15.1.
     This project resolves com.microsoft.azure:msal4j:1.23.1 (pulled in transitively via
-    com.azure:azure-identity:1.18.4), well above the vulnerable range. False positive.
+    com.azure:azure-identity:1.18.5), well above the vulnerable range. False positive.
     ]]>
         </notes>
         <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@1\.23\.1$</packageUrl>
         <cve>CVE-2024-35255</cve>
     </suppress>
+
     <suppress>
         <notes><![CDATA[
     DOMPurify vulnerabilities detected via the RetireJS analyzer against the DOMPurify

@@ -60,7 +60,7 @@
     reviewed if the dependency version changes.
     ]]>
         </notes>
-        <sha1>98f107e7a534ac6416bb44192bc6544b37b6533e</sha1>
+        <sha1>7fdb311f93e291abb4d694404959c1e3cf9e76bd</sha1>
         <cve>CVE-2026-33117</cve>
     </suppress>
 

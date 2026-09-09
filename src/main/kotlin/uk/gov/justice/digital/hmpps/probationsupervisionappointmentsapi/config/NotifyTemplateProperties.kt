@@ -24,6 +24,6 @@ enum class SmsLanguage(val key: String) {
 }
 
 enum class TemplateVariant(val key: String) {
-  WITH_NAME_DATE("with-name-date"),
-  WITH_NAME_DATE_LOCATION("with-name-date-location"),
+  WITH_APPOINTMENT_TYPE("with-appointment-type"),
+  WITHOUT_APPOINTMENT_TYPE("without-appointment-type"),
 }

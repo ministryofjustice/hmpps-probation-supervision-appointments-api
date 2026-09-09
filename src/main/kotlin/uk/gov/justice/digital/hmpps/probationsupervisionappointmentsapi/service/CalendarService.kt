@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.PRACTITIONER_FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
@@ -136,6 +137,7 @@ class CalendarService(
 
     return mapOf(
       FIRST_NAME to eventRequest.smsEventRequest?.firstName.orEmpty(),
+      PRACTITIONER_FIRST_NAME to eventRequest.smsEventRequest?.practitionerFirstName.orEmpty(),
       APPOINTMENT_DATE to date,
       APPOINTMENT_TIME to eventRequest.start.toNotifyTime(),
       APPOINTMENT_LOCATION to eventRequest.smsEventRequest?.appointmentLocation.orEmpty(),
@@ -166,7 +168,7 @@ class CalendarService(
     )
 
     try {
-      val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest.appointmentLocation)
+      val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest?.appointmentTypeCode)
       val smsResponse = notificationClient.sendSms(
         template.id.toString(),
         eventRequest.smsEventRequest.mobileNumber,

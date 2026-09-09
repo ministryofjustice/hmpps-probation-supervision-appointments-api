@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.NotifyTemplateProperties
@@ -20,13 +21,13 @@ class SmsTemplateResolverService(
 
   fun getTemplate(
     smsLanguage: SmsLanguage,
-    appointmentLocation: String? = null,
+    appointmentTypeCode: String? = null,
   ): Template {
     val variant =
-      if (appointmentLocation.isNullOrBlank()) {
-        TemplateVariant.WITH_NAME_DATE
+      if (AppointmentType.fromCode(appointmentTypeCode) == null) {
+        TemplateVariant.WITHOUT_APPOINTMENT_TYPE
       } else {
-        TemplateVariant.WITH_NAME_DATE_LOCATION
+        TemplateVariant.WITH_APPOINTMENT_TYPE
       }
 
     val templateKey = "${smsLanguage.key}-${variant.key}"

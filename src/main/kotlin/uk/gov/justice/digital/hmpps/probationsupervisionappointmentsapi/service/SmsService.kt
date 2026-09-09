@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.PRACTITIONER_FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -37,7 +38,7 @@ class SmsService(
     request: SmsPreviewRequest,
     smsLanguage: SmsLanguage,
   ): String {
-    val template = smsTemplateResolverService.getTemplate(smsLanguage, request.appointmentLocation)
+    val template = smsTemplateResolverService.getTemplate(smsLanguage, request.appointmentTypeCode)
 
     // Base (English) values
     val englishDate = request.dateAndTimeOfAppointment.toNotifyDate()
@@ -54,6 +55,7 @@ class SmsService(
 
     val personalisation = mapOf(
       FIRST_NAME to request.firstName,
+      PRACTITIONER_FIRST_NAME to request.practitionerFirstName.orEmpty(),
       APPOINTMENT_DATE to date,
       APPOINTMENT_TIME to englishTime,
       APPOINTMENT_LOCATION to request.appointmentLocation.orEmpty(),

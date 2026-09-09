@@ -193,7 +193,7 @@ class CalendarServiceTest {
 
       val result = calendarService.sendEvent(
         mockEventRequest.copy(
-          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+          smsEventRequest = SmsEventRequest("name","mobile", "crn", true, false,practitionerFirstName = "Sam")
         ),
       )
 
@@ -206,6 +206,7 @@ class CalendarServiceTest {
         "mobile",
         mapOf(
           "FIRST_NAME" to "name",
+          "PRACTITIONER_FIRST_NAME" to "Sam",
           "APPOINTMENT_DATE" to "Saturday 1 January",
           "APPOINTMENT_TIME" to "10am",
           "APPOINTMENT_LOCATION" to "",
@@ -572,7 +573,7 @@ class CalendarServiceTest {
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       val eventRequest = mockEventRequest
-        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false,practitionerFirstName = "Sam"))
       val exception = RuntimeException("SMS failure")
       val templateId = UUID.randomUUID().toString()
       whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
@@ -594,6 +595,7 @@ class CalendarServiceTest {
 
       val templateValues = mapOf(
         "FIRST_NAME" to "name",
+        "PRACTITIONER_FIRST_NAME" to "Sam",
         "APPOINTMENT_DATE" to "Saturday 1 January",
         "APPOINTMENT_TIME" to "10am",
         "APPOINTMENT_LOCATION" to "",

@@ -209,7 +209,6 @@ class CalendarServiceTest {
           "PRACTITIONER_FIRST_NAME" to "Sam",
           "APPOINTMENT_DATE" to "Saturday 1 January",
           "APPOINTMENT_TIME" to "10am",
-          "APPOINTMENT_LOCATION" to "",
           "APPOINTMENT_TYPE" to "",
         ),
         "crn",
@@ -598,7 +597,6 @@ class CalendarServiceTest {
         "PRACTITIONER_FIRST_NAME" to "Sam",
         "APPOINTMENT_DATE" to "Saturday 1 January",
         "APPOINTMENT_TIME" to "10am",
-        "APPOINTMENT_LOCATION" to "",
         "APPOINTMENT_TYPE" to "",
 
       )

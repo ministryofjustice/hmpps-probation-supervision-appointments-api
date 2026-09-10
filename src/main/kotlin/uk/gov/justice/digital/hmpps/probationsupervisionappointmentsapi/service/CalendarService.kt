@@ -27,7 +27,6 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrat
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getSupervisionAppointmentUrn
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_LOCATION
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
@@ -140,7 +139,6 @@ class CalendarService(
       PRACTITIONER_FIRST_NAME to eventRequest.smsEventRequest?.practitionerFirstName.orEmpty(),
       APPOINTMENT_DATE to date,
       APPOINTMENT_TIME to eventRequest.start.toNotifyTime(),
-      APPOINTMENT_LOCATION to eventRequest.smsEventRequest?.appointmentLocation.orEmpty(),
       APPOINTMENT_TYPE to getAppointmentType(eventRequest),
     )
   }

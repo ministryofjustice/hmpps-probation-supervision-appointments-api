@@ -47,7 +47,6 @@ class SmsServiceTest {
       firstName = "John",
       practitionerFirstName = "Sam",
       dateAndTimeOfAppointment = fixedStartDateTime,
-      appointmentLocation = null,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
     )
@@ -80,7 +79,6 @@ class SmsServiceTest {
     val request = SmsPreviewRequest(
       firstName = "John",
       dateAndTimeOfAppointment = fixedStartDateTime,
-      appointmentLocation = null,
       appointmentTypeCode = null,
       includeWelshPreview = true,
     )

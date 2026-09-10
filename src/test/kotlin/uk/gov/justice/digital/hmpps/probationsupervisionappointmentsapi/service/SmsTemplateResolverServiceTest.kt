@@ -20,8 +20,8 @@ class SmsTemplateResolverServiceTest {
     templateIds = mapOf(
       "english-with-appointment-type" to "template-en-with-appointment-type",
       "english-without-appointment-type" to "template-en-without-appointment-type",
-      "welsh-with-name-date" to "template-cy-no-location",
-      "welsh-with-name-date-location" to "template-cy-with-location",
+      "welsh-with-appointment-type" to "template-cy-with-appointment-type",
+      "welsh-without-appointment-type" to "template-cy-without-appointment-type",
     ),
   )
   private val service = SmsTemplateResolverService(

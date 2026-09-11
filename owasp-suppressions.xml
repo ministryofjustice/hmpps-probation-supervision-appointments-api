@@ -9,7 +9,7 @@
     <suppress>
         <notes>
             <![CDATA[
-    file name: azure-identity-1.18.5.jar
+    file name: azure-identity-1.18.6.jar
     Suppressed as this is an Azure SDK dependency, not application insights.
 
     CVE-2023-36415 (fixed in azure-identity 1.10.0) and CVE-2024-35255 (fixed in

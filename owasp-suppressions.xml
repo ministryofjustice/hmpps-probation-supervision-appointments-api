@@ -14,10 +14,10 @@
 
     CVE-2023-36415 (fixed in azure-identity 1.10.0) and CVE-2024-35255 (fixed in
     azure-identity 1.12.2) are false positives here: the project resolves
-    com.azure:azure-identity:1.18.5, well above the vulnerable ranges for either CVE.
+    com.azure:azure-identity:1.18.6, well above the vulnerable ranges for either CVE.
     ]]>
         </notes>
-        <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.5$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@1\.18\.6$</packageUrl>
         <cve>CVE-2023-36415</cve>
         <cve>CVE-2024-35255</cve>
     </suppress>
@@ -93,7 +93,7 @@
     CVE-2024-35255 (Azure Identity / MSAL elevation of privilege) affects
     com.microsoft.azure:msal4j versions >= 1.14.4-beta and < 1.15.1, fixed in 1.15.1.
     This project resolves com.microsoft.azure:msal4j:1.23.1 (pulled in transitively via
-    com.azure:azure-identity:1.18.5), well above the vulnerable range. False positive.
+    com.azure:azure-identity:1.18.6), well above the vulnerable range. False positive.
     ]]>
         </notes>
         <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@1\.23\.1$</packageUrl>

@@ -60,7 +60,7 @@ class SmsServiceTest {
       Template(
         notifyTemplateJson(
           "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))." +
-          " Contact ((PRACTITIONER_FIRST_NAME))",
+            " Contact ((PRACTITIONER_FIRST_NAME))",
         ),
       ),
     )

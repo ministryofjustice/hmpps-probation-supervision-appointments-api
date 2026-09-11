@@ -63,91 +63,91 @@ class SmsTemplateResolverServiceTest {
     assertEquals(template, result)
   }
 
-@Test
-fun `should return Welsh template without appointment type`() {
-  val templateId = UUID.randomUUID()
-  val template =
-    Template(
-      """{ "id": "$templateId", "name": "test", "type": "sms", "created_at": "2020-01-01T00:00:00Z", "version": 1, "body": "CY" }""",
-    )
+  @Test
+  fun `should return Welsh template without appointment type`() {
+    val templateId = UUID.randomUUID()
+    val template =
+      Template(
+        """{ "id": "$templateId", "name": "test", "type": "sms", "created_at": "2020-01-01T00:00:00Z", "version": 1, "body": "CY" }""",
+      )
 
-  val properties =
-    NotifyTemplateProperties(
-      templateIds =
+    val properties =
+      NotifyTemplateProperties(
+        templateIds =
         mapOf(
           "welsh-without-appointment-type" to "template-cy-without-appointment-type",
         ),
-    )
+      )
 
-  val service =
-    SmsTemplateResolverService(
-      notifyTemplateProperties = properties,
-      notificationClient = notificationClient,
-    )
+    val service =
+      SmsTemplateResolverService(
+        notifyTemplateProperties = properties,
+        notificationClient = notificationClient,
+      )
 
-  whenever(notificationClient.getTemplateById("template-cy-without-appointment-type"))
-    .thenReturn(template)
+    whenever(notificationClient.getTemplateById("template-cy-without-appointment-type"))
+      .thenReturn(template)
 
-  val result =
-    service.getTemplate(
-      smsLanguage = SmsLanguage.WELSH,
-      appointmentTypeCode = null,
-    )
-
-  assertEquals(template, result)
-}
-
-@Test
-fun `should throw NotFoundException when English template without appointment type is missing`() {
-  val properties =
-    NotifyTemplateProperties(
-      templateIds = emptyMap(),
-    )
-
-  val serviceWithMissingConfig =
-    SmsTemplateResolverService(
-      notifyTemplateProperties = properties,
-      notificationClient = notificationClient,
-    )
-
-  val exception =
-    assertThrows(NotFoundException::class.java) {
-      serviceWithMissingConfig.getTemplate(
-        smsLanguage = SmsLanguage.ENGLISH,
+    val result =
+      service.getTemplate(
+        smsLanguage = SmsLanguage.WELSH,
         appointmentTypeCode = null,
       )
-    }
 
-  assertEquals(
-    "No Notify template configured for Language: ENGLISH Variant: WITHOUT_APPOINTMENT_TYPE templateKey: english-without-appointment-type",
-    exception.message,
-  )
-}
+    assertEquals(template, result)
+  }
 
-@Test
-fun `should throw NotFoundException when English template with appointment type is missing`() {
-  val properties =
-    NotifyTemplateProperties(
-      templateIds = emptyMap(),
-    )
-
-  val serviceWithMissingConfig =
-    SmsTemplateResolverService(
-      notifyTemplateProperties = properties,
-      notificationClient = notificationClient,
-    )
-
-  val exception =
-    assertThrows(NotFoundException::class.java) {
-      serviceWithMissingConfig.getTemplate(
-        smsLanguage = SmsLanguage.ENGLISH,
-        appointmentTypeCode = "COAP",
+  @Test
+  fun `should throw NotFoundException when English template without appointment type is missing`() {
+    val properties =
+      NotifyTemplateProperties(
+        templateIds = emptyMap(),
       )
-    }
 
-  assertEquals(
-    "No Notify template configured for Language: ENGLISH Variant: WITH_APPOINTMENT_TYPE templateKey: english-with-appointment-type",
-    exception.message,
-  )
-}
+    val serviceWithMissingConfig =
+      SmsTemplateResolverService(
+        notifyTemplateProperties = properties,
+        notificationClient = notificationClient,
+      )
+
+    val exception =
+      assertThrows(NotFoundException::class.java) {
+        serviceWithMissingConfig.getTemplate(
+          smsLanguage = SmsLanguage.ENGLISH,
+          appointmentTypeCode = null,
+        )
+      }
+
+    assertEquals(
+      "No Notify template configured for Language: ENGLISH Variant: WITHOUT_APPOINTMENT_TYPE templateKey: english-without-appointment-type",
+      exception.message,
+    )
+  }
+
+  @Test
+  fun `should throw NotFoundException when English template with appointment type is missing`() {
+    val properties =
+      NotifyTemplateProperties(
+        templateIds = emptyMap(),
+      )
+
+    val serviceWithMissingConfig =
+      SmsTemplateResolverService(
+        notifyTemplateProperties = properties,
+        notificationClient = notificationClient,
+      )
+
+    val exception =
+      assertThrows(NotFoundException::class.java) {
+        serviceWithMissingConfig.getTemplate(
+          smsLanguage = SmsLanguage.ENGLISH,
+          appointmentTypeCode = "COAP",
+        )
+      }
+
+    assertEquals(
+      "No Notify template configured for Language: ENGLISH Variant: WITH_APPOINTMENT_TYPE templateKey: english-with-appointment-type",
+      exception.message,
+    )
+  }
 }

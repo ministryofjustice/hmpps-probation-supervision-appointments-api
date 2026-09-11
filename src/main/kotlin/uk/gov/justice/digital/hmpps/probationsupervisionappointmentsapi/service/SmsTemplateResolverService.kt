@@ -1,11 +1,11 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.NotifyTemplateProperties
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.TemplateVariant
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template

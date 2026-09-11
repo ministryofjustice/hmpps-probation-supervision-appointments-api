@@ -25,7 +25,7 @@ class SaveEventIntegrationTest(@Autowired private val webListenerRegistry: WebLi
 
   @BeforeEach
   fun setup() {
-    templateId = "7a3c8a69-30fb-4361-8a3b-125be59aeddf"
+    templateId = "7a4c49af-70f2-4050-b856-7016193c9ec1"
     notificationId = UUID.randomUUID().toString()
 
     whenever(notificationTestClient.getTemplateById(templateId)).thenReturn(

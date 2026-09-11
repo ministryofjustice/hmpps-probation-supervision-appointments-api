@@ -3,7 +3,7 @@ plugins {
   kotlin("plugin.jpa") version "2.4.10"
   kotlin("plugin.spring") version "2.4.10"
   id("idea")
-  id("io.sentry.jvm.gradle") version "6.21.0"
+  id("io.sentry.jvm.gradle") version "6.22.0"
 }
 
 val hmppsSpringBootStarterVersion = "3.0.1"

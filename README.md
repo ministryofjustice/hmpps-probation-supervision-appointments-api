@@ -118,6 +118,28 @@ or [raise a PR](https://github.com/ministryofjustice/hmpps-tech-docs).
 
 ## Running the application locally
 
+### Run with local profile in IntelliJ
+
+Copy the local configuration from 1Password, key `supervision-api local config` to `application-local.yaml`.  This file is in .gitignore so it will not be committed to 
+the repository.  It is used to override the default `application.yaml` values for local development.
+Run the application from the `main()` method to create a Spring Boot run configuration, then open **Run → Edit Configurations** and configure:
+
+**Active profiles**
+
+```text
+local
+```
+
+See the [IntelliJ Spring Boot run configuration documentation](https://www.jetbrains.com/help/idea/run-debug-configuration-spring-boot.html) for more information.
+
+Alternatively, you can run the application from the command line using:
+
+```bash
+./gradlew bootRun --args='--spring.profiles.active=local'
+```
+
+User details for local testing can be found in DevSecurityConfig.
+
 The application comes with a `dev` spring profile that includes default settings for running locally. This is not
 necessary when deploying to kubernetes as these values are included in the helm configuration templates -
 e.g. `values-dev.yaml`.

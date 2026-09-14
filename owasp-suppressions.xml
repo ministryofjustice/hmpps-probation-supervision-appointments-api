@@ -69,7 +69,7 @@
     included in the production runtime.
 
     DOMPurify 3.4.12 is bundled with the production Swagger UI. Upgrading the
-    WebJar independently breaks springdoc 3.1.0 resource resolution, so this
+    WebJar independently breaks springdoc 3.1.1 resource resolution, so this
     is accepted pending an upstream springdoc upgrade with a patched version.
     ]]></notes>
         <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6|3\.4\.12)$</packageUrl>

@@ -120,8 +120,8 @@ or [raise a PR](https://github.com/ministryofjustice/hmpps-tech-docs).
 
 ### Run with local profile in IntelliJ
 
-Copy the local configuration from 1Password, key `supervision-api local config` to `application-local.yaml`.  This file is in .gitignore so it will not be committed to 
-the repository.  It is used to override the default `application.yaml` values for local development.
+Copy the local configuration from 1Password, key `supervision-api local config` to `application-local.yml`. This file is in .gitignore so it will not be committed to
+the repository. It is used to override the default `application.yml` values for local development.
 Run the application from the `main()` method to create a Spring Boot run configuration, then open **Run → Edit Configurations** and configure:
 
 **Active profiles**

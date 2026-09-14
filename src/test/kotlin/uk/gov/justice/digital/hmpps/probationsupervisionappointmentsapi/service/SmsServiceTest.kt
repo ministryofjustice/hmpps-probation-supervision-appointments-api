@@ -49,10 +49,11 @@ class SmsServiceTest {
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
+      useNewSmsAppointmentTemplate = true,
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(
+      smsTemplateResolverService.getNewAppointmentTemplate(
         SmsLanguage.ENGLISH,
         AppointmentType.PlannedOfficeVisitNS.code,
       ),
@@ -84,7 +85,7 @@ class SmsServiceTest {
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+      smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
     ).thenReturn(
       Template(
         notifyTemplateJson(
@@ -94,7 +95,7 @@ class SmsServiceTest {
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(SmsLanguage.WELSH, null),
+      smsTemplateResolverService.getLegacyTemplate(SmsLanguage.WELSH, null),
     ).thenReturn(
       Template(
         notifyTemplateJson(

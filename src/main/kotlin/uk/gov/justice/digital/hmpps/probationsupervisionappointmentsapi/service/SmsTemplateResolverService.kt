@@ -19,7 +19,7 @@ class SmsTemplateResolverService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun getTemplate(
+  fun getNewAppointmentTemplate(
     smsLanguage: SmsLanguage,
     appointmentTypeCode: String? = null,
   ): Template {
@@ -28,6 +28,29 @@ class SmsTemplateResolverService(
         TemplateVariant.WITHOUT_APPOINTMENT_TYPE
       } else {
         TemplateVariant.WITH_APPOINTMENT_TYPE
+      }
+
+    val templateKey = "${smsLanguage.key}-${variant.key}"
+
+    log.info("Getting template: $templateKey")
+
+    val templateId = notifyTemplateProperties.templateIds[templateKey] ?: throw NotFoundException(
+      "No Notify template configured for Language: $smsLanguage Variant: $variant templateKey: $templateKey",
+    )
+    log.info("Template Id fetched : $templateId")
+
+    return notificationClient.getTemplateById(templateId)
+  }
+
+  fun getLegacyTemplate(
+    smsLanguage: SmsLanguage,
+    appointmentLocation: String? = null,
+  ): Template {
+    val variant =
+      if (appointmentLocation.isNullOrBlank()) {
+        TemplateVariant.WITH_NAME_DATE
+      } else {
+        TemplateVariant.WITH_NAME_DATE_LOCATION
       }
 
     val templateKey = "${smsLanguage.key}-${variant.key}"

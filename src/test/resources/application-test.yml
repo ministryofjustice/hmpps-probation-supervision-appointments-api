@@ -45,6 +45,10 @@ govuk-notify:
     english-without-appointment-type: "7a4c49af-70f2-4050-b856-7016193c9ec1"
     welsh-with-appointment-type: "2207f3eb-b5d7-406a-b700-995e5040e2f7"
     welsh-without-appointment-type: "6f8975e1-58f3-4729-86ad-5140b1b72d29"
+    english-with-name-date: "7a3c8a69-30fb-4361-8a3b-125be59aeddf"
+    english-with-name-date-location: "4280ea18-1fc6-4356-80a7-d5f0ed8aac4a"
+    welsh-with-name-date: "887554f6-7765-4df3-a77d-aa833b22116e"
+    welsh-with-name-date-location: "b562b777-0931-4f9d-bd6f-ef99a23bdef9"
 
 springdoc:
   api-docs:

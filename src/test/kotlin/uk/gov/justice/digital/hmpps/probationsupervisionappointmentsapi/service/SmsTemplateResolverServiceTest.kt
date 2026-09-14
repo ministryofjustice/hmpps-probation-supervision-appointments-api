@@ -38,7 +38,7 @@ class SmsTemplateResolverServiceTest {
     whenever(notificationClient.getTemplateById("template-en-with-appointment-type"))
       .thenReturn(template)
 
-    val result = service.getTemplate(
+    val result = service.getNewAppointmentTemplate(
       smsLanguage = SmsLanguage.ENGLISH,
       appointmentTypeCode = "COAP",
     )
@@ -55,7 +55,7 @@ class SmsTemplateResolverServiceTest {
     whenever(notificationClient.getTemplateById("template-en-without-appointment-type"))
       .thenReturn(template)
 
-    val result = service.getTemplate(
+    val result = service.getNewAppointmentTemplate(
       smsLanguage = SmsLanguage.ENGLISH,
       appointmentTypeCode = "",
     )
@@ -89,7 +89,7 @@ class SmsTemplateResolverServiceTest {
       .thenReturn(template)
 
     val result =
-      service.getTemplate(
+      service.getNewAppointmentTemplate(
         smsLanguage = SmsLanguage.WELSH,
         appointmentTypeCode = null,
       )
@@ -112,7 +112,7 @@ class SmsTemplateResolverServiceTest {
 
     val exception =
       assertThrows(NotFoundException::class.java) {
-        serviceWithMissingConfig.getTemplate(
+        serviceWithMissingConfig.getNewAppointmentTemplate(
           smsLanguage = SmsLanguage.ENGLISH,
           appointmentTypeCode = null,
         )
@@ -139,7 +139,7 @@ class SmsTemplateResolverServiceTest {
 
     val exception =
       assertThrows(NotFoundException::class.java) {
-        serviceWithMissingConfig.getTemplate(
+        serviceWithMissingConfig.getNewAppointmentTemplate(
           smsLanguage = SmsLanguage.ENGLISH,
           appointmentTypeCode = "COAP",
         )

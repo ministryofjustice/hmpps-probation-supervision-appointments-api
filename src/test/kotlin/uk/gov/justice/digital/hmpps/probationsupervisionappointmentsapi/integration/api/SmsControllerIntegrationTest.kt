@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.api
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -56,7 +58,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `returns english preview only`() {
-    whenever(notificationClient.getTemplateById("7d54eb38-d6c6-481b-9116-8ab1a100c531"))
+    whenever(notificationClient.getTemplateById("7a3c8a69-30fb-4361-8a3b-125be59aeddf"))
       .thenReturn(
         Template(
           notifyTemplateJson("EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))"),
@@ -87,14 +89,14 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `returns english and welsh preview when requested`() {
-    whenever(notificationClient.getTemplateById("7a4c49af-70f2-4050-b856-7016193c9ec1"))
+    whenever(notificationClient.getTemplateById("7a3c8a69-30fb-4361-8a3b-125be59aeddf"))
       .thenReturn(
         Template(
           notifyTemplateJson("EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))"),
         ),
       )
 
-    whenever(notificationClient.getTemplateById("6f8975e1-58f3-4729-86ad-5140b1b72d29"))
+    whenever(notificationClient.getTemplateById("887554f6-7765-4df3-a77d-aa833b22116e"))
       .thenReturn(
         Template(
           notifyTemplateJson("CY ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))"),
@@ -120,6 +122,47 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         val body = response.responseBody!!
         assert(body.englishSmsPreview == "EN John Saturday 1 January 10am")
         assert(body.welshSmsPreview == "CY John Dydd Sadwrn 1 Ionawr 10am")
+      }
+  }
+
+  @Test
+  fun `returns English preview using new appointment template when requested`() {
+    whenever(notificationClient.getTemplateById("7d54eb38-d6c6-481b-9116-8ab1a100c531"))
+      .thenReturn(
+        Template(
+          notifyTemplateJson(
+            "EN ((FIRST_NAME)) ((PRACTITIONER_FIRST_NAME)) " +
+              "((APPOINTMENT_DATE)) ((APPOINTMENT_TIME)) ((APPOINTMENT_TYPE))",
+          ),
+        ),
+      )
+
+    val appointmentType = AppointmentType.PlannedOfficeVisitNS
+    val request = SmsPreviewRequest(
+      firstName = "John",
+      practitionerFirstName = "Sam",
+      dateAndTimeOfAppointment = fixedStartDateTime,
+      appointmentTypeCode = appointmentType.code,
+      includeWelshPreview = false,
+      useNewSmsAppointmentTemplate = true,
+    )
+
+    webTestClient.post()
+      .uri("/sms/preview")
+      .headers(setAuthorisation())
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(request)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(SmsPreviewResponse::class.java)
+      .consumeWith { response ->
+        val body = response.responseBody!!
+
+        assertEquals(
+          "EN John Sam Saturday 1 January 10am ${appointmentType.english}",
+          body.englishSmsPreview,
+        )
+        assertNull(body.welshSmsPreview)
       }
   }
 

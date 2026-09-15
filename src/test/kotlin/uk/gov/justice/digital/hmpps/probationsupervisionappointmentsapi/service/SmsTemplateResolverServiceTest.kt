@@ -18,10 +18,10 @@ class SmsTemplateResolverServiceTest {
 
   private val notifyTemplateProperties = NotifyTemplateProperties(
     templateIds = mapOf(
-      "english-with-name-date" to "template-en-no-location",
-      "english-with-name-date-location" to "template-en-with-location",
-      "welsh-with-name-date" to "template-cy-no-location",
-      "welsh-with-name-date-location" to "template-cy-with-location",
+      "english-with-appointment-type" to "template-en-with-appointment-type",
+      "english-without-appointment-type" to "template-en-without-appointment-type",
+      "welsh-with-appointment-type" to "template-cy-with-appointment-type",
+      "welsh-without-appointment-type" to "template-cy-without-appointment-type",
     ),
   )
   private val service = SmsTemplateResolverService(
@@ -30,76 +30,123 @@ class SmsTemplateResolverServiceTest {
   )
 
   @Test
-  fun `should return English template without location`() {
+  fun `should return English template with appointment type`() {
     val templateId = UUID.randomUUID()
     val template =
       Template("""{ "id": $templateId, "name": "test", "type": "sms", "created_at": "2020-01-01T00:00:00Z", "version": 1, "body": "EN" }""")
 
-    whenever(notificationClient.getTemplateById("template-en-no-location"))
+    whenever(notificationClient.getTemplateById("template-en-with-appointment-type"))
       .thenReturn(template)
 
-    val result = service.getTemplate(
+    val result = service.getNewAppointmentTemplate(
       smsLanguage = SmsLanguage.ENGLISH,
-      appointmentLocation = null,
+      appointmentTypeCode = "COAP",
     )
 
     assertEquals(template, result)
   }
 
   @Test
-  fun `should return English template with location`() {
+  fun `should return English template with no appointment type`() {
     val templateId = UUID.randomUUID()
     val template =
       Template("""{ "id": $templateId, "name": "test", "type": "sms", "created_at": "2020-01-01T00:00:00Z", "version": 1, "body": "EN LOCATION" }""")
 
-    whenever(notificationClient.getTemplateById("template-en-with-location"))
+    whenever(notificationClient.getTemplateById("template-en-without-appointment-type"))
       .thenReturn(template)
 
-    val result = service.getTemplate(
+    val result = service.getNewAppointmentTemplate(
       smsLanguage = SmsLanguage.ENGLISH,
-      appointmentLocation = "Leeds Office",
+      appointmentTypeCode = "",
     )
 
     assertEquals(template, result)
   }
 
   @Test
-  fun `should return Welsh template without location`() {
+  fun `should return Welsh template without appointment type`() {
     val templateId = UUID.randomUUID()
     val template =
-      Template("""{ "id": $templateId, "name": "test", "type": "sms", "created_at": "2020-01-01T00:00:00Z", "version": 1, "body": "CY" }""")
+      Template(
+        """{ "id": "$templateId", "name": "test", "type": "sms", "created_at": "2020-01-01T00:00:00Z", "version": 1, "body": "CY" }""",
+      )
 
-    whenever(notificationClient.getTemplateById("template-cy-no-location"))
+    val properties =
+      NotifyTemplateProperties(
+        templateIds =
+        mapOf(
+          "welsh-without-appointment-type" to "template-cy-without-appointment-type",
+        ),
+      )
+
+    val service =
+      SmsTemplateResolverService(
+        notifyTemplateProperties = properties,
+        notificationClient = notificationClient,
+      )
+
+    whenever(notificationClient.getTemplateById("template-cy-without-appointment-type"))
       .thenReturn(template)
 
-    val result = service.getTemplate(
-      smsLanguage = SmsLanguage.WELSH,
-      appointmentLocation = null,
-    )
+    val result =
+      service.getNewAppointmentTemplate(
+        smsLanguage = SmsLanguage.WELSH,
+        appointmentTypeCode = null,
+      )
 
     assertEquals(template, result)
   }
 
   @Test
-  fun `should throw NotFoundException when template is missing`() {
-    val properties = NotifyTemplateProperties(
-      templateIds = emptyMap(),
-    )
-
-    val serviceWithMissingConfig = SmsTemplateResolverService(
-      notifyTemplateProperties = properties,
-      notificationClient = notificationClient,
-    )
-
-    val exception = assertThrows(NotFoundException::class.java) {
-      serviceWithMissingConfig.getTemplate(
-        smsLanguage = SmsLanguage.ENGLISH,
-        appointmentLocation = null,
+  fun `should throw NotFoundException when English template without appointment type is missing`() {
+    val properties =
+      NotifyTemplateProperties(
+        templateIds = emptyMap(),
       )
-    }
+
+    val serviceWithMissingConfig =
+      SmsTemplateResolverService(
+        notifyTemplateProperties = properties,
+        notificationClient = notificationClient,
+      )
+
+    val exception =
+      assertThrows(NotFoundException::class.java) {
+        serviceWithMissingConfig.getNewAppointmentTemplate(
+          smsLanguage = SmsLanguage.ENGLISH,
+          appointmentTypeCode = null,
+        )
+      }
 
     assertEquals(
-      "No Notify template configured for Language: ENGLISH Variant: WITH_NAME_DATE templateKey: english-with-name-date",
+      "No Notify template configured for Language: ENGLISH Variant: WITHOUT_APPOINTMENT_TYPE templateKey: english-without-appointment-type",
+      exception.message,
+    )
+  }
+
+  @Test
+  fun `should throw NotFoundException when English template with appointment type is missing`() {
+    val properties =
+      NotifyTemplateProperties(
+        templateIds = emptyMap(),
+      )
+
+    val serviceWithMissingConfig =
+      SmsTemplateResolverService(
+        notifyTemplateProperties = properties,
+        notificationClient = notificationClient,
+      )
+
+    val exception =
+      assertThrows(NotFoundException::class.java) {
+        serviceWithMissingConfig.getNewAppointmentTemplate(
+          smsLanguage = SmsLanguage.ENGLISH,
+          appointmentTypeCode = "COAP",
+        )
+      }
+
+    assertEquals(
+      "No Notify template configured for Language: ENGLISH Variant: WITH_APPOINTMENT_TYPE templateKey: english-with-appointment-type",
       exception.message,
     )
   }

@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.api
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -66,7 +68,6 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
     val request = SmsPreviewRequest(
       firstName = "John",
       dateAndTimeOfAppointment = fixedStartDateTime,
-      appointmentLocation = null,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
     )
@@ -88,25 +89,24 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `returns english and welsh preview when requested`() {
-    whenever(notificationClient.getTemplateById("4280ea18-1fc6-4356-80a7-d5f0ed8aac4a"))
+    whenever(notificationClient.getTemplateById("7a3c8a69-30fb-4361-8a3b-125be59aeddf"))
       .thenReturn(
         Template(
-          notifyTemplateJson("EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME)) at ((APPOINTMENT_LOCATION))"),
+          notifyTemplateJson("EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))"),
         ),
       )
 
-    whenever(notificationClient.getTemplateById("b562b777-0931-4f9d-bd6f-ef99a23bdef9"))
+    whenever(notificationClient.getTemplateById("887554f6-7765-4df3-a77d-aa833b22116e"))
       .thenReturn(
         Template(
-          notifyTemplateJson("CY ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME)) yn ((APPOINTMENT_LOCATION))"),
+          notifyTemplateJson("CY ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))"),
         ),
       )
 
     val request = SmsPreviewRequest(
       firstName = "John",
       dateAndTimeOfAppointment = fixedStartDateTime,
-      appointmentLocation = "Leeds Office",
-      appointmentTypeCode = AppointmentType.HomeVisitToCaseNS.code,
+      appointmentTypeCode = null,
       includeWelshPreview = true,
     )
 
@@ -120,8 +120,49 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
       .expectBody(SmsPreviewResponse::class.java)
       .consumeWith { response ->
         val body = response.responseBody!!
-        assert(body.englishSmsPreview == "EN John Saturday 1 January 10am at Leeds Office")
-        assert(body.welshSmsPreview == "CY John Dydd Sadwrn 1 Ionawr 10am yn Leeds Office")
+        assert(body.englishSmsPreview == "EN John Saturday 1 January 10am")
+        assert(body.welshSmsPreview == "CY John Dydd Sadwrn 1 Ionawr 10am")
+      }
+  }
+
+  @Test
+  fun `returns English preview using new appointment template when requested`() {
+    whenever(notificationClient.getTemplateById("7d54eb38-d6c6-481b-9116-8ab1a100c531"))
+      .thenReturn(
+        Template(
+          notifyTemplateJson(
+            "EN ((FIRST_NAME)) ((PRACTITIONER_FIRST_NAME)) " +
+              "((APPOINTMENT_DATE)) ((APPOINTMENT_TIME)) ((APPOINTMENT_TYPE))",
+          ),
+        ),
+      )
+
+    val appointmentType = AppointmentType.PlannedOfficeVisitNS
+    val request = SmsPreviewRequest(
+      firstName = "John",
+      practitionerFirstName = "Sam",
+      dateAndTimeOfAppointment = fixedStartDateTime,
+      appointmentTypeCode = appointmentType.code,
+      includeWelshPreview = false,
+      useNewSmsAppointmentTemplate = true,
+    )
+
+    webTestClient.post()
+      .uri("/sms/preview")
+      .headers(setAuthorisation())
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(request)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(SmsPreviewResponse::class.java)
+      .consumeWith { response ->
+        val body = response.responseBody!!
+
+        assertEquals(
+          "EN John Sam Saturday 1 January 10am ${appointmentType.english}",
+          body.englishSmsPreview,
+        )
+        assertNull(body.welshSmsPreview)
       }
   }
 

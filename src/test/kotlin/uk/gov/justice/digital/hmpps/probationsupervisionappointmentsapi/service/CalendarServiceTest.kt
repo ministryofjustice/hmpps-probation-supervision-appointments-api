@@ -148,7 +148,7 @@ class CalendarServiceTest {
       whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
       val templateId = UUID.randomUUID().toString()
       val notificationId = UUID.randomUUID()
-      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+      whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
@@ -193,7 +193,7 @@ class CalendarServiceTest {
 
       val result = calendarService.sendEvent(
         mockEventRequest.copy(
-          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false),
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false, practitionerFirstName = "Sam"),
         ),
       )
 
@@ -236,6 +236,120 @@ class CalendarServiceTest {
     }
 
     @Test
+    fun `should send SMS using new appointment template when feature flag is enabled`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+
+      whenever(
+        featureFlags.isEnabledForUser(
+          "sms-notification-toggle",
+          mockEventRequest.recipients.first().emailAddress,
+        ),
+      ).thenReturn(true)
+
+      whenever(
+        featureFlags.isEnabledForUser(
+          "new-sms-appointment-template",
+          mockEventRequest.recipients.first().emailAddress,
+        ),
+      ).thenReturn(true)
+
+      val templateId = UUID.randomUUID().toString()
+      val notificationId = UUID.randomUUID()
+
+      whenever(
+        smsTemplateResolverService.getNewAppointmentTemplate(
+          SmsLanguage.ENGLISH,
+          null,
+        ),
+      ).thenReturn(
+        Template(
+          notifyTemplateJson(
+            templateId,
+            "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at " +
+              "((APPOINTMENT_TIME)). Contact ((PRACTITIONER_FIRST_NAME)).",
+          ),
+        ),
+      )
+
+      whenever(notificationClient.sendSms(anyString(), anyString(), any(), anyString()))
+        .thenReturn(
+          SendSmsResponse(
+            """
+              {
+                "id": "$notificationId",
+                "reference": "crn",
+                "content": {
+                  "body": "Reminder: Dear name. Appointment on Saturday 1 January at 10am. Contact Sam.",
+                  "from_number": "447700900000"
+                },
+                "uri": "https://api.notifications.service.gov.uk/v2/notifications/$notificationId",
+                "template": {
+                  "id": "$templateId",
+                  "version": 1,
+                  "uri": "https://api.notifications.service.gov.uk/v2/templates/$templateId"
+                }
+              }
+            """.trimIndent(),
+          ),
+        )
+
+      val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
+      val mockGraphEventResponse = Event().apply {
+        id = outlookId
+        subject = mockEventRequest.subject
+        start = DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
+        end = DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        attendees = listOf(
+          Attendee().apply {
+            emailAddress = EmailAddress().apply {
+              address = mockRecipient.emailAddress
+            }
+          },
+        )
+      }
+
+      whenever(eventsRequestBuilder.post(any(Event::class.java)))
+        .thenReturn(mockGraphEventResponse)
+
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      calendarService.sendEvent(
+        mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest(
+            "name",
+            "mobile",
+            "crn",
+            true,
+            false,
+            practitionerFirstName = "Sam",
+          ),
+        ),
+      )
+
+      verify(smsTemplateResolverService).getNewAppointmentTemplate(
+        SmsLanguage.ENGLISH,
+        null,
+      )
+
+      verify(notificationClient).sendSms(
+        templateId,
+        "mobile",
+        mapOf(
+          "FIRST_NAME" to "name",
+          "PRACTITIONER_FIRST_NAME" to "Sam",
+          "APPOINTMENT_DATE" to "Saturday 1 January",
+          "APPOINTMENT_TIME" to "10am",
+          "APPOINTMENT_TYPE" to "",
+        ),
+        "crn",
+      )
+    }
+
+    @Test
     fun `should not publish domain event when notification mapping save fails`() {
       whenever(graphClient.users()).thenReturn(usersRequestBuilder)
       whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
@@ -249,7 +363,7 @@ class CalendarServiceTest {
       val notificationId = UUID.randomUUID()
 
       whenever(
-        smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+        smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
       ).thenReturn(
         Template(
           notifyTemplateJson(
@@ -432,7 +546,7 @@ class CalendarServiceTest {
         .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
       val exception = NotificationClientException("SMS failure")
       val templateId = UUID.randomUUID().toString()
-      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+      whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
@@ -479,7 +593,7 @@ class CalendarServiceTest {
         .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
       val exception = IllegalArgumentException("SMS failure")
       val templateId = UUID.randomUUID().toString()
-      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+      whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
@@ -527,7 +641,7 @@ class CalendarServiceTest {
         .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
       val exception = OptimisticLockingFailureException("SMS failure")
       val templateId = UUID.randomUUID().toString()
-      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+      whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
@@ -572,10 +686,10 @@ class CalendarServiceTest {
       whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
       whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
       val eventRequest = mockEventRequest
-        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false))
+        .copy(smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false, practitionerFirstName = "Sam"))
       val exception = RuntimeException("SMS failure")
       val templateId = UUID.randomUUID().toString()
-      whenever(smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+      whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
         Template(
           notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
         ),
@@ -598,7 +712,6 @@ class CalendarServiceTest {
         "APPOINTMENT_TIME" to "10am",
         "APPOINTMENT_LOCATION" to "",
         "APPOINTMENT_TYPE" to "",
-
       )
       verify(notificationClient).sendSms(
         templateId,
@@ -641,7 +754,7 @@ class CalendarServiceTest {
         val exception = NotificationClientException("SMS failure")
 
         whenever(
-          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+          smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
         ).thenReturn(
           Template(
             notifyTemplateJson(UUID.randomUUID().toString(), "body"),
@@ -657,7 +770,12 @@ class CalendarServiceTest {
 
         val captor = argumentCaptor<Throwable>()
 
-        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+        val result = calendarService.sendSms(
+          eventRequest = eventRequest,
+          templateValues = emptyMap(),
+          smsLanguage = SmsLanguage.ENGLISH,
+          useNewSmsAppointmentTemplate = false,
+        )
 
         assertNull(result)
 
@@ -680,7 +798,7 @@ class CalendarServiceTest {
         val exception = IllegalArgumentException("Invalid input")
 
         whenever(
-          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+          smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
         ).thenReturn(
           Template(notifyTemplateJson(UUID.randomUUID().toString(), "body")),
         )
@@ -694,7 +812,12 @@ class CalendarServiceTest {
 
         val captor = argumentCaptor<Throwable>()
 
-        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+        val result = calendarService.sendSms(
+          eventRequest = eventRequest,
+          templateValues = emptyMap(),
+          smsLanguage = SmsLanguage.ENGLISH,
+          useNewSmsAppointmentTemplate = false,
+        )
 
         assertNull(result)
 
@@ -717,7 +840,7 @@ class CalendarServiceTest {
         val exception = DataAccessResourceFailureException("DB error")
 
         whenever(
-          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+          smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
         ).thenReturn(
           Template(notifyTemplateJson(UUID.randomUUID().toString(), "body")),
         )
@@ -733,7 +856,12 @@ class CalendarServiceTest {
 
         val captor = argumentCaptor<Throwable>()
 
-        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+        val result = calendarService.sendSms(
+          eventRequest = eventRequest,
+          templateValues = emptyMap(),
+          smsLanguage = SmsLanguage.ENGLISH,
+          useNewSmsAppointmentTemplate = false,
+        )
 
         assertNull(result)
 
@@ -756,7 +884,7 @@ class CalendarServiceTest {
         val exception = RuntimeException("Unexpected failure")
 
         whenever(
-          smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+          smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
         ).thenReturn(
           Template(notifyTemplateJson(UUID.randomUUID().toString(), "body")),
         )
@@ -770,7 +898,12 @@ class CalendarServiceTest {
 
         val captor = argumentCaptor<Throwable>()
 
-        val result = calendarService.sendSms(eventRequest, emptyMap(), SmsLanguage.ENGLISH)
+        val result = calendarService.sendSms(
+          eventRequest = eventRequest,
+          templateValues = emptyMap(),
+          smsLanguage = SmsLanguage.ENGLISH,
+          useNewSmsAppointmentTemplate = false,
+        )
 
         assertNull(result)
 

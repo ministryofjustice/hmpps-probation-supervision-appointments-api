@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.api
 
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -20,7 +19,6 @@ import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
 import java.util.UUID
-import kotlin.String
 import kotlin.test.assertEquals
 
 class SmsControllerIntegrationTest : IntegrationTestBase() {

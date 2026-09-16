@@ -105,11 +105,11 @@ class CalendarService(
 
   fun sendSMSNotification(eventRequest: EventRequest): SmsResponse? {
     val smsRequest = eventRequest.smsEventRequest ?: return null
+    if (!smsRequest.smsOptIn) return null
     val recipientEmail = eventRequest.recipients.first().emailAddress
 
     val isSmsNotificationEnabled =
-      smsRequest.smsOptIn &&
-        featureFlagsService.isEnabledForUser(
+      featureFlagsService.isEnabledForUser(
           "sms-notification-toggle",
           recipientEmail,
         )

@@ -25,6 +25,7 @@ data class SmsEventRequest(
   val includeWelshTranslation: Boolean = false,
   val appointmentLocation: String? = null,
   val appointmentTypeCode: String? = null,
+  val practitionerFirstName: String? = null,
 )
 data class RescheduleEventRequest(
   val rescheduledEventRequest: EventRequest,

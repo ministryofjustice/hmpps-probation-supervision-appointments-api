@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.PRACTITIONER_FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -27,45 +28,94 @@ class SmsService(
   private val smsTemplateResolverService: SmsTemplateResolverService,
   private val notificationMappingRepository: NotificationMappingRepository,
 ) {
-
   fun generatePreview(request: SmsPreviewRequest) = SmsPreviewResponse(
     englishSmsPreview = buildPreview(request, SmsLanguage.ENGLISH),
-    welshSmsPreview = if (request.includeWelshPreview) buildPreview(request, SmsLanguage.WELSH) else null,
+    welshSmsPreview =
+    if (request.includeWelshPreview) {
+      buildPreview(request, SmsLanguage.WELSH)
+    } else {
+      null
+    },
   )
-
   private fun buildPreview(
     request: SmsPreviewRequest,
     smsLanguage: SmsLanguage,
   ): String {
-    val template = smsTemplateResolverService.getTemplate(smsLanguage, request.appointmentLocation)
+    val template =
+      if (request.useNewSmsAppointmentTemplate) {
+        smsTemplateResolverService.getNewAppointmentTemplate(
+          smsLanguage,
+          request.appointmentTypeCode,
+        )
+      } else {
+        smsTemplateResolverService.getLegacyTemplate(
+          smsLanguage,
+          request.appointmentLocation,
+        )
+      }
 
-    // Base (English) values
     val englishDate = request.dateAndTimeOfAppointment.toNotifyDate()
-    val englishTime = request.dateAndTimeOfAppointment.toNotifyTime()
+    val date =
+      if (smsLanguage == SmsLanguage.WELSH) {
+        englishDate
+          .split(" ")
+          .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
+      } else {
+        englishDate
+      }
 
-    // Translate only if Welsh
-    val date = if (smsLanguage == SmsLanguage.WELSH) {
-      englishDate
-        .split(" ")
-        .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
-    } else {
-      englishDate
-    }
-
-    val personalisation = mapOf(
-      FIRST_NAME to request.firstName,
-      APPOINTMENT_DATE to date,
-      APPOINTMENT_TIME to englishTime,
-      APPOINTMENT_LOCATION to request.appointmentLocation.orEmpty(),
-      APPOINTMENT_TYPE to getAppointmentType(request.appointmentTypeCode, smsLanguage),
-    )
+    val personalisation =
+      if (request.useNewSmsAppointmentTemplate) {
+        mapOf(
+          FIRST_NAME to request.firstName,
+          PRACTITIONER_FIRST_NAME to request.practitionerFirstName.orEmpty(),
+          APPOINTMENT_DATE to date,
+          APPOINTMENT_TIME to request.dateAndTimeOfAppointment.toNotifyTime(),
+          APPOINTMENT_TYPE to getNewAppointmentType(
+            request.appointmentTypeCode,
+            smsLanguage,
+          ),
+        )
+      } else {
+        mapOf(
+          FIRST_NAME to request.firstName,
+          APPOINTMENT_DATE to date,
+          APPOINTMENT_TIME to request.dateAndTimeOfAppointment.toNotifyTime(),
+          APPOINTMENT_LOCATION to request.appointmentLocation.orEmpty(),
+          APPOINTMENT_TYPE to getLegacyAppointmentType(
+            request.appointmentTypeCode,
+            smsLanguage,
+          ),
+        )
+      }
 
     return substitute(template.body, personalisation)
   }
 
-  private fun getAppointmentType(appointmentTypeCode: String?, smsLanguage: SmsLanguage): String {
+  private fun getNewAppointmentType(
+    appointmentTypeCode: String?,
+    smsLanguage: SmsLanguage,
+  ): String {
     val type = AppointmentType.fromCode(appointmentTypeCode)
-    return (if (smsLanguage == SmsLanguage.WELSH) type?.welsh else type?.english).orEmpty()
+
+    return if (smsLanguage == SmsLanguage.WELSH) {
+      type?.welsh.orEmpty()
+    } else {
+      type?.english.orEmpty()
+    }
+  }
+
+  private fun getLegacyAppointmentType(
+    appointmentTypeCode: String?,
+    smsLanguage: SmsLanguage,
+  ): String {
+    val type = AppointmentType.fromCode(appointmentTypeCode)
+
+    return if (smsLanguage == SmsLanguage.WELSH) {
+      type?.legacyWelsh.orEmpty()
+    } else {
+      type?.legacyEnglish.orEmpty()
+    }
   }
 
   /**

@@ -31,15 +31,18 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TYPE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.FIRST_NAME
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.PRACTITIONER_FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
+import uk.gov.service.notify.Template
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
+private const val NEW_SMS_APPOINTMENT_TEMPLATE_FLAG = "new-sms-appointment-template"
 
 @Service
 class CalendarService(
@@ -101,30 +104,80 @@ class CalendarService(
   }
 
   fun sendSMSNotification(eventRequest: EventRequest): SmsResponse? {
-    if (eventRequest.smsEventRequest?.smsOptIn == true &&
+    val smsRequest = eventRequest.smsEventRequest ?: return null
+    if (!smsRequest.smsOptIn) return null
+    val recipientEmail = eventRequest.recipients.first().emailAddress
+
+    val isSmsNotificationEnabled =
       featureFlagsService.isEnabledForUser(
         "sms-notification-toggle",
-        eventRequest.recipients.first().emailAddress,
+        recipientEmail,
       )
-    ) {
-      val sendSmsEnglishResponse =
-        sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.ENGLISH), SmsLanguage.ENGLISH)
-      // WELSH sms
-      var sendSmsWelshResponse: SendSmsResponse? = null
-      if (eventRequest.smsEventRequest.includeWelshTranslation) {
-        sendSmsWelshResponse =
-          sendSms(eventRequest, buildTemplateValues(eventRequest, SmsLanguage.WELSH), SmsLanguage.WELSH)
+
+    if (!isSmsNotificationEnabled) return null
+
+    val useNewSmsAppointmentTemplate =
+      featureFlagsService.isEnabledForUser(
+        NEW_SMS_APPOINTMENT_TEMPLATE_FLAG,
+        recipientEmail,
+      )
+
+    val sendSmsEnglishResponse =
+      sendSms(
+        eventRequest = eventRequest,
+        templateValues =
+        if (useNewSmsAppointmentTemplate) {
+          buildNewTemplateValues(eventRequest, SmsLanguage.ENGLISH)
+        } else {
+          buildLegacyTemplateValues(eventRequest, SmsLanguage.ENGLISH)
+        },
+        smsLanguage = SmsLanguage.ENGLISH,
+        useNewSmsAppointmentTemplate = useNewSmsAppointmentTemplate,
+      )
+
+    val sendSmsWelshResponse =
+      if (smsRequest.includeWelshTranslation) {
+        sendSms(
+          eventRequest = eventRequest,
+          templateValues =
+          if (useNewSmsAppointmentTemplate) {
+            buildNewTemplateValues(eventRequest, SmsLanguage.WELSH)
+          } else {
+            buildLegacyTemplateValues(eventRequest, SmsLanguage.WELSH)
+          },
+          smsLanguage = SmsLanguage.WELSH,
+          useNewSmsAppointmentTemplate = useNewSmsAppointmentTemplate,
+        )
+      } else {
+        null
       }
-      return SmsResponse(
-        sendSmsEnglishResponse?.notificationId,
-        sendSmsWelshResponse?.notificationId,
-      )
-    }
-    // when user has opted out
-    return null
+
+    return SmsResponse(
+      sendSmsEnglishResponse?.notificationId,
+      sendSmsWelshResponse?.notificationId,
+    )
   }
 
-  fun buildTemplateValues(eventRequest: EventRequest, smsLanguage: SmsLanguage): Map<String, String> {
+  fun buildNewTemplateValues(eventRequest: EventRequest, smsLanguage: SmsLanguage): Map<String, String> {
+    val englishDate = eventRequest.start.toNotifyDate()
+    val date = if (smsLanguage == SmsLanguage.WELSH) {
+      englishDate
+        .split(" ")
+        .joinToString(" ") { EnglishToWelshTranslator.toWelsh(it) }
+    } else {
+      englishDate
+    }
+
+    return mapOf(
+      FIRST_NAME to eventRequest.smsEventRequest?.firstName.orEmpty(),
+      PRACTITIONER_FIRST_NAME to eventRequest.smsEventRequest?.practitionerFirstName.orEmpty(),
+      APPOINTMENT_DATE to date,
+      APPOINTMENT_TIME to eventRequest.start.toNotifyTime(),
+      APPOINTMENT_TYPE to getAppointmentType(eventRequest, smsLanguage),
+    )
+  }
+
+  fun buildLegacyTemplateValues(eventRequest: EventRequest, smsLanguage: SmsLanguage): Map<String, String> {
     val englishDate = eventRequest.start.toNotifyDate()
     val date = if (smsLanguage == SmsLanguage.WELSH) {
       englishDate
@@ -139,25 +192,41 @@ class CalendarService(
       APPOINTMENT_DATE to date,
       APPOINTMENT_TIME to eventRequest.start.toNotifyTime(),
       APPOINTMENT_LOCATION to eventRequest.smsEventRequest?.appointmentLocation.orEmpty(),
-      APPOINTMENT_TYPE to getAppointmentType(eventRequest),
+      APPOINTMENT_TYPE to getLegacyAppointmentType(eventRequest, smsLanguage),
     )
   }
 
-  private fun getAppointmentType(eventRequest: EventRequest): String {
+  private fun getAppointmentType(
+    eventRequest: EventRequest,
+    smsLanguage: SmsLanguage,
+  ): String {
     val type = AppointmentType.fromCode(eventRequest.smsEventRequest?.appointmentTypeCode)
-    return (
-      if (eventRequest.smsEventRequest?.includeWelshTranslation == true) {
-        type?.welsh
-      } else {
-        type?.english
-      }
-      ).orEmpty()
+
+    return if (smsLanguage == SmsLanguage.WELSH) {
+      type?.welsh.orEmpty()
+    } else {
+      type?.english.orEmpty()
+    }
+  }
+
+  private fun getLegacyAppointmentType(
+    eventRequest: EventRequest,
+    smsLanguage: SmsLanguage,
+  ): String {
+    val type = AppointmentType.fromCode(eventRequest.smsEventRequest?.appointmentTypeCode)
+
+    return if (smsLanguage == SmsLanguage.WELSH) {
+      type?.legacyWelsh.orEmpty()
+    } else {
+      type?.legacyEnglish.orEmpty()
+    }
   }
 
   fun sendSms(
     eventRequest: EventRequest,
     templateValues: Map<String, String> = emptyMap(),
     smsLanguage: SmsLanguage,
+    useNewSmsAppointmentTemplate: Boolean,
   ): SendSmsResponse? {
     val telemetryProperties = mapOf(
       "crn" to eventRequest.smsEventRequest!!.crn,
@@ -166,7 +235,18 @@ class CalendarService(
     )
 
     try {
-      val template = templateResolverService.getTemplate(smsLanguage, eventRequest.smsEventRequest.appointmentLocation)
+      val template: Template =
+        if (useNewSmsAppointmentTemplate) {
+          templateResolverService.getNewAppointmentTemplate(
+            smsLanguage,
+            eventRequest.smsEventRequest?.appointmentTypeCode,
+          )
+        } else {
+          templateResolverService.getLegacyTemplate(
+            smsLanguage,
+            eventRequest.smsEventRequest?.appointmentLocation,
+          )
+        }
       val smsResponse = notificationClient.sendSms(
         template.id.toString(),
         eventRequest.smsEventRequest.mobileNumber,

@@ -45,18 +45,23 @@ class SmsServiceTest {
   fun `should return english preview only`() {
     val request = SmsPreviewRequest(
       firstName = "John",
+      practitionerFirstName = "Sam",
       dateAndTimeOfAppointment = fixedStartDateTime,
-      appointmentLocation = null,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
+      useNewSmsAppointmentTemplate = true,
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, null),
+      smsTemplateResolverService.getNewAppointmentTemplate(
+        SmsLanguage.ENGLISH,
+        AppointmentType.PlannedOfficeVisitNS.code,
+      ),
     ).thenReturn(
       Template(
         notifyTemplateJson(
-          "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME)).",
+          "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))." +
+            " Contact ((PRACTITIONER_FIRST_NAME))",
         ),
       ),
     )
@@ -64,38 +69,37 @@ class SmsServiceTest {
     val response = service.generatePreview(request)
 
     assertEquals(
-      "Reminder: Dear John. Appointment on Saturday 1 January at 10am.",
+      "Reminder: Dear John. Appointment on Saturday 1 January at 10am. Contact Sam",
       response.englishSmsPreview,
     )
     assertNull(response.welshSmsPreview)
   }
 
   @Test
-  fun `should return english and welsh preview with location`() {
+  fun `should return english and welsh preview with no appointment type`() {
     val request = SmsPreviewRequest(
       firstName = "John",
       dateAndTimeOfAppointment = fixedStartDateTime,
-      appointmentLocation = "Leeds Office",
-      appointmentTypeCode = AppointmentType.HomeVisitToCaseNS.code,
+      appointmentTypeCode = null,
       includeWelshPreview = true,
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(SmsLanguage.ENGLISH, "Leeds Office"),
+      smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
     ).thenReturn(
       Template(
         notifyTemplateJson(
-          "EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME)) at ((APPOINTMENT_LOCATION))",
+          "EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))",
         ),
       ),
     )
 
     whenever(
-      smsTemplateResolverService.getTemplate(SmsLanguage.WELSH, "Leeds Office"),
+      smsTemplateResolverService.getLegacyTemplate(SmsLanguage.WELSH, null),
     ).thenReturn(
       Template(
         notifyTemplateJson(
-          "CY ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME)) yn ((APPOINTMENT_LOCATION))",
+          "CY ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))",
         ),
       ),
     )
@@ -103,12 +107,12 @@ class SmsServiceTest {
     val response = service.generatePreview(request)
 
     assertEquals(
-      "EN John Saturday 1 January 10am at Leeds Office",
+      "EN John Saturday 1 January 10am",
       response.englishSmsPreview,
     )
 
     assertEquals(
-      "CY John Dydd Sadwrn 1 Ionawr 10am yn Leeds Office",
+      "CY John Dydd Sadwrn 1 Ionawr 10am",
       response.welshSmsPreview,
     )
   }

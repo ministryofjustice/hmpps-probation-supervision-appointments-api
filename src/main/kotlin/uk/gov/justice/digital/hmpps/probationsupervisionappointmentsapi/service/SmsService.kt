@@ -22,27 +22,46 @@ import java.util.Locale
 import java.util.UUID
 
 private val UK_ZONE_ID = ZoneId.of("Europe/London")
+private const val NEW_SMS_APPOINTMENT_TEMPLATE_FLAG = "new-sms-appointment-template"
 
 @Service
 class SmsService(
   private val smsTemplateResolverService: SmsTemplateResolverService,
   private val notificationMappingRepository: NotificationMappingRepository,
+  private val featureFlagsService: FeatureFlagsService,
 ) {
-  fun generatePreview(request: SmsPreviewRequest) = SmsPreviewResponse(
-    englishSmsPreview = buildPreview(request, SmsLanguage.ENGLISH),
-    welshSmsPreview =
-    if (request.includeWelshPreview) {
-      buildPreview(request, SmsLanguage.WELSH)
-    } else {
-      null
-    },
-  )
+  fun generatePreview(request: SmsPreviewRequest): SmsPreviewResponse {
+    val useNewSmsAppointmentTemplate =
+      featureFlagsService.isEnabledForUser(
+        NEW_SMS_APPOINTMENT_TEMPLATE_FLAG,
+        request.recipientEmail,
+      )
+
+    return SmsPreviewResponse(
+      englishSmsPreview = buildPreview(
+        request,
+        SmsLanguage.ENGLISH,
+        useNewSmsAppointmentTemplate,
+      ),
+      welshSmsPreview =
+      if (request.includeWelshPreview) {
+        buildPreview(
+          request,
+          SmsLanguage.WELSH,
+          useNewSmsAppointmentTemplate,
+        )
+      } else {
+        null
+      },
+    )
+  }
   private fun buildPreview(
     request: SmsPreviewRequest,
     smsLanguage: SmsLanguage,
+    useNewSmsAppointmentTemplate: Boolean,
   ): String {
     val template =
-      if (request.useNewSmsAppointmentTemplate) {
+      if (useNewSmsAppointmentTemplate) {
         smsTemplateResolverService.getNewAppointmentTemplate(
           smsLanguage,
           request.appointmentTypeCode,
@@ -65,7 +84,7 @@ class SmsService(
       }
 
     val personalisation =
-      if (request.useNewSmsAppointmentTemplate) {
+      if (useNewSmsAppointmentTemplate) {
         mapOf(
           FIRST_NAME to request.firstName,
           PRACTITIONER_FIRST_NAME to request.practitionerFirstName.orEmpty(),

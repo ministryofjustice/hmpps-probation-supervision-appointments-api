@@ -65,6 +65,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
@@ -103,6 +104,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = null,
       includeWelshPreview = true,
@@ -139,10 +141,10 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
     val request = SmsPreviewRequest(
       firstName = "John",
       practitionerFirstName = "Sam",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = appointmentType.code,
       includeWelshPreview = false,
-      useNewSmsAppointmentTemplate = true,
     )
 
     webTestClient.post()

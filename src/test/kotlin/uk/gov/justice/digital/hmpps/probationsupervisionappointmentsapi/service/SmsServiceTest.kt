@@ -28,6 +28,10 @@ class SmsServiceTest {
 
   @Mock
   private lateinit var notificationMappingRepository: NotificationMappingRepository
+
+  @Mock
+  private lateinit var featureFlagsService: FeatureFlagsService
+
   private lateinit var service: SmsService
 
   private val fixedStartDateTime: ZonedDateTime =
@@ -38,18 +42,26 @@ class SmsServiceTest {
     service = SmsService(
       smsTemplateResolverService = smsTemplateResolverService,
       notificationMappingRepository = notificationMappingRepository,
+      featureFlagsService = featureFlagsService,
     )
   }
 
   @Test
   fun `should return english preview only`() {
+    whenever(
+      featureFlagsService.isEnabledForUser(
+        "new-sms-appointment-template",
+        "test@test.com",
+      ),
+    ).thenReturn(true)
+
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       practitionerFirstName = "Sam",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
-      useNewSmsAppointmentTemplate = true,
     )
 
     whenever(
@@ -79,6 +91,7 @@ class SmsServiceTest {
   fun `should return english and welsh preview with no appointment type`() {
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = null,
       includeWelshPreview = true,

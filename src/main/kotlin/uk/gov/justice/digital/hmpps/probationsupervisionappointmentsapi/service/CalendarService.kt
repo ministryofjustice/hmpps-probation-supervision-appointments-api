@@ -110,9 +110,9 @@ class CalendarService(
 
     val isSmsNotificationEnabled =
       featureFlagsService.isEnabledForUser(
-          "sms-notification-toggle",
-          recipientEmail,
-        )
+        "sms-notification-toggle",
+        recipientEmail,
+      )
 
     if (!isSmsNotificationEnabled) return null
 

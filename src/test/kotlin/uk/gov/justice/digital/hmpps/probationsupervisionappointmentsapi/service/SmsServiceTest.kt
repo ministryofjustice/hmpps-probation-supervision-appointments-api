@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
@@ -28,6 +29,10 @@ class SmsServiceTest {
 
   @Mock
   private lateinit var notificationMappingRepository: NotificationMappingRepository
+
+  @Mock
+  private lateinit var featureFlagsService: FeatureFlagsService
+
   private lateinit var service: SmsService
 
   private val fixedStartDateTime: ZonedDateTime =
@@ -38,18 +43,26 @@ class SmsServiceTest {
     service = SmsService(
       smsTemplateResolverService = smsTemplateResolverService,
       notificationMappingRepository = notificationMappingRepository,
+      featureFlagsService = featureFlagsService,
     )
   }
 
   @Test
   fun `should return english preview only`() {
+    whenever(
+      featureFlagsService.isEnabledForUser(
+        "new-sms-appointment-template",
+        "test@test.com",
+      ),
+    ).thenReturn(true)
+
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       practitionerFirstName = "Sam",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
-      useNewSmsAppointmentTemplate = true,
     )
 
     whenever(
@@ -79,6 +92,7 @@ class SmsServiceTest {
   fun `should return english and welsh preview with no appointment type`() {
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = null,
       includeWelshPreview = true,
@@ -115,6 +129,36 @@ class SmsServiceTest {
       "CY John Dydd Sadwrn 1 Ionawr 10am",
       response.welshSmsPreview,
     )
+  }
+
+  @Test
+  fun `should use legacy template when recipient email is missing`() {
+    val request = SmsPreviewRequest(
+      firstName = "John",
+      dateAndTimeOfAppointment = fixedStartDateTime,
+      appointmentTypeCode = null,
+      includeWelshPreview = false,
+    )
+
+    whenever(
+      smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
+    ).thenReturn(
+      Template(
+        notifyTemplateJson(
+          "EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))",
+        ),
+      ),
+    )
+
+    val response = service.generatePreview(request)
+
+    assertEquals(
+      "EN John Saturday 1 January 10am",
+      response.englishSmsPreview,
+    )
+    assertNull(response.welshSmsPreview)
+
+    verifyNoInteractions(featureFlagsService)
   }
 
   @Test

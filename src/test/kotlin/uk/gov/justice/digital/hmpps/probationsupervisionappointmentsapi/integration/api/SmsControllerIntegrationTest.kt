@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -15,6 +16,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
@@ -28,6 +30,9 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   @MockitoBean
   lateinit var notificationClient: NotificationClient
+
+  @MockitoBean
+  lateinit var featureFlagsService: FeatureFlagsService
 
   private fun notifyTemplateJson(body: String): String =
     """
@@ -65,6 +70,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = AppointmentType.PlannedOfficeVisitNS.code,
       includeWelshPreview = false,
@@ -103,6 +109,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
     val request = SmsPreviewRequest(
       firstName = "John",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = null,
       includeWelshPreview = true,
@@ -125,6 +132,12 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `returns English preview using new appointment template when requested`() {
+    whenever(
+      featureFlagsService.isEnabledForUser(
+        "new-sms-appointment-template",
+        "test@test.com",
+      ),
+    ).thenReturn(true)
     whenever(notificationClient.getTemplateById("7d54eb38-d6c6-481b-9116-8ab1a100c531"))
       .thenReturn(
         Template(
@@ -134,15 +147,14 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
           ),
         ),
       )
-
     val appointmentType = AppointmentType.PlannedOfficeVisitNS
     val request = SmsPreviewRequest(
       firstName = "John",
       practitionerFirstName = "Sam",
+      recipientEmail = "test@test.com",
       dateAndTimeOfAppointment = fixedStartDateTime,
       appointmentTypeCode = appointmentType.code,
       includeWelshPreview = false,
-      useNewSmsAppointmentTemplate = true,
     )
 
     webTestClient.post()
@@ -162,6 +174,10 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         )
         assertNull(body.welshSmsPreview)
       }
+    verify(featureFlagsService).isEnabledForUser(
+      "new-sms-appointment-template",
+      "test@test.com",
+    )
   }
 
   @Test

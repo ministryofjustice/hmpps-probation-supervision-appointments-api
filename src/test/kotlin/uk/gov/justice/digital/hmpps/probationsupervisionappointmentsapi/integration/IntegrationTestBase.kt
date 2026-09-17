@@ -94,7 +94,7 @@ abstract class IntegrationTestBase {
     msGraph.stubDeleteEvent(fromEmail, eventId)
   }
 
-  protected fun stubGetFeatureFlags() {
-    flipt.stubGetFeatureFlags()
+  protected fun stubGetFeatureFlags(newSmsAppointmentTemplateEnabled: Boolean = false) {
+    flipt.stubGetFeatureFlags(newSmsAppointmentTemplateEnabled)
   }
 }

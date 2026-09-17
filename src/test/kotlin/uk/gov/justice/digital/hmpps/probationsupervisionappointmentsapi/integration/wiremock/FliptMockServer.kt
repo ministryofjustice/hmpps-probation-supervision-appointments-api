@@ -46,7 +46,7 @@ class FliptMockServer :
     private const val WIREMOCK_PORT = 8092
   }
 
-  fun stubGetFeatureFlags() {
+  fun stubGetFeatureFlags(newSmsAppointmentTemplateEnabled: Boolean = false) {
     stubFor(
       get(
         urlPathMatching("/internal/v1/evaluation/snapshot/namespace/probation-supervision"),
@@ -70,7 +70,18 @@ class FliptMockServer :
                           "updatedAt": "2025-11-25T17:06:39.269084Z",
                           "rules": [],
                           "rollouts": []
-                        }
+                        },
+                        {
+                        "key": "new-sms-appointment-template",
+                        "name": "new-sms-appointment-template",
+                        "description": "",
+                        "enabled": $newSmsAppointmentTemplateEnabled,
+                        "type": "BOOLEAN_FLAG_TYPE",
+                        "createdAt": "2025-11-25T15:28:37.920581Z",
+                        "updatedAt": "2025-11-25T17:06:39.269084Z",
+                        "rules": [],
+                        "rollouts": []
+                      }
                       ]
                     }
               """.trimIndent(),

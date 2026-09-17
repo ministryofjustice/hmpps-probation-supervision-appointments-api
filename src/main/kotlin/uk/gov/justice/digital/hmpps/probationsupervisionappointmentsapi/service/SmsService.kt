@@ -32,10 +32,12 @@ class SmsService(
 ) {
   fun generatePreview(request: SmsPreviewRequest): SmsPreviewResponse {
     val useNewSmsAppointmentTemplate =
-      featureFlagsService.isEnabledForUser(
-        NEW_SMS_APPOINTMENT_TEMPLATE_FLAG,
-        request.recipientEmail,
-      )
+      request.recipientEmail?.let { recipientEmail ->
+        featureFlagsService.isEnabledForUser(
+          NEW_SMS_APPOINTMENT_TEMPLATE_FLAG,
+          recipientEmail,
+        )
+      } ?: false
 
     return SmsPreviewResponse(
       englishSmsPreview = buildPreview(

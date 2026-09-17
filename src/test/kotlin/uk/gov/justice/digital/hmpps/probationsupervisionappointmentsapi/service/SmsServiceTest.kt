@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
@@ -128,6 +129,36 @@ class SmsServiceTest {
       "CY John Dydd Sadwrn 1 Ionawr 10am",
       response.welshSmsPreview,
     )
+  }
+
+  @Test
+  fun `should use legacy template when recipient email is missing`() {
+    val request = SmsPreviewRequest(
+      firstName = "John",
+      dateAndTimeOfAppointment = fixedStartDateTime,
+      appointmentTypeCode = null,
+      includeWelshPreview = false,
+    )
+
+    whenever(
+      smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null),
+    ).thenReturn(
+      Template(
+        notifyTemplateJson(
+          "EN ((FIRST_NAME)) ((APPOINTMENT_DATE)) ((APPOINTMENT_TIME))",
+        ),
+      ),
+    )
+
+    val response = service.generatePreview(request)
+
+    assertEquals(
+      "EN John Saturday 1 January 10am",
+      response.englishSmsPreview,
+    )
+    assertNull(response.welshSmsPreview)
+
+    verifyNoInteractions(featureFlagsService)
   }
 
   @Test

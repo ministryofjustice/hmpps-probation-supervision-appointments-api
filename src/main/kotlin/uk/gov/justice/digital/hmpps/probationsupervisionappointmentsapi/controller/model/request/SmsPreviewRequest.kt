@@ -4,7 +4,7 @@ import java.time.ZonedDateTime
 
 data class SmsPreviewRequest(
   val firstName: String,
-  val recipientEmail: String,
+  val recipientEmail: String? = null,
   val dateAndTimeOfAppointment: ZonedDateTime,
   val appointmentLocation: String? = null,
   val appointmentTypeCode: String?,

@@ -62,6 +62,7 @@ dependencies {
   compileOnly("org.wiremock:wiremock-standalone:$wiremockVersion")
   developmentOnly("org.wiremock:wiremock-standalone:$wiremockVersion")
   developmentOnly("com.h2database:h2")
+  developmentOnly("org.springframework.boot:spring-boot-h2console")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:$hmppsSpringBootStarterVersion")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")

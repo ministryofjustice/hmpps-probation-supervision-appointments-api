@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import org.mockito.ArgumentMatchers.anyString
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -132,8 +132,12 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `returns English preview using new appointment template when requested`() {
-    whenever(featureFlagsService.isEnabledForUser(anyString(), anyString()))
-      .thenReturn(true)
+    whenever(
+      featureFlagsService.isEnabledForUser(
+        "new-sms-appointment-template",
+        "test@test.com",
+      ),
+    ).thenReturn(true)
     whenever(notificationClient.getTemplateById("7d54eb38-d6c6-481b-9116-8ab1a100c531"))
       .thenReturn(
         Template(
@@ -143,7 +147,6 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
           ),
         ),
       )
-    stubGetFeatureFlags(newSmsAppointmentTemplateEnabled = true)
     val appointmentType = AppointmentType.PlannedOfficeVisitNS
     val request = SmsPreviewRequest(
       firstName = "John",
@@ -171,6 +174,10 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         )
         assertNull(body.welshSmsPreview)
       }
+    verify(featureFlagsService).isEnabledForUser(
+      "new-sms-appointment-template",
+      "test@test.com",
+    )
   }
 
   @Test

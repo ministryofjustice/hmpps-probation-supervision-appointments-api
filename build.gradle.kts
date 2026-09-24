@@ -6,10 +6,10 @@ plugins {
   id("io.sentry.jvm.gradle") version "6.22.0"
 }
 
-val hmppsSpringBootStarterVersion = "3.0.1"
+val hmppsSpringBootStarterVersion = "3.0.2"
 val azureIdentityVersion = "1.18.6"
 val fliptVersion = "1.3.4"
-val sentryVersion = "8.57.0"
+val sentryVersion = "8.58.0"
 val notifyVersion = "6.2.1-RELEASE"
 val microsoftGraphVersion = "6.70.0"
 val wiremockVersion = "3.13.2"

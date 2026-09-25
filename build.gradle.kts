@@ -1,12 +1,12 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.9"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.10"
   kotlin("plugin.jpa") version "2.4.20"
   kotlin("plugin.spring") version "2.4.20"
   id("idea")
-  id("io.sentry.jvm.gradle") version "6.22.0"
+  id("io.sentry.jvm.gradle") version "6.23.0"
 }
 
-val hmppsSpringBootStarterVersion = "3.0.2"
+val hmppsSpringBootStarterVersion = "3.0.3"
 val azureIdentityVersion = "1.18.6"
 val fliptVersion = "1.3.4"
 val sentryVersion = "8.58.0"

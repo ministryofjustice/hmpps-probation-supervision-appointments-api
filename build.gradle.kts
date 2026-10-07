@@ -38,6 +38,9 @@ dependencyCheck {
   suppressionFiles.add("owasp-suppressions.xml")
 }
 
+// CVE-2026-76183 - the hmpps gradle plugin pins 11.0.25; remove once it pins 11.0.26 or later
+extra["tomcat.version"] = "11.0.26"
+
 dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:$hmppsSpringBootStarterVersion")
   implementation("org.springframework.boot:spring-boot-starter-webflux")

@@ -72,7 +72,7 @@
     WebJar independently breaks springdoc 3.1.1 resource resolution, so this
     is accepted pending an upstream springdoc upgrade with a patched version.
     ]]></notes>
-        <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6|3\.4\.12)$</packageUrl>
+        <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6|3\.4\.12\.13))$</packageUrl>
 
         <vulnerabilityName>GHSA-h8r8-wccr-v5f2</vulnerabilityName>
         <vulnerabilityName>GHSA-cjmm-f4jc-qw8r</vulnerabilityName>
@@ -87,6 +87,8 @@
         <vulnerabilityName>GHSA-cmwh-pvxp-8882</vulnerabilityName>
         <vulnerabilityName>GHSA-v2wj-7wpq-c8vv</vulnerabilityName>
         <vulnerabilityName>GHSA-55q2-fjhq-7xh7</vulnerabilityName>
+        <vulnerabilityName>GHSA-p98j-92pf-mc4p</vulnerabilityName>
+        <vulnerabilityName>GHSA-6688-9rhm-gjv2</vulnerabilityName>
 
         <cve>CVE-2025-15599</cve>
         <cve>CVE-2026-0540</cve>

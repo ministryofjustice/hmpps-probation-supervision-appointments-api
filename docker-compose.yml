@@ -75,7 +75,9 @@ services:
       - ./docker-wiremock/mappings:/home/wiremock/mappings
 
   local-stack-aws:
-    image: localstack/localstack:4
+    # community-archive, not `latest`/a versioned tag: current LocalStack images are the licensed
+    # Pro build and exit on startup without a LOCALSTACK_AUTH_TOKEN, which would break SQS/SNS here.
+    image: localstack/localstack:community-archive
     networks:
       - hmpps
     container_name: local-stack-aws

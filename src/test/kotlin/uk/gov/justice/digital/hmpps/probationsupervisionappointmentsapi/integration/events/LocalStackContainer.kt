@@ -1,9 +1,9 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.events
 
 import org.slf4j.LoggerFactory
-import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
 import java.net.URI
 import java.net.http.HttpClient
@@ -22,12 +22,14 @@ object LocalStackContainer {
     val logConsumer = Slf4jLogConsumer(log).withPrefix("localstack")
 
     return LocalStackContainer(
-      DockerImageName.parse("localstack/localstack").withTag("3"),
+      // community-archive, not a versioned/`latest` tag: current LocalStack images are the licensed
+      // Pro build and require a LOCALSTACK_AUTH_TOKEN to start, which would break SQS/SNS here.
+      DockerImageName.parse("localstack/localstack").withTag("community-archive"),
     ).apply {
-      withServices(LocalStackContainer.Service.SNS, LocalStackContainer.Service.SQS)
+      withServices("sns", "sqs")
       withEnv("HOSTNAME_EXTERNAL", "localhost")
       withEnv("DEFAULT_REGION", "eu-west-2")
-      setWaitStrategy(Wait.forListeningPort())
+      waitingFor(Wait.forLogMessage(".*Ready\\.\n", 1))
       start()
       followOutput(logConsumer)
     }

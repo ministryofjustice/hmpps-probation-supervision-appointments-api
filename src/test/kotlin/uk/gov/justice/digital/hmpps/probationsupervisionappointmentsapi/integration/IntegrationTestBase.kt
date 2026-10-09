@@ -44,19 +44,23 @@ abstract class IntegrationTestBase {
 
   companion object {
     private val lsContainer = LocalStackContainer.instance
+    private val postgresContainer = PostgresContainer.instance
 
     @JvmStatic
     @DynamicPropertySource
     fun properties(registry: DynamicPropertyRegistry) {
       lsContainer?.run {
-        registry.add("hmpps.sqs.localstackUrl") {
-          getEndpointOverride(org.testcontainers.containers.localstack.LocalStackContainer.Service.SQS).toString()
-        }
+        registry.add("hmpps.sqs.localstackUrl") { endpoint.toString() }
         registry.add("hmpps.sqs.region") { region }
       }
       registry.add("spring.cloud.aws.credentials.access-key") { "test" }
       registry.add("spring.cloud.aws.credentials.secret-key") { "test" }
       registry.add("spring.cloud.aws.region.static") { "eu-west-2" }
+
+      registry.add("spring.datasource.url") { postgresContainer.jdbcUrl }
+      registry.add("spring.datasource.username") { postgresContainer.username }
+      registry.add("spring.datasource.password") { postgresContainer.password }
+      registry.add("spring.datasource.driver-class-name") { postgresContainer.driverClassName }
     }
   }
 

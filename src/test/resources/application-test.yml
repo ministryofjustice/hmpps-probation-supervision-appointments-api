@@ -12,11 +12,6 @@ hmpps-auth:
   url: "http://localhost:8090/auth"
 
 spring:
-  datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
   jpa:
     hibernate:
       ddl-auto: validate
@@ -63,6 +58,11 @@ hmpps.sqs:
     domaineventsqueue:
       queueName: ${random.uuid}
       subscribeTopicId: hmppseventtopic
+    notifystatuscheck:
+      queueName: ${random.uuid}
+      dlqName: ${random.uuid}
+      subscribeTopicId: hmppseventtopic
+      subscribeFilter: '{"eventType":["probation.appointment.sms-status-check-requested"]}'
   topics:
     hmppseventtopic:
       arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}

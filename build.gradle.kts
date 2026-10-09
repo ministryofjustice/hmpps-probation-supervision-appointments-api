@@ -69,7 +69,6 @@ dependencies {
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:$hmppsSpringBootStarterVersion")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
-  testImplementation("com.h2database:h2")
   testImplementation("org.wiremock:wiremock-standalone:$wiremockVersion")
   testImplementation("io.swagger.parser.v3:swagger-parser:$swaggerParserVersion") {
     exclude(group = "io.swagger.core.v3")
@@ -77,9 +76,9 @@ dependencies {
 
   testImplementation("org.awaitility:awaitility-kotlin")
   testImplementation("org.testcontainers:testcontainers:2.0.5")
-  testImplementation("org.testcontainers:postgresql:1.21.4")
-  testImplementation("org.testcontainers:localstack:1.21.4")
-  testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+  testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
+  testImplementation("org.testcontainers:testcontainers-localstack:2.0.5")
+  testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
   testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 

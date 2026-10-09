@@ -47,6 +47,10 @@ generic-service:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
     hmpps-domain-events-topic:
       HMPPS_SQS_TOPICS_HMPPSEVENTTOPIC_ARN: "topic_arn"
+    supervision-appointments-sms-status-check-queue:
+      HMPPS_SQS_QUEUES_NOTIFYSTATUSCHECK_QUEUE_NAME: "QUEUE_NAME"
+    supervision-appointments-sms-status-check-dlq:
+      HMPPS_SQS_QUEUES_NOTIFYSTATUSCHECK_DLQ_NAME: "QUEUE_NAME"
   allowlist:
     groups:
       - internal

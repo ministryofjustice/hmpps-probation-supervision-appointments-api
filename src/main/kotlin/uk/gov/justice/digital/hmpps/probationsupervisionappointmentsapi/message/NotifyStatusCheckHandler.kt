@@ -55,7 +55,7 @@ class NotifyStatusCheckHandler(
         )
         return
       }
-      
+
       throw e
     }
 

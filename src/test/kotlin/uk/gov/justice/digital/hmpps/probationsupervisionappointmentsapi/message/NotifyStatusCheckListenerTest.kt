@@ -88,7 +88,8 @@ class NotifyStatusCheckListenerTest {
   @Test
   fun `handler throws and this is not the final attempt - no exception telemetry or Sentry, still rethrows`() {
     mockStatic(Sentry::class.java).use { sentryMock ->
-      whenever(hmppsQueueService.findByQueueId("notifystatuscheck")).thenReturn(queueWithMaxReceiveCount(3))
+      val queue = queueWithMaxReceiveCount(3)
+      whenever(hmppsQueueService.findByQueueId("notifystatuscheck")).thenReturn(queue)
       val exception = RuntimeException("transient")
       doThrow(exception).whenever(handler).handle(any())
 
@@ -102,7 +103,8 @@ class NotifyStatusCheckListenerTest {
   @Test
   fun `handler throws on the final attempt - tracks exception telemetry and Sentry, still rethrows`() {
     mockStatic(Sentry::class.java).use { sentryMock ->
-      whenever(hmppsQueueService.findByQueueId("notifystatuscheck")).thenReturn(queueWithMaxReceiveCount(3))
+      val queue = queueWithMaxReceiveCount(3)
+      whenever(hmppsQueueService.findByQueueId("notifystatuscheck")).thenReturn(queue)
       val exception = RuntimeException("final attempt")
       doThrow(exception).whenever(handler).handle(any())
 
@@ -117,7 +119,8 @@ class NotifyStatusCheckListenerTest {
   @Test
   fun `maxReceiveCount lookup returns null - falls back to a hardcoded 3 rather than always alerting`() {
     mockStatic(Sentry::class.java).use { sentryMock ->
-      whenever(hmppsQueueService.findByQueueId("notifystatuscheck")).thenReturn(queueWithMaxReceiveCount(null))
+      val queue = queueWithMaxReceiveCount(null)
+      whenever(hmppsQueueService.findByQueueId("notifystatuscheck")).thenReturn(queue)
       val exception = RuntimeException("not final attempt, by the hardcoded fallback")
       doThrow(exception).whenever(handler).handle(any())
 

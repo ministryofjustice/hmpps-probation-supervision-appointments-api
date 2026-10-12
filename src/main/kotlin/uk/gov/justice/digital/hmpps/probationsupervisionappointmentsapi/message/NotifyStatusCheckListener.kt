@@ -11,10 +11,9 @@ import uk.gov.justice.hmpps.sqs.HmppsQueueService
 
 private const val QUEUE_ID = "notifystatuscheck"
 
-// Mirrors this queue's actual maxReceiveCount, as configured in the cloud-platform-environments
-// terraform (supervision-appointments-sms-status-check-queue.tf). The AWS lookup below normally
-// fetches this same value live; this is only used if that one-off lookup is ever unavailable, so
-// we fail open rather than alerting on every retry instead of just the final one.
+// Mirrors queue's actual maxReceiveCount, as configured in the cloud-platform-environments
+// terraform (supervision-appointments-sms-status-check-queue.tf).  Used if one-off lookup is ever unavailable, so
+// alerting still triggers on dlq trigger.
 private const val FALLBACK_MAX_RECEIVE_COUNT = 3
 
 @Service

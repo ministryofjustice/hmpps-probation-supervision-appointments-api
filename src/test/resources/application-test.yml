@@ -61,6 +61,7 @@ hmpps.sqs:
     notifystatuscheck:
       queueName: ${random.uuid}
       dlqName: ${random.uuid}
+      dlqMaxReceiveCount: 1
       subscribeTopicId: hmppseventtopic
       subscribeFilter: '{"eventType":["probation.appointment.sms-status-check-requested"]}'
   topics:

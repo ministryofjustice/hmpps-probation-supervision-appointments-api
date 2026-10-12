@@ -25,7 +25,8 @@ class NotifyStatusCheckHandler(
 
     val mapping = notificationMappingRepository.findByNotificationId(notificationId)
     if (mapping == null) {
-      // do not treat as a failure requiring redelivery.
+      // Do not treat as a failure requiring redelivery.
+      // Incorrect message in queue
       telemetryService.trackEvent(
         "NotifyStatusCheckOrphanMessage",
         mapOf("notificationId" to notificationId.toString()),
@@ -34,8 +35,7 @@ class NotifyStatusCheckHandler(
     }
 
     if (mapping.status != null && mapping.status !in PENDING_NOTIFY_STATUSES) {
-      // Already resolved to a terminal status by an earlier (possibly redelivered/duplicate)
-      // message — no-op.
+      // Message has already been processed
       return
     }
 
@@ -43,7 +43,7 @@ class NotifyStatusCheckHandler(
       notificationClient.getNotificationById(notificationId.toString())
     } catch (e: NotificationClientException) {
       if (e.httpResult == 404) {
-        // Notify retains notifications for max 90 days — Notify will 404, record as not found in DB.
+        // Notify retains notifications for max 90 days — Notify will return a 404, record not found.
         notificationMappingRepository.updateStatus(
           notificationId = notificationId,
           status = NOT_FOUND_STATUS,
@@ -55,7 +55,7 @@ class NotifyStatusCheckHandler(
         )
         return
       }
-
+      
       throw e
     }
 

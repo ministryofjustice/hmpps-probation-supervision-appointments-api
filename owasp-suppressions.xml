@@ -10,7 +10,7 @@
     <suppress>
         <notes><![CDATA[
     azure-identity 1.18.7 is outside the affected version ranges for
-    CVE-2023-36415, CVE-2026-33117 and CVE-2024-35255.
+    CVE-2023-36415 and CVE-2024-35255.
 
     CVE-2026-33117 affects Azure Key Vault Keys local cryptographic verification.
     This application does not include azure-security-keyvault-keys or use the
@@ -68,7 +68,7 @@
     DOMPurify 3.2.6 is bundled with WireMock, which is test-only and is not
     included in the production runtime.
 
-    DOMPurify 3.4.12 is bundled with the production Swagger UI. Upgrading the
+    DOMPurify 3.4.13 is bundled with the production Swagger UI. Upgrading the
     WebJar independently breaks springdoc 3.1.1 resource resolution, so this
     is accepted pending an upstream springdoc upgrade with a patched version.
     ]]></notes>

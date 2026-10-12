@@ -1,0 +1,63 @@
+wiremock:
+  port: 9090
+
+hmpps-auth:
+  url: "http://localhost:${wiremock.port}/auth"
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/probation-supervision
+    username: postgres
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+hmpps.sqs:
+  provider: localstack
+  queues:
+    notifystatuscheck:
+      queueName: supervision-appointments-sms-status-check-queue
+      dlqName: supervision-appointments-sms-status-check-dlq
+      subscribeTopicId: hmppseventtopic
+      subscribeFilter: '{"eventType":["probation.appointment.sms-status-check-requested"]}'
+  topics:
+    hmppseventtopic:
+      arn: arn:aws:sns:eu-west-2:000000000000:hmpps-domain-events-topic
+
+logging:
+  level:
+    org:
+      flywaydb: DEBUG
+      springframework.boot.autoconfigure.flyway: DEBUG
+#      springframework.security: DEBUG
+#      springframework.security.web.access.intercept: DEBUG
+#      springframework.security.web.FilterChainProxy: DEBUG
+
+govuk-notify:
+  api-key: "api-key"
+  templateids:
+    english-with-name-date: "english-with-name-date"
+    english-with-name-date-location: "english-with-name-date-location"
+    welsh-with-name-date: "welsh-with-name-date"
+    welsh-with-name-date-location: "welsh-with-name-date-location"
+
+graph-client:
+  client-id: id
+  client-secret: secret
+  tenant-id: id
+
+flipt:
+  url: "http://localhost:${wiremock.port}"
+  token:  "test-token"
+
+services:
+  supervision-api:
+    base-url: http://localhost:3333
+
+calendar-from-email: "test@example.com"
+
+outlook-environment: local

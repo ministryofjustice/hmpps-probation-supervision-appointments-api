@@ -14,7 +14,7 @@ import org.springframework.security.web.SecurityFilterChain
 
 @Configuration
 @EnableWebSecurity
-@Profile("h2-mem", "local")
+@Profile("postgres-wiremock", "local")
 class DevSecurityConfig {
 
   @Bean

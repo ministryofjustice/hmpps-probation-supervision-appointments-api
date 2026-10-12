@@ -118,10 +118,26 @@ or [raise a PR](https://github.com/ministryofjustice/hmpps-tech-docs).
 
 ## Running the application locally
 
-### Run with local profile in IntelliJ
+### Supporting infrastructure
+
+Both the `local` and `postgres-wiremock` profiles below expect Postgres and LocalStack (SNS/SQS) to be running.
+Start these with:
+
+```bash
+docker compose -f docker-compose-local.yml up -d
+```
+
+This starts Postgres, LocalStack, and a WireMock container (used by the `local` profile) but not HMPPS Auth or the
+application itself - these profiles authenticate via an in-memory HTTP Basic user configured in `DevSecurityConfig`
+instead, so HMPPS Auth isn't required locally.
+
+### Run with the `local` profile in IntelliJ
 
 Copy the local configuration from 1Password, key `supervision-api local config` to `application-local.yml`. This file is in .gitignore so it will not be committed to
-the repository. It is used to override the default `application.yml` values for local development.
+the repository. It is used to override the default `application.yml` values for local development. This profile
+connects to the real GOV.UK Notify dev sandbox (using a `test-` prefixed API key, so no real SMS are sent) and the
+WireMock container started above for other outbound calls (e.g. Flipt).
+
 Run the application from the `main()` method to create a Spring Boot run configuration, then open **Run → Edit Configurations** and configure:
 
 **Active profiles**
@@ -140,9 +156,20 @@ Alternatively, you can run the application from the command line using:
 
 User details for local testing can be found in DevSecurityConfig.
 
-The application comes with a `dev` spring profile that includes default settings for running locally. This is not
-necessary when deploying to kubernetes as these values are included in the helm configuration templates -
-e.g. `values-dev.yaml`.
+### Run with the `postgres-wiremock` profile in IntelliJ
+
+`application-postgres-wiremock.yml` is a fully self-contained alternative to `local` for everything except the
+database and SQS/SNS - rather than the real GOV.UK Notify dev sandbox, it boots its own in-process WireMock server
+(`DevWireMockConfig`) using stub mappings under `src/wiremock-stubs`, so you can hand-edit a stub to simulate any
+Notify response (including failures) without needing real credentials or network access. It still needs the same
+Postgres/LocalStack infrastructure started above - but **stop the `wiremock` container first** (`docker compose -f docker-compose-local.yml stop wiremock`),
+since it binds the same port as this profile's own in-process WireMock server and the app will fail to start otherwise.
+
+```bash
+./gradlew bootRun --args='--spring.profiles.active=postgres-wiremock'
+```
+
+### Running the full stack in Docker
 
 There is also a `docker-compose.yml` that can be used to run a local instance of the template in docker and also an
 instance of HMPPS Auth (required if your service calls out to other services using a token).
@@ -152,16 +179,6 @@ docker compose pull && docker compose up
 ```
 
 will build the application and run it and HMPPS Auth within a local docker instance.
-
-### Running the application in Intellij
-
-```bash
-docker compose pull && docker compose up --scale hmpps-probation-supervision-appointments-api=0
-```
-
-will just start a docker instance of HMPPS Auth. The application should then be started with a `dev` active profile
-in Intellij.
-
 
 ### Running azure query locally
 

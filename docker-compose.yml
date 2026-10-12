@@ -8,6 +8,11 @@ services:
     container_name: hmpps-probation-supervision-appointments-api
     ports:
       - "8080:8080"
+    depends_on:
+      - probation-supervision-db
+      - local-stack-aws
+      - wiremock
+      - hmpps-auth
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health/ping"]
     environment:
@@ -34,7 +39,14 @@ services:
       - GOVUK-NOTIFY_TEMPLATEIDS_WELSH-WITH-APPOINTMENT-TYPE="2207f3eb-b5d7-406a-b700-995e5040e2f7"
       - GOVUK-NOTIFY_TEMPLATEIDS_WELSH-WITHOUT-APPOINTMENT-TYPE="6f8975e1-58f3-4729-86ad-5140b1b72d29"
       - OUTLOOK_ENVIRONMENT=local
-      - SERVICES_SUPERVISION-API_BASE-URL:"https://probation-supervision-appointments-api-dev.hmpps.service.justice.gov.uk"
+      - SERVICES_SUPERVISION_API_BASE_URL=http://localhost:8080
+      - HMPPS_SQS_PROVIDER=localstack
+      - HMPPS_SQS_LOCALSTACKURL=http://local-stack-aws:4566
+      - HMPPS_SQS_QUEUES_NOTIFYSTATUSCHECK_QUEUENAME=supervision-appointments-sms-status-check-queue
+      - HMPPS_SQS_QUEUES_NOTIFYSTATUSCHECK_DLQNAME=supervision-appointments-sms-status-check-dlq
+      - HMPPS_SQS_QUEUES_NOTIFYSTATUSCHECK_SUBSCRIBETOPICID=hmppseventtopic
+      - HMPPS_SQS_QUEUES_NOTIFYSTATUSCHECK_SUBSCRIBEFILTER={"eventType":["probation.appointment.sms-status-check-requested"]}
+      - HMPPS_SQS_TOPICS_HMPPSEVENTTOPIC_ARN=arn:aws:sns:eu-west-2:000000000000:hmpps-domain-events-topic
 
   hmpps-auth:
     image: ghcr.io/ministryofjustice/hmpps-auth:latest

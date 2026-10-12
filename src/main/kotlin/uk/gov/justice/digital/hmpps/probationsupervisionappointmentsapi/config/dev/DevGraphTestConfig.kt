@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
 
 @Configuration
-@Profile("h2-mem")
+@Profile("postgres-wiremock")
 @EnableConfigurationProperties(WireMockProps::class)
 class DevGraphTestConfig(private val props: WireMockProps) {
   @Bean

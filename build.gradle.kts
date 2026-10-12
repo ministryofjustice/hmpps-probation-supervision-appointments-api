@@ -57,6 +57,13 @@ dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:$sqsVersion")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
   implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.4")
+  // fix https://security.snyk.io/vuln/SNYK-JAVA-COMGOOGLEGUAVA-20825054
+  // https://github.com/ministryofjustice/hmpps-probation-supervision-appointments-api/security/code-scanning/697
+  implementation("com.google.guava:guava") {
+    version {
+      strictly("33.7.2-jre")
+    }
+  }
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:$postgresqlVersion")

@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
@@ -115,15 +117,16 @@ class NotifyStatusCheckHandlerTest {
 
   @Nested
   inner class PendingNotifyStatus {
-    @Test
-    fun `Notify reports a pending status - records it but is not treated as a failure`() {
+    @ParameterizedTest
+    @ValueSource(strings = ["created", "sending", "pending"])
+    fun `Notify reports a non-terminal status - records it but is not treated as a failure`(status: String) {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
-      val sending = notification("sending")
-      whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(sending)
+      val nonTerminal = notification(status)
+      whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(nonTerminal)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("sending"), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq(status), any())
       verifyNoInteractions(telemetryService)
     }
   }

@@ -146,6 +146,21 @@ class NotifyStatusCheckListenerTest {
     }
   }
 
+  @Test
+  fun `malformed message on the final attempt - tracks exception telemetry and Sentry, still rethrows`() {
+    mockStatic(Sentry::class.java).use { sentryMock ->
+      val queue = queueWithMaxReceiveCount(3)
+      whenever(hmppsQueueService.findByQueueId("notifystatuscheck")).thenReturn(queue)
+
+      assertThrows<Exception> { listener.handleStatusCheck("not valid json", receiveCount = 3) }
+
+      verify(handler, never()).handle(any())
+      verify(telemetryService, never()).trackEvent(eq("NotifyStatusCheckMessageReceived"), any(), eq(emptyMap()))
+      verify(telemetryService).trackException(any(), eq(emptyMap()), eq(emptyMap()))
+      sentryMock.verify { Sentry.captureException(any()) }
+    }
+  }
+
   private fun verifyMessageReceivedTracked() {
     verify(telemetryService).trackEvent(eq("NotifyStatusCheckMessageReceived"), any(), eq(emptyMap()))
   }

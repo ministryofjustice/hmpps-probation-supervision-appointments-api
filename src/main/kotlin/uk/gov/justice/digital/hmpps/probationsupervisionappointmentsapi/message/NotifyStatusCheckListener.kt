@@ -32,14 +32,13 @@ class NotifyStatusCheckListener(
     rawSnsEnvelope: String,
     @Header("Sqs_Msa_ApproximateReceiveCount") receiveCount: Int,
   ) {
-    val messageJson = objectMapper.readTree(rawSnsEnvelope).get("Message").asText()
-    val event = objectMapper.readValue(messageJson, HmppsDomainEvent::class.java)
-    telemetryService.trackEvent(
-      "NotifyStatusCheckMessageReceived",
-      mapOf("eventType" to event.eventType),
-    )
-
     try {
+      val messageJson = objectMapper.readTree(rawSnsEnvelope).get("Message").asText()
+      val event = objectMapper.readValue(messageJson, HmppsDomainEvent::class.java)
+      telemetryService.trackEvent(
+        "NotifyStatusCheckMessageReceived",
+        mapOf("eventType" to event.eventType),
+      )
       handler.handle(event)
     } catch (e: Exception) {
       val maxReceiveCount = hmppsQueueService.findByQueueId(QUEUE_ID)?.maxReceiveCount ?: FALLBACK_MAX_RECEIVE_COUNT

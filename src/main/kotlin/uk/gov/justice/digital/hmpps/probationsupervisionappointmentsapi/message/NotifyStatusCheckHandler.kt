@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message
 
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.PENDING_NOTIFY_STATUSES
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.TelemetryService
@@ -19,7 +18,9 @@ class NotifyStatusCheckHandler(
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
 ) {
-  @Transactional
+  // Not @Transactional: the Notify API call below is a slow, synchronous network request, and
+  // holding a DB connection open for its duration under concurrent SQS deliveries could exhaust
+  // the connection pool. Each DB write (updateStatus) carries its own short transaction instead.
   fun handle(event: HmppsDomainEvent) {
     val notificationId = UUID.fromString(event.additionalInformation["notificationId"] as String)
 

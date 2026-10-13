@@ -111,7 +111,7 @@ class NotifyStatusCheckHandlerTest {
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("delivered"), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("delivered"), any(), any())
     }
   }
 
@@ -126,7 +126,7 @@ class NotifyStatusCheckHandlerTest {
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq(status), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq(status), any(), any())
       verifyNoInteractions(telemetryService)
     }
   }
@@ -141,7 +141,7 @@ class NotifyStatusCheckHandlerTest {
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("delivered"), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("delivered"), any(), any())
       verifyNoInteractions(telemetryService)
     }
 
@@ -150,10 +150,11 @@ class NotifyStatusCheckHandlerTest {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val permanentFailure = notification("permanent-failure")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("permanent-failure"), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())
       verify(telemetryService).trackEvent(
         eq("SmsDeliveryFailed"),
         eq(
@@ -166,6 +167,21 @@ class NotifyStatusCheckHandlerTest {
         any(),
       )
     }
+
+    @Test
+    fun `a concurrent delivery already recorded a terminal status - update is a no-op, no duplicate telemetry`() {
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
+      val permanentFailure = notification("permanent-failure")
+      whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
+      // Another handler already transitioned the row to a terminal status first, so the
+      // conditional update affects zero rows.
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())).thenReturn(0)
+
+      handler.handle(event())
+
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())
+      verifyNoInteractions(telemetryService)
+    }
   }
 
   @Nested
@@ -175,10 +191,11 @@ class NotifyStatusCheckHandlerTest {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val notFound = notifyException(404)
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenThrow(notFound)
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("not-found"), any(), any())).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("not-found"), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("not-found"), any(), any())
       verify(telemetryService).trackEvent(
         eq("NotifyStatusCheckNotFound"),
         eq(mapOf("notificationId" to notificationId.toString(), "deliusExternalReference" to deliusExternalReference)),

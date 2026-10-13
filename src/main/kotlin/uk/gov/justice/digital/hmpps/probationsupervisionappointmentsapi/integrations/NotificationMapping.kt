@@ -68,16 +68,23 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
     @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
   ): List<NotificationMapping>
 
+  // Only transitions rows that are still unresolved, so a delayed/duplicate SQS delivery can't
+  // regress an already-terminal status back to pending. Returns the number of rows actually
+  // updated so callers can tell whether they "won" the race.
   @Modifying
   @Transactional
   @Query(
-    "UPDATE NotificationMapping n SET n.status = :status, n.statusUpdatedAt = :updatedAt WHERE n.notificationId = :notificationId",
+    """
+    UPDATE NotificationMapping n SET n.status = :status, n.statusUpdatedAt = :updatedAt
+    WHERE n.notificationId = :notificationId AND (n.status IS NULL OR n.status IN :pendingStatuses)
+    """,
   )
   fun updateStatus(
     @Param("notificationId") notificationId: UUID,
     @Param("status") status: String,
     @Param("updatedAt") updatedAt: Instant,
-  )
+    @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
+  ): Int
 }
 
 fun NotificationMappingRepository.getNotificationMappingByNotificationId(notificationId: UUID) = findByNotificationId(notificationId)

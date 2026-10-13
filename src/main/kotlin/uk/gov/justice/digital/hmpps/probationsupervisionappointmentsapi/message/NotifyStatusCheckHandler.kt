@@ -45,15 +45,17 @@ class NotifyStatusCheckHandler(
     } catch (e: NotificationClientException) {
       if (e.httpResult == 404) {
         // Notify retains notifications for max 90 days — Notify will return a 404, record not found.
-        notificationMappingRepository.updateStatus(
+        val updated = notificationMappingRepository.updateStatus(
           notificationId = notificationId,
           status = NOT_FOUND_STATUS,
           updatedAt = Instant.now(),
         )
-        telemetryService.trackEvent(
-          "NotifyStatusCheckNotFound",
-          mapOf("notificationId" to notificationId.toString(), "deliusExternalReference" to mapping.deliusExternalReference),
-        )
+        if (updated > 0) {
+          telemetryService.trackEvent(
+            "NotifyStatusCheckNotFound",
+            mapOf("notificationId" to notificationId.toString(), "deliusExternalReference" to mapping.deliusExternalReference),
+          )
+        }
         return
       }
 
@@ -61,7 +63,9 @@ class NotifyStatusCheckHandler(
     }
 
     // Record the current status regardless of whether it's still in-flight or terminal.
-    notificationMappingRepository.updateStatus(
+    // If another concurrent delivery already recorded a terminal status, this update is a no-op
+    // (see the conditional WHERE clause on updateStatus), and `updated` will be 0.
+    val updated = notificationMappingRepository.updateStatus(
       notificationId = notificationId,
       status = notification.status,
       updatedAt = Instant.now(),
@@ -73,7 +77,7 @@ class NotifyStatusCheckHandler(
       return
     }
 
-    if (notification.status in FAILURE_STATUSES) {
+    if (updated > 0 && notification.status in FAILURE_STATUSES) {
       telemetryService.trackEvent(
         "SmsDeliveryFailed",
         mapOf(

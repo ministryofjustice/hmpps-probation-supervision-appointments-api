@@ -7,3 +7,6 @@ ALTER TABLE notification_mappings
 CREATE INDEX idx_notification_mappings_status_unresolved
     ON notification_mappings (created_at)
     WHERE status IS NULL OR status IN ('created', 'sending', 'pending');
+
+CREATE UNIQUE INDEX idx_notification_mappings_notificationid
+    ON notification_mappings (notificationid);

@@ -16,6 +16,9 @@ import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.DomainEventService
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.TelemetryService
 import uk.gov.service.notify.Notification
 import uk.gov.service.notify.NotificationClient
@@ -35,6 +38,12 @@ class NotifyStatusCheckHandlerTest {
   @Mock
   private lateinit var telemetryService: TelemetryService
 
+  @Mock
+  private lateinit var domainEventService: DomainEventService
+
+  @Mock
+  private lateinit var featureFlagsService: FeatureFlagsService
+
   private lateinit var handler: NotifyStatusCheckHandler
 
   private val notificationId = UUID.randomUUID()
@@ -42,7 +51,13 @@ class NotifyStatusCheckHandlerTest {
 
   @BeforeEach
   fun setUp() {
-    handler = NotifyStatusCheckHandler(notificationMappingRepository, notificationClient, telemetryService)
+    handler = NotifyStatusCheckHandler(
+      notificationMappingRepository,
+      notificationClient,
+      telemetryService,
+      domainEventService,
+      featureFlagsService,
+    )
   }
 
   private fun event(notificationId: UUID = this.notificationId) = HmppsDomainEvent(
@@ -55,12 +70,13 @@ class NotifyStatusCheckHandlerTest {
     personReference = null,
   )
 
-  private fun mapping(status: String? = null) = NotificationMapping(
+  private fun mapping(status: String? = null, crn: String? = null) = NotificationMapping(
     deliusExternalReference = deliusExternalReference,
     notificationId = notificationId,
     templateId = UUID.randomUUID(),
     message = "body",
     status = status,
+    crn = crn,
   )
 
   private fun notification(status: String): Notification {
@@ -133,16 +149,26 @@ class NotifyStatusCheckHandlerTest {
 
   @Nested
   inner class TerminalNotifyStatus {
-    @Test
-    fun `Notify reports delivered - records status, no failure telemetry`() {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
+    private val crn = "X123456"
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `Notify reports delivered - records status, no failure telemetry, publishes contact event only when flag enabled`(flagEnabled: Boolean) {
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = crn))
       val delivered = notification("delivered")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("delivered"), any(), any())).thenReturn(1)
+      whenever(featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG)).thenReturn(flagEnabled)
 
       handler.handle(event())
 
       verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("delivered"), any(), any())
       verifyNoInteractions(telemetryService)
+      if (flagEnabled) {
+        verify(domainEventService).buildAndPublishContactEvent(crn = crn, notificationId = notificationId)
+      } else {
+        verifyNoInteractions(domainEventService)
+      }
     }
 
     @Test

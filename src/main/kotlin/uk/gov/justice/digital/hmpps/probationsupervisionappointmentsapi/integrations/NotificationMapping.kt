@@ -18,7 +18,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exceptio
 import java.time.Instant
 import java.util.UUID
 
-// GOV.UK Notify statuses that aren't terminal yet — the message is still in flight.
+// GOV.UK Notify statuses that indicate an SMS is still being processed.
 val PENDING_NOTIFY_STATUSES = setOf("created", "sending", "pending")
 
 @Entity
@@ -60,17 +60,18 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
 
   fun findByNotificationId(notificationId: UUID): NotificationMapping?
 
+  // Finds notifications that are still pending or have no recorded status.
+  // These remain eligible for status checks until a final status is recorded.
   @Query(
-    "SELECT n FROM NotificationMapping n WHERE (n.status IS NULL OR n.status IN :pendingStatuses) AND n.createdAt > :createdAfter",
+    "SELECT n FROM NotificationMapping n WHERE n.status IS NULL OR n.status IN :pendingStatuses",
   )
-  fun findUnresolvedCreatedAfter(
-    @Param("createdAfter") createdAfter: Instant,
+  fun findUnresolved(
     @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
   ): List<NotificationMapping>
 
-  // Only transitions rows that are still unresolved, so a delayed/duplicate SQS delivery can't
-  // regress an already-terminal status back to pending. Returns the number of rows actually
-  // updated so callers can tell whether they "won" the race.
+  // Updates the status only if the notification is still unresolved.
+  // Prevents duplicate or delayed messages from overwriting a final status.
+  // Returns the number of rows updated so the caller can identify whether the update succeeded.
   @Modifying
   @Transactional
   @Query(

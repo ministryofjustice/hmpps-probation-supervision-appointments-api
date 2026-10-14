@@ -43,6 +43,7 @@ import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
 private const val NEW_SMS_APPOINTMENT_TEMPLATE_FLAG = "new-sms-appointment-template"
+const val CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG = "contact-event-on-confirmed-delivery-toggle"
 
 @Service
 class CalendarService(
@@ -262,10 +263,14 @@ class CalendarService(
           crn = eventRequest.smsEventRequest.crn,
         ),
       )
-      domainEventService.buildAndPublishContactEvent(
-        crn = eventRequest.smsEventRequest.crn,
-        notificationId = smsResponse.notificationId,
-      )
+      // whole block will be removed and handled by handler
+      // when flag is deleted
+      if (!featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG)) {
+        domainEventService.buildAndPublishContactEvent(
+          crn = eventRequest.smsEventRequest.crn,
+          notificationId = smsResponse.notificationId,
+        )
+      }
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
       return smsResponse
     } catch (e: Exception) {

@@ -55,8 +55,10 @@ class NotifyStatusCheckListenerIntegrationTest : IntegrationTestBase() {
 
   @BeforeEach
   fun `clear queues`() {
-    testSqsClient.purgeQueue(PurgeQueueRequest.builder().queueUrl(testQueueUrl).build())
-    testDlqClient.purgeQueue(PurgeQueueRequest.builder().queueUrl(testDlqUrl).build())
+    val purgeQueue = testSqsClient.purgeQueue(PurgeQueueRequest.builder().queueUrl(testQueueUrl).build())
+    val purgeDlq = testDlqClient.purgeQueue(PurgeQueueRequest.builder().queueUrl(testDlqUrl).build())
+    purgeQueue.join()
+    purgeDlq.join()
   }
 
   private fun statusCheckEvent(notificationId: UUID) = HmppsDomainEvent(

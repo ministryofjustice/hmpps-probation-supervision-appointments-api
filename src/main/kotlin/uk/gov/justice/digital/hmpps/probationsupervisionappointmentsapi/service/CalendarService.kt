@@ -259,6 +259,7 @@ class CalendarService(
           notificationId = smsResponse?.notificationId!!,
           templateId = smsResponse.templateId!!,
           message = smsResponse.body,
+          crn = eventRequest.smsEventRequest.crn,
         ),
       )
       domainEventService.buildAndPublishContactEvent(

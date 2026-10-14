@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Profile
 import java.nio.file.Paths
 
 @Configuration
-@Profile("h2-mem")
+@Profile("postgres-wiremock")
 @EnableConfigurationProperties(WireMockProps::class)
 class DevWireMockConfig(private val props: WireMockProps) {
 

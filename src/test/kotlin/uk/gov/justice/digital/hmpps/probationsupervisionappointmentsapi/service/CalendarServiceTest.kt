@@ -231,6 +231,7 @@ class CalendarServiceTest {
       assertEquals(notificationId, notificationMapping.notificationId)
       assertEquals(UUID.fromString(templateId), notificationMapping.templateId)
       assertEquals("Reminder: Dear name. Appointment on Saturday 1 January at 10am.", notificationMapping.message)
+      assertEquals("crn", notificationMapping.crn)
 
       verify(domainEventService).buildAndPublishContactEvent("crn", notificationMapping.notificationId)
     }

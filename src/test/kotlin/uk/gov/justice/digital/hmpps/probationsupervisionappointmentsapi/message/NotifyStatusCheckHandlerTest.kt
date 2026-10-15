@@ -24,6 +24,8 @@ import uk.gov.service.notify.NotificationClientException
 import java.time.ZonedDateTime
 import java.util.UUID
 
+private const val CRN = "X123456"
+
 @ExtendWith(MockitoExtension::class)
 class NotifyStatusCheckHandlerTest {
 
@@ -64,7 +66,7 @@ class NotifyStatusCheckHandlerTest {
     personReference = null,
   )
 
-  private fun mapping(status: String? = null, crn: String? = null) = NotificationMapping(
+  private fun mapping(status: String? = null, crn: String? = CRN) = NotificationMapping(
     deliusExternalReference = deliusExternalReference,
     notificationId = notificationId,
     templateId = UUID.randomUUID(),
@@ -105,7 +107,7 @@ class NotifyStatusCheckHandlerTest {
   @Nested
   inner class AlreadyResolved {
     @Test
-    fun `mapping already has a terminal status - no-op, Notify not called`() {
+    fun `mapping already has a final status - no-op, Notify not called`() {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(status = "delivered"))
 
       handler.handle(event())
@@ -121,7 +123,7 @@ class NotifyStatusCheckHandlerTest {
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, "delivered")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered")
     }
   }
 
@@ -129,44 +131,48 @@ class NotifyStatusCheckHandlerTest {
   inner class PendingNotifyStatus {
     @ParameterizedTest
     @ValueSource(strings = ["created", "sending", "pending"])
-    fun `Notify reports a non-terminal status - records it but is not treated as a failure`(status: String) {
+    fun `Notify reports a non-final status - records it but is not treated as a failure`(status: String) {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
-      val nonTerminal = notification(status)
-      whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(nonTerminal)
+      val nonfinal = notification(status)
+      whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(nonfinal)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, status)
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, status)
       verifyNoInteractions(telemetryService)
     }
   }
 
   @Nested
-  inner class TerminalNotifyStatus {
+  inner class FinalNotifyStatus {
     @Test
     fun `Notify reports delivered - delegates to NotifyDeliveryStatusService, no failure telemetry`() {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = "X123456"))
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = CRN))
       val delivered = notification("delivered")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, "X123456", "delivered")).thenReturn(1)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "delivered")).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, "X123456", "delivered")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered")
       verifyNoInteractions(telemetryService)
     }
 
     @Test
-    fun `mapping has no crn but Notify holds the reference - falls back to Notify's reference`() {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = null))
+    fun `mapping has no crn but Notify holds the reference - falls back to Notify's reference, marks already published`() {
+      val historicalMapping = mapping(crn = null)
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(historicalMapping)
       val delivered = notification("delivered")
-      whenever(delivered.reference).thenReturn(java.util.Optional.of("X123456"))
+      whenever(delivered.reference).thenReturn(java.util.Optional.of(CRN))
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, "X123456", "delivered")).thenReturn(1)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "delivered", historicalMapping.createdAt)).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, "X123456", "delivered")
+      // Historical records without a CRN use Notify's reference.
+      // As the contact event was already published when the SMS was sent,
+      // pass the mapping's createdAt to prevent duplicate publication.
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered", historicalMapping.createdAt)
     }
 
     @Test
@@ -174,11 +180,11 @@ class NotifyStatusCheckHandlerTest {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val permanentFailure = notification("permanent-failure")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, null, "permanent-failure")).thenReturn(1)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "permanent-failure")).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, "permanent-failure")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "permanent-failure")
       verify(telemetryService).trackEvent(
         eq("SmsDeliveryFailed"),
         eq(
@@ -193,17 +199,17 @@ class NotifyStatusCheckHandlerTest {
     }
 
     @Test
-    fun `a concurrent delivery already recorded a terminal status - update is a no-op, no duplicate telemetry`() {
+    fun `a concurrent delivery already recorded a final status - update is a no-op, no duplicate telemetry`() {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val permanentFailure = notification("permanent-failure")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
-      // Another handler already transitioned the row to a terminal status first, so the
+      // Another handler already transitioned the row to a final status first, so the
       // conditional update affects zero rows.
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, null, "permanent-failure")).thenReturn(0)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "permanent-failure")).thenReturn(0)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, "permanent-failure")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "permanent-failure")
       verifyNoInteractions(telemetryService)
     }
   }

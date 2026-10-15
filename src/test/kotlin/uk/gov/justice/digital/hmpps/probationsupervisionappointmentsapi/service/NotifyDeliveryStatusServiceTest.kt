@@ -115,6 +115,22 @@ class NotifyDeliveryStatusServiceTest {
     }
 
     @Test
+    fun `alreadyPublishedAt provided - marks as already published with that timestamp, does not publish`() {
+      // Historical records with a missing CRN have it recovered from Notify's reference.
+      // As the contact event was already published when the SMS was sent,
+      // use the mapping row's createdAt to mark it as published and prevent duplicates.
+      val historicalCreatedAt = java.time.Instant.parse("2024-01-01T00:00:00Z")
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("delivered"), any(), any())).thenReturn(1)
+      whenever(featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG)).thenReturn(true)
+
+      val updated = service.recordStatus(notificationId, crn, "delivered", alreadyPublishedAt = historicalCreatedAt)
+
+      assertEquals(1, updated)
+      verify(notificationMappingRepository).markContactEventPublished(notificationId, historicalCreatedAt)
+      verifyNoInteractions(domainEventService)
+    }
+
+    @Test
     fun `update is a no-op - does not publish contact event even when flag is enabled`() {
       whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("delivered"), any(), any())).thenReturn(0)
 

@@ -271,10 +271,17 @@ class CalendarService(
       if (!featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG) &&
         notificationMappingRepository.markContactEventPublished(smsResponse.notificationId, Instant.now()) > 0
       ) {
-        domainEventService.buildAndPublishContactEvent(
-          crn = eventRequest.smsEventRequest.crn,
-          notificationId = smsResponse.notificationId,
-        )
+        // The SMS has already been sent successfully at this point, so a contact event publish
+        // failure must not fail the whole send - it's tracked separately instead.
+        try {
+          domainEventService.buildAndPublishContactEvent(
+            crn = eventRequest.smsEventRequest.crn,
+            notificationId = smsResponse.notificationId,
+          )
+        } catch (e: Exception) {
+          trackTelemetry(e, "ContactEventPublishFailed", telemetryProperties)
+          Sentry.captureException(e)
+        }
       }
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
       return smsResponse

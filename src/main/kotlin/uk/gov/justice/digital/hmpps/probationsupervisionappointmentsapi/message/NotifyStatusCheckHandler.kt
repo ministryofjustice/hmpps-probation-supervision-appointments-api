@@ -66,10 +66,14 @@ class NotifyStatusCheckHandler(
 
     // Update the notification status and publish a contact event if delivered.
     // The database check prevents an existing final status from being overwritten.
+    // Historical records without a CRN have it recovered from Notify's reference.
+    // As their contact event was already published when the SMS was sent,
+    // use the mapping row's createdAt to mark it as published and prevent duplicates.
     val updated = notifyDeliveryStatusService.recordStatus(
       notificationId = notificationId,
       crn = mapping.crn ?: notification.reference.orElse(null),
       status = notification.status,
+      alreadyPublishedAt = if (mapping.crn == null) mapping.createdAt else null,
     )
 
     if (notification.status in PENDING_NOTIFY_STATUSES) {

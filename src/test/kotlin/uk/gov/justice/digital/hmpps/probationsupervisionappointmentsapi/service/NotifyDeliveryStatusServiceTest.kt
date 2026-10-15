@@ -3,10 +3,12 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mock
+import org.mockito.Mockito.mockStatic
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
@@ -29,6 +31,9 @@ class NotifyDeliveryStatusServiceTest {
   @Mock
   private lateinit var featureFlagsService: FeatureFlagsService
 
+  @Mock
+  private lateinit var telemetryService: TelemetryService
+
   private lateinit var service: NotifyDeliveryStatusService
 
   private val notificationId = UUID.randomUUID()
@@ -36,7 +41,7 @@ class NotifyDeliveryStatusServiceTest {
 
   @BeforeEach
   fun setUp() {
-    service = NotifyDeliveryStatusService(notificationMappingRepository, domainEventService, featureFlagsService)
+    service = NotifyDeliveryStatusService(notificationMappingRepository, domainEventService, featureFlagsService, telemetryService)
   }
 
   @Nested
@@ -72,6 +77,41 @@ class NotifyDeliveryStatusServiceTest {
 
       assertEquals(1, updated)
       verifyNoInteractions(domainEventService)
+    }
+
+    @Test
+    fun `crn is null - records status but skips publish without throwing`() {
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("delivered"), any(), any())).thenReturn(1)
+
+      val updated = service.recordStatus(notificationId, null, "delivered")
+
+      assertEquals(1, updated)
+      verifyNoInteractions(domainEventService)
+    }
+
+    @Test
+    fun `publish fails - tracks telemetry and sentry, then rethrows`() {
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("delivered"), any(), any())).thenReturn(1)
+      whenever(featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG)).thenReturn(true)
+      whenever(notificationMappingRepository.markContactEventPublished(eq(notificationId), any())).thenReturn(1)
+      val publishFailure = RuntimeException("SNS unavailable")
+      whenever(domainEventService.buildAndPublishContactEvent(crn = crn, notificationId = notificationId)).thenThrow(publishFailure)
+
+      mockStatic(io.sentry.Sentry::class.java).use { sentryMock ->
+        assertThrows<RuntimeException> { service.recordStatus(notificationId, crn, "delivered") }
+
+        verify(telemetryService).trackEvent(
+          eq("ContactEventPublishRolledBack"),
+          eq(mapOf("notificationId" to notificationId.toString(), "crn" to crn)),
+          any(),
+        )
+        verify(telemetryService).trackException(
+          eq(publishFailure),
+          eq(mapOf("notificationId" to notificationId.toString())),
+          any(),
+        )
+        sentryMock.verify { io.sentry.Sentry.captureException(publishFailure) }
+      }
     }
 
     @Test

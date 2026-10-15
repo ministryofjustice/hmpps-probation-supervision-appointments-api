@@ -172,7 +172,7 @@ class NotifyStatusCheckListenerIntegrationTest : IntegrationTestBase() {
         domainEventsSqsClient.countMessagesOnQueue(domainEventsQueueUrl).get()
       } matches { it == 2 }
 
-      val domainEvents = receiveDomainEvents()
+      val domainEvents = receiveDomainEvents(expectedCount = 2)
       val contactEvent = domainEvents.single { it.eventType == "probation.appointment.sms-sent-to-pop" }
       assertEquals(crn, contactEvent.personReference?.get("CRN"))
     }
@@ -196,17 +196,24 @@ class NotifyStatusCheckListenerIntegrationTest : IntegrationTestBase() {
         domainEventsSqsClient.countMessagesOnQueue(domainEventsQueueUrl).get()
       } matches { it == 1 }
 
-      assertEquals(0, receiveDomainEvents().count { it.eventType == "probation.appointment.sms-sent-to-pop" })
+      assertEquals(0, receiveDomainEvents(expectedCount = 1).count { it.eventType == "probation.appointment.sms-sent-to-pop" })
     }
 
-    private fun receiveDomainEvents(): List<HmppsDomainEvent> {
-      val messages = domainEventsSqsClient.receiveMessage(
-        ReceiveMessageRequest.builder().queueUrl(domainEventsQueueUrl).maxNumberOfMessages(10).build(),
-      ).join().messages()
-      return messages.map {
-        val snsEnvelope = objectMapper.readValue(it.body(), SnsNotification::class.java)
-        objectMapper.readValue(snsEnvelope.Message, HmppsDomainEvent::class.java)
-      }
+    // SQS may return fewer messages than requested.
+    // Keep polling until the expected number of messages has been received.
+    private fun receiveDomainEvents(expectedCount: Int): List<HmppsDomainEvent> {
+      val collected = mutableListOf<HmppsDomainEvent>()
+      await untilCallTo {
+        val messages = domainEventsSqsClient.receiveMessage(
+          ReceiveMessageRequest.builder().queueUrl(domainEventsQueueUrl).maxNumberOfMessages(10).build(),
+        ).join().messages()
+        collected += messages.map {
+          val snsEnvelope = objectMapper.readValue(it.body(), SnsNotification::class.java)
+          objectMapper.readValue(snsEnvelope.Message, HmppsDomainEvent::class.java)
+        }
+        collected.size
+      } matches { (it ?: 0) >= expectedCount }
+      return collected
     }
   }
 }

@@ -157,6 +157,19 @@ class NotifyStatusCheckHandlerTest {
     }
 
     @Test
+    fun `mapping has no crn but Notify holds the reference - falls back to Notify's reference`() {
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = null))
+      val delivered = notification("delivered")
+      whenever(delivered.reference).thenReturn(java.util.Optional.of("X123456"))
+      whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, "X123456", "delivered")).thenReturn(1)
+
+      handler.handle(event())
+
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, "X123456", "delivered")
+    }
+
+    @Test
     fun `Notify reports permanent-failure - records status and raises telemetry`() {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val permanentFailure = notification("permanent-failure")

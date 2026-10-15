@@ -12,6 +12,7 @@ import com.microsoft.graph.users.item.calendar.CalendarRequestBuilder
 import com.microsoft.graph.users.item.calendar.events.EventsRequestBuilder
 import com.microsoft.graph.users.item.calendar.events.item.EventItemRequestBuilder
 import io.sentry.Sentry
+import io.sentry.protocol.SentryId
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -235,6 +236,104 @@ class CalendarServiceTest {
       assertEquals("crn", notificationMapping.crn)
 
       verify(domainEventService).buildAndPublishContactEvent("crn", notificationMapping.notificationId)
+    }
+
+    @Test
+    fun `contact event publish fails - still returns the successful SMS response, tracks failure separately`() {
+      mockStatic(Sentry::class.java).use { sentryMock ->
+        sentryMock.`when`<SentryId> { Sentry.captureException(any(Throwable::class.java)) }.thenReturn(SentryId.EMPTY_ID)
+
+        whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+        whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+        whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+        whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+        whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
+        val templateId = UUID.randomUUID().toString()
+        val notificationId = UUID.randomUUID()
+        whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+          Template(
+            notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+          ),
+        )
+        whenever(notificationClient.sendSms(anyString(), anyString(), any(), anyString())).thenReturn(
+          SendSmsResponse(
+            """
+            {
+              "id": "$notificationId",
+              "reference": "crn",
+              "content": {
+                "body": "Reminder: Dear name. Appointment on Saturday 1 January at 10am.",
+                "from_number": "447700900000"
+              },
+              "uri": "https://api.notifications.service.gov.uk/v2/notifications/$notificationId",
+              "template": {
+                "id": "$templateId",
+                "version": 1,
+                "uri": "https://api.notifications.service.gov.uk/v2/templates/$templateId"
+              }
+            }
+            """.trimIndent(),
+          ),
+        )
+        whenever(notificationMappingRepository.markContactEventPublished(eq(notificationId), org.mockito.kotlin.any())).thenReturn(1)
+        val publishFailure = RuntimeException("SNS unavailable")
+        whenever(domainEventService.buildAndPublishContactEvent("crn", notificationId)).thenThrow(publishFailure)
+
+        val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
+        val mockGraphEventResponse = Event().apply {
+          id = outlookId
+          subject = mockEventRequest.subject
+          start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
+          end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+          attendees = listOf(
+            com.microsoft.graph.models.Attendee().apply {
+              emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
+            },
+          )
+        }
+
+        whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+        whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+          .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+        val result = calendarService.sendEvent(
+          mockEventRequest.copy(
+            smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false, practitionerFirstName = "Sam"),
+          ),
+        )
+
+        // The SMS was sent successfully and the mapping was saved - only the contact event
+        // publish failed, so this must still be reported as a successful send, not swallowed
+        // into the generic failure telemetry/null return used for genuine SMS send failures.
+        val smsResponse = SmsResponse(englishNotificationId = notificationId, welshNotificationId = null)
+        assertEquals(mockGraphEventResponse.toEventResponse(smsResponse), result)
+
+        verify(telemetryService).trackEvent(
+          "AppointmentReminderSent",
+          mapOf(
+            "crn" to "crn",
+            "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
+            "smsLanguage" to SmsLanguage.ENGLISH.name,
+          ),
+        )
+        verify(telemetryService).trackEvent(
+          "ContactEventPublishFailed",
+          mapOf(
+            "crn" to "crn",
+            "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
+            "smsLanguage" to SmsLanguage.ENGLISH.name,
+          ),
+        )
+        verify(telemetryService).trackException(
+          publishFailure,
+          mapOf(
+            "crn" to "crn",
+            "supervisionAppointmentUrn" to mockEventRequest.supervisionAppointmentUrn,
+            "smsLanguage" to SmsLanguage.ENGLISH.name,
+          ),
+        )
+        sentryMock.verify { Sentry.captureException(publishFailure) }
+      }
     }
 
     @Test

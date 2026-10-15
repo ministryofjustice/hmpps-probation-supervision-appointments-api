@@ -37,6 +37,7 @@ import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -263,9 +264,13 @@ class CalendarService(
           crn = eventRequest.smsEventRequest.crn,
         ),
       )
-      // whole block will be removed and handled by handler
-      // when flag is deleted
-      if (!featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG)) {
+      // This block will be removed when the feature flag is deleted,
+      // and contact event publishing will be handled by the delivery handler.
+      // The database check prevents duplicate events if the flag changes
+      // between sending the SMS and confirming delivery.
+      if (!featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG) &&
+        notificationMappingRepository.markContactEventPublished(smsResponse.notificationId, Instant.now()) > 0
+      ) {
         domainEventService.buildAndPublishContactEvent(
           crn = eventRequest.smsEventRequest.crn,
           notificationId = smsResponse.notificationId,

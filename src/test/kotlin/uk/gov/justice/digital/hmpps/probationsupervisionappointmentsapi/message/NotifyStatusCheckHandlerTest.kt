@@ -16,9 +16,7 @@ import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.DomainEventService
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.NotifyDeliveryStatusService
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.TelemetryService
 import uk.gov.service.notify.Notification
 import uk.gov.service.notify.NotificationClient
@@ -39,10 +37,7 @@ class NotifyStatusCheckHandlerTest {
   private lateinit var telemetryService: TelemetryService
 
   @Mock
-  private lateinit var domainEventService: DomainEventService
-
-  @Mock
-  private lateinit var featureFlagsService: FeatureFlagsService
+  private lateinit var notifyDeliveryStatusService: NotifyDeliveryStatusService
 
   private lateinit var handler: NotifyStatusCheckHandler
 
@@ -55,8 +50,7 @@ class NotifyStatusCheckHandlerTest {
       notificationMappingRepository,
       notificationClient,
       telemetryService,
-      domainEventService,
-      featureFlagsService,
+      notifyDeliveryStatusService,
     )
   }
 
@@ -127,7 +121,7 @@ class NotifyStatusCheckHandlerTest {
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("delivered"), any(), any())
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, "delivered")
     }
   }
 
@@ -142,33 +136,24 @@ class NotifyStatusCheckHandlerTest {
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq(status), any(), any())
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, status)
       verifyNoInteractions(telemetryService)
     }
   }
 
   @Nested
   inner class TerminalNotifyStatus {
-    private val crn = "X123456"
-
-    @ParameterizedTest
-    @ValueSource(booleans = [true, false])
-    fun `Notify reports delivered - records status, no failure telemetry, publishes contact event only when flag enabled`(flagEnabled: Boolean) {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = crn))
+    @Test
+    fun `Notify reports delivered - delegates to NotifyDeliveryStatusService, no failure telemetry`() {
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = "X123456"))
       val delivered = notification("delivered")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
-      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("delivered"), any(), any())).thenReturn(1)
-      whenever(featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG)).thenReturn(flagEnabled)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, "X123456", "delivered")).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("delivered"), any(), any())
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, "X123456", "delivered")
       verifyNoInteractions(telemetryService)
-      if (flagEnabled) {
-        verify(domainEventService).buildAndPublishContactEvent(crn = crn, notificationId = notificationId)
-      } else {
-        verifyNoInteractions(domainEventService)
-      }
     }
 
     @Test
@@ -176,11 +161,11 @@ class NotifyStatusCheckHandlerTest {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val permanentFailure = notification("permanent-failure")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
-      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())).thenReturn(1)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, null, "permanent-failure")).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, "permanent-failure")
       verify(telemetryService).trackEvent(
         eq("SmsDeliveryFailed"),
         eq(
@@ -201,11 +186,11 @@ class NotifyStatusCheckHandlerTest {
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
       // Another handler already transitioned the row to a terminal status first, so the
       // conditional update affects zero rows.
-      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())).thenReturn(0)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, null, "permanent-failure")).thenReturn(0)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("permanent-failure"), any(), any())
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, null, "permanent-failure")
       verifyNoInteractions(telemetryService)
     }
   }

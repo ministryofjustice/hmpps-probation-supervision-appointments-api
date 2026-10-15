@@ -37,6 +37,7 @@ class NotifyStatusPollingJobTest {
   private lateinit var featureFlagsService: FeatureFlagsService
 
   private lateinit var job: NotifyStatusPollingJob
+  private val batchSize = 100
 
   @BeforeEach
   fun setUp() {
@@ -45,6 +46,7 @@ class NotifyStatusPollingJobTest {
       domainEventPublisher,
       telemetryService,
       featureFlagsService,
+      batchSize,
     )
   }
 
@@ -73,7 +75,7 @@ class NotifyStatusPollingJobTest {
     @Test
     fun `no unresolved rows - tracks telemetry with a zero count and publishes nothing`() {
       whenever(featureFlagsService.isEnabled("notify-status-sweep-toggle")).thenReturn(true)
-      whenever(notificationMappingRepository.findUnresolved()).thenReturn(emptyList())
+      whenever(notificationMappingRepository.findUnresolved(limit = batchSize)).thenReturn(emptyList())
 
       job.poll()
 
@@ -82,11 +84,21 @@ class NotifyStatusPollingJobTest {
     }
 
     @Test
+    fun `queries unresolved rows bounded by the configured batch size`() {
+      whenever(featureFlagsService.isEnabled("notify-status-sweep-toggle")).thenReturn(true)
+      whenever(notificationMappingRepository.findUnresolved(limit = batchSize)).thenReturn(emptyList())
+
+      job.poll()
+
+      verify(notificationMappingRepository).findUnresolved(limit = batchSize)
+    }
+
+    @Test
     fun `unresolved rows found - republishes a status-check-requested event per row`() {
       whenever(featureFlagsService.isEnabled("notify-status-sweep-toggle")).thenReturn(true)
       val first = mapping()
       val second = mapping()
-      whenever(notificationMappingRepository.findUnresolved()).thenReturn(listOf(first, second))
+      whenever(notificationMappingRepository.findUnresolved(limit = batchSize)).thenReturn(listOf(first, second))
 
       job.poll()
 
@@ -109,7 +121,7 @@ class NotifyStatusPollingJobTest {
       whenever(featureFlagsService.isEnabled("notify-status-sweep-toggle")).thenReturn(true)
       val first = mapping()
       val second = mapping()
-      whenever(notificationMappingRepository.findUnresolved()).thenReturn(listOf(first, second))
+      whenever(notificationMappingRepository.findUnresolved(limit = batchSize)).thenReturn(listOf(first, second))
       val failure = RuntimeException("SNS unavailable")
       doThrow(failure).doNothing().whenever(domainEventPublisher).publish(any())
 

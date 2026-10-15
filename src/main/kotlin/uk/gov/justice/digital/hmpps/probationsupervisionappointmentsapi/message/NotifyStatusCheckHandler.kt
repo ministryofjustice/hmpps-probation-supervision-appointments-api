@@ -3,9 +3,7 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.PENDING_NOTIFY_STATUSES
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.DomainEventService
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.NotifyDeliveryStatusService
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.TelemetryService
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
@@ -21,12 +19,12 @@ class NotifyStatusCheckHandler(
   private val notificationMappingRepository: NotificationMappingRepository,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
-  private val domainEventService: DomainEventService,
-  private val featureFlagsService: FeatureFlagsService,
+  private val notifyDeliveryStatusService: NotifyDeliveryStatusService,
 ) {
   // Not @Transactional: the Notify API call below is a slow, synchronous network request, and
   // holding a DB connection open for its duration under concurrent SQS deliveries could exhaust
-  // the connection pool. Each DB write (updateStatus) carries its own short transaction instead.
+  // the connection pool. The status update + contact-event publish pair is instead handled
+  // atomically by NotifyDeliveryStatusService, in its own short transaction.
   fun handle(event: HmppsDomainEvent) {
     val notificationId = UUID.fromString(event.additionalInformation["notificationId"] as String)
 
@@ -68,13 +66,14 @@ class NotifyStatusCheckHandler(
       throw e
     }
 
-    // Record the current status regardless of whether it's still in-flight or terminal.
+    // Record the current status regardless of whether it's still in-flight or terminal, and —
+    // if it's now delivered — publish the contact event as part of the same transaction.
     // If another concurrent delivery already recorded a terminal status, this update is a no-op
     // (see the conditional WHERE clause on updateStatus), and `updated` will be 0.
-    val updated = notificationMappingRepository.updateStatus(
+    val updated = notifyDeliveryStatusService.recordStatus(
       notificationId = notificationId,
+      crn = mapping.crn,
       status = notification.status,
-      updatedAt = Instant.now(),
     )
 
     if (notification.status in PENDING_NOTIFY_STATUSES) {
@@ -91,16 +90,6 @@ class NotifyStatusCheckHandler(
           "deliusExternalReference" to mapping.deliusExternalReference,
           "status" to notification.status,
         ),
-      )
-    }
-
-    if (updated > 0 &&
-      notification.status == DELIVERED_STATUS &&
-      featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG)
-    ) {
-      domainEventService.buildAndPublishContactEvent(
-        crn = mapping.crn!!,
-        notificationId = notificationId,
       )
     }
   }

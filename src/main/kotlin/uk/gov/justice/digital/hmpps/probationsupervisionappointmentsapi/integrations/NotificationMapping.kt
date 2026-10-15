@@ -49,6 +49,9 @@ class NotificationMapping(
 
   @Column(name = "status_updated_at")
   val statusUpdatedAt: Instant? = null,
+
+  @Column(name = "contact_event_published_at")
+  val contactEventPublishedAt: Instant? = null,
 ) {
   @CreatedDate
   @Column(name = "created_at", nullable = false)
@@ -63,10 +66,11 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
   // Finds notifications that are still pending or have no recorded status.
   // These remain eligible for status checks until a final status is recorded.
   @Query(
-    "SELECT n FROM NotificationMapping n WHERE n.status IS NULL OR n.status IN :pendingStatuses",
+    "SELECT n FROM NotificationMapping n WHERE n.status IS NULL OR n.status IN :pendingStatuses ORDER BY n.createdAt ASC LIMIT :limit",
   )
   fun findUnresolved(
     @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
+    @Param("limit") limit: Int,
   ): List<NotificationMapping>
 
   // Updates the status only if the notification is still unresolved.
@@ -85,6 +89,20 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
     @Param("status") status: String,
     @Param("updatedAt") updatedAt: Instant,
     @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
+  ): Int
+
+  // Prevents the same contact event from being published twice.
+  // Both  the send and delivery paths may attempt to publish if the feature flag changes.
+  // Only the first update succeeds; subsequent attempts return 0 and skip publishing.
+  @Modifying
+  @Transactional
+  @Query(
+    "UPDATE NotificationMapping n SET n.contactEventPublishedAt = :publishedAt " +
+      "WHERE n.notificationId = :notificationId AND n.contactEventPublishedAt IS NULL",
+  )
+  fun markContactEventPublished(
+    @Param("notificationId") notificationId: UUID,
+    @Param("publishedAt") publishedAt: Instant,
   ): Int
 }
 

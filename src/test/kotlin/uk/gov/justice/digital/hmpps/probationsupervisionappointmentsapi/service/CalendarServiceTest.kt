@@ -173,6 +173,7 @@ class CalendarServiceTest {
           """.trimIndent(),
         ),
       )
+      whenever(notificationMappingRepository.markContactEventPublished(eq(notificationId), org.mockito.kotlin.any())).thenReturn(1)
       val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
 
       val mockGraphEventResponse = Event().apply {
@@ -234,6 +235,71 @@ class CalendarServiceTest {
       assertEquals("crn", notificationMapping.crn)
 
       verify(domainEventService).buildAndPublishContactEvent("crn", notificationMapping.notificationId)
+    }
+
+    @Test
+    fun `should not publish contact event when markContactEventPublished reports the row was already claimed`() {
+      whenever(graphClient.users()).thenReturn(usersRequestBuilder)
+      whenever(usersRequestBuilder.byUserId(anyString())).thenReturn(userItemRequestBuilder)
+      whenever(userItemRequestBuilder.calendar()).thenReturn(calendarRequestBuilder)
+      whenever(calendarRequestBuilder.events()).thenReturn(eventsRequestBuilder)
+      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockEventRequest.recipients.first().emailAddress)).thenReturn(true)
+      val templateId = UUID.randomUUID().toString()
+      val notificationId = UUID.randomUUID()
+      whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
+        Template(
+          notifyTemplateJson(templateId, "Reminder: Dear ((FIRST_NAME)). Appointment on ((APPOINTMENT_DATE)) at ((APPOINTMENT_TIME))."),
+        ),
+      )
+      whenever(notificationClient.sendSms(anyString(), anyString(), any(), anyString())).thenReturn(
+        SendSmsResponse(
+          """
+          {
+            "id": "$notificationId",
+            "reference": "crn",
+            "content": {
+              "body": "Reminder: Dear name. Appointment on Saturday 1 January at 10am.",
+              "from_number": "447700900000"
+            },
+            "uri": "https://api.notifications.service.gov.uk/v2/notifications/$notificationId",
+            "template": {
+              "id": "$templateId",
+              "version": 1,
+              "uri": "https://api.notifications.service.gov.uk/v2/templates/$templateId"
+            }
+          }
+          """.trimIndent(),
+        ),
+      )
+      // Simulates the delivery-time path (NotifyDeliveryStatusService) having already won the
+      // atomic guard - e.g. the flag flipped to true and back before this send-time check ran.
+      whenever(notificationMappingRepository.markContactEventPublished(eq(notificationId), org.mockito.kotlin.any())).thenReturn(0)
+
+      val fixedEndDateTime = fixedStartDateTime.plusMinutes(durationMinutes)
+      val mockGraphEventResponse = Event().apply {
+        id = outlookId
+        subject = mockEventRequest.subject
+        start = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedStartDateTime.toString() }
+        end = com.microsoft.graph.models.DateTimeTimeZone().apply { dateTime = fixedEndDateTime.toString() }
+        attendees = listOf(
+          com.microsoft.graph.models.Attendee().apply {
+            emailAddress = com.microsoft.graph.models.EmailAddress().apply { address = mockRecipient.emailAddress }
+          },
+        )
+      }
+
+      whenever(eventsRequestBuilder.post(any(Event::class.java))).thenReturn(mockGraphEventResponse)
+      whenever(deliusOutlookMappingRepository.save(any(DeliusOutlookMapping::class.java)))
+        .thenAnswer { it.arguments[0] as DeliusOutlookMapping }
+
+      calendarService.sendEvent(
+        mockEventRequest.copy(
+          smsEventRequest = SmsEventRequest("name", "mobile", "crn", true, false, practitionerFirstName = "Sam"),
+        ),
+      )
+
+      verify(notificationMappingRepository).markContactEventPublished(eq(notificationId), org.mockito.kotlin.any())
+      verifyNoInteractions(domainEventService)
     }
 
     @Test

@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message
 
 import io.sentry.Sentry
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
@@ -20,6 +21,7 @@ class NotifyStatusPollingJob(
   private val domainEventPublisher: DomainEventPublisher,
   private val telemetryService: TelemetryService,
   private val featureFlagsService: FeatureFlagsService,
+  @Value("\${notify.status-check.batch-size:100}") private val batchSize: Int,
 ) {
   @Scheduled(cron = "\${notify.status-check-sweep.cron:0 */30 * * * *}")
   @SchedulerLock(
@@ -30,7 +32,7 @@ class NotifyStatusPollingJob(
   fun poll() {
     if (!featureFlagsService.isEnabled(NOTIFY_STATUS_SWEEP_FLAG)) return
 
-    val unresolved = notificationMappingRepository.findUnresolved()
+    val unresolved = notificationMappingRepository.findUnresolved(limit = batchSize)
     telemetryService.trackEvent("NotifyStatusPollingStarted", mapOf("unresolvedCount" to unresolved.size.toString()))
 
     unresolved.forEach { mapping ->

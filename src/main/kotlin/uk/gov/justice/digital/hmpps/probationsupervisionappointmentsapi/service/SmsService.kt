@@ -6,6 +6,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsStatusResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getNotificationMappingByNotificationId
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
@@ -156,6 +157,17 @@ class SmsService(
 
     return SmsNotificationResponse(notificationMapping.message, notificationMapping.deliusExternalReference)
   }
+
+  fun getSmsStatusesByAppointmentId(appointmentId: String): List<SmsStatusResponse> = notificationMappingRepository.findByDeliusExternalReference(appointmentId)
+    .sortedByDescending { it.createdAt }
+    .map { notificationMapping ->
+      SmsStatusResponse(
+        notificationId = notificationMapping.notificationId,
+        sentAt = notificationMapping.createdAt,
+        status = notificationMapping.status,
+        statusUpdatedAt = notificationMapping.statusUpdatedAt,
+      )
+    }
 }
 
 private val DATE_FORMATTER =

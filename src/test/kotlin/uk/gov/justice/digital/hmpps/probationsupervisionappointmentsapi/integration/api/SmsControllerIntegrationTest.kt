@@ -14,11 +14,13 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsStatusResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -221,6 +223,66 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         val body = jacksonObjectMapper().readValue<SmsNotificationResponse>(response.responseBody!!)
         assertEquals(body.smsMessage, message)
         assertEquals(body.deliusExternalReference, deliusExternalReference)
+      }
+  }
+
+  @Test
+  fun `retrieval of SMS statuses by appointment ID is successful`() {
+    val appointmentId = "urn:uk:gov:hmpps:manage-supervision-service:appointment:test-123"
+    val deliveredAt = Instant.parse("2026-06-30T11:00:00Z")
+
+    val olderMapping = notificationMappingRepository.save(
+      NotificationMapping(
+        notificationId = UUID.randomUUID(),
+        deliusExternalReference = appointmentId,
+        templateId = UUID.randomUUID(),
+        message = "Older SMS",
+        status = "permanent-failure",
+      ),
+    )
+
+    val newerMapping = notificationMappingRepository.save(
+      NotificationMapping(
+        notificationId = UUID.randomUUID(),
+        deliusExternalReference = appointmentId,
+        templateId = UUID.randomUUID(),
+        message = "Newer SMS",
+        status = "delivered",
+        statusUpdatedAt = deliveredAt,
+      ),
+    )
+
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/sms/status")
+          .queryParam("appointmentId", appointmentId)
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(String::class.java)
+      .consumeWith { response ->
+        val body = jacksonObjectMapper().readValue<List<SmsStatusResponse>>(
+          response.responseBody!!,
+        )
+
+        assertEquals(2, body.size)
+        assertEquals(
+          setOf(olderMapping.notificationId, newerMapping.notificationId),
+          body.map { it.notificationId }.toSet(),
+        )
+
+        val deliveredSms = body.single { it.notificationId == newerMapping.notificationId }
+        assertEquals(newerMapping.createdAt, deliveredSms.sentAt)
+        assertEquals("delivered", deliveredSms.status)
+        assertEquals(deliveredAt, deliveredSms.statusUpdatedAt)
+
+        val failedSms = body.single { it.notificationId == olderMapping.notificationId }
+        assertEquals(olderMapping.createdAt, failedSms.sentAt)
+        assertEquals("permanent-failure", failedSms.status)
+        assertEquals(null, failedSms.statusUpdatedAt)
       }
   }
 

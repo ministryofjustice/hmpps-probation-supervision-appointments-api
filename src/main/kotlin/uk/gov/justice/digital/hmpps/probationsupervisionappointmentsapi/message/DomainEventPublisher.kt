@@ -28,8 +28,8 @@ class DomainEventPublisher(
       )
       telemetryService.trackEvent("smsContactEventSent", telemetryProperties)
     } catch (ex: Exception) {
-      telemetryService.trackEvent("smsContactEventFailed", telemetryProperties)
-      telemetryService.trackException(ex, telemetryProperties)
+      // catch all block will record telemetry and sentry
+      throw ex
     }
   }
 }

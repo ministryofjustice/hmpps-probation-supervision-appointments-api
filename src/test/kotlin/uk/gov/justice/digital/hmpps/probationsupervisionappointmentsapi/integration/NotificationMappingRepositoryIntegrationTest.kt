@@ -64,4 +64,23 @@ class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
     assertEquals(0, loser)
     assertEquals("permanent-failure", notificationMappingRepository.findByNotificationId(notificationId)?.status)
   }
+
+  // Proves: markContactEventPublished is an atomic "claim" - only the first caller for a given
+  // notification can successfully flip the column from NULL, guarding against the send-time and
+  // delivery-time paths both publishing a contact event when the feature flag flips in between.
+  @Test
+  fun `markContactEventPublished only lets the first caller claim the row`() {
+    val notificationId = UUID.randomUUID()
+    saveMapping(notificationId)
+
+    val first = notificationMappingRepository.markContactEventPublished(notificationId, Instant.now())
+    val second = notificationMappingRepository.markContactEventPublished(notificationId, Instant.now())
+
+    assertEquals(1, first)
+    assertEquals(0, second)
+    assertEquals(
+      true,
+      notificationMappingRepository.findByNotificationId(notificationId)?.contactEventPublishedAt != null,
+    )
+  }
 }

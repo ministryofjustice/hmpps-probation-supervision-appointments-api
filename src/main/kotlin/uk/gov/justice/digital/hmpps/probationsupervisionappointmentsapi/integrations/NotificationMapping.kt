@@ -18,7 +18,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exceptio
 import java.time.Instant
 import java.util.UUID
 
-// GOV.UK Notify statuses that aren't terminal yet — the message is still in flight.
+// GOV.UK Notify statuses that indicate an SMS is still being processed.
 val PENDING_NOTIFY_STATUSES = setOf("created", "sending", "pending")
 
 @Entity
@@ -49,6 +49,9 @@ class NotificationMapping(
 
   @Column(name = "status_updated_at")
   val statusUpdatedAt: Instant? = null,
+
+  @Column(name = "contact_event_published_at")
+  val contactEventPublishedAt: Instant? = null,
 ) {
   @CreatedDate
   @Column(name = "created_at", nullable = false)
@@ -60,17 +63,19 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
 
   fun findByNotificationId(notificationId: UUID): NotificationMapping?
 
+  // Finds notifications that are still pending or have no recorded status.
+  // These remain eligible for status checks until a final status is recorded.
   @Query(
-    "SELECT n FROM NotificationMapping n WHERE (n.status IS NULL OR n.status IN :pendingStatuses) AND n.createdAt > :createdAfter",
+    "SELECT n FROM NotificationMapping n WHERE n.status IS NULL OR n.status IN :pendingStatuses ORDER BY n.createdAt ASC LIMIT :limit",
   )
-  fun findUnresolvedCreatedAfter(
-    @Param("createdAfter") createdAfter: Instant,
+  fun findUnresolved(
     @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
+    @Param("limit") limit: Int,
   ): List<NotificationMapping>
 
-  // Only transitions rows that are still unresolved, so a delayed/duplicate SQS delivery can't
-  // regress an already-terminal status back to pending. Returns the number of rows actually
-  // updated so callers can tell whether they "won" the race.
+  // Updates the status only if the notification is still unresolved.
+  // Prevents duplicate or delayed messages from overwriting a final status.
+  // Returns the number of rows updated so the caller can identify whether the update succeeded.
   @Modifying
   @Transactional
   @Query(
@@ -84,6 +89,20 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
     @Param("status") status: String,
     @Param("updatedAt") updatedAt: Instant,
     @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
+  ): Int
+
+  // Prevents the same contact event from being published twice.
+  // Both  the send and delivery paths may attempt to publish if the feature flag changes.
+  // Only the first update succeeds; subsequent attempts return 0 and skip publishing.
+  @Modifying
+  @Transactional
+  @Query(
+    "UPDATE NotificationMapping n SET n.contactEventPublishedAt = :publishedAt " +
+      "WHERE n.notificationId = :notificationId AND n.contactEventPublishedAt IS NULL",
+  )
+  fun markContactEventPublished(
+    @Param("notificationId") notificationId: UUID,
+    @Param("publishedAt") publishedAt: Instant,
   ): Int
 }
 

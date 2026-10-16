@@ -18,6 +18,10 @@ val springdocVersion = "3.1.1"
 val httpclient5Version = "5.6.4"
 val sqsVersion = "7.4.1"
 val postgresqlVersion = "42.7.14"
+val shedLockVersion = "7.10.1"
+val kotlinxCoroutinesVersion = "1.11.0"
+val kotlinAsyncapiVersion = "3.2.4"
+val testcontainersVersion = "2.0.5"
 
 idea {
   module {
@@ -55,8 +59,10 @@ dependencies {
   implementation("io.sentry:sentry-spring-boot-4:$sentryVersion")
 
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:$sqsVersion")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-  implementation("org.openfolder:kotlin-asyncapi-spring-web:3.2.4")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+  implementation("org.openfolder:kotlin-asyncapi-spring-web:$kotlinAsyncapiVersion")
+  implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
+  implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedLockVersion")
   // fix https://security.snyk.io/vuln/SNYK-JAVA-COMGOOGLEGUAVA-20825054
   // https://github.com/ministryofjustice/hmpps-probation-supervision-appointments-api/security/code-scanning/697
   implementation("com.google.guava:guava") {
@@ -82,10 +88,10 @@ dependencies {
   }
 
   testImplementation("org.awaitility:awaitility-kotlin")
-  testImplementation("org.testcontainers:testcontainers:2.0.5")
-  testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
-  testImplementation("org.testcontainers:testcontainers-localstack:2.0.5")
-  testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
+  testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
+  testImplementation("org.testcontainers:testcontainers-postgresql:$testcontainersVersion")
+  testImplementation("org.testcontainers:testcontainers-localstack:$testcontainersVersion")
+  testImplementation("org.testcontainers:testcontainers-junit-jupiter:$testcontainersVersion")
   testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 

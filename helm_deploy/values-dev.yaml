@@ -21,6 +21,9 @@ generic-service:
     SENTRY_ENVIRONMENT: dev
     OUTLOOK_ENVIRONMENT: dev
     SERVICES_SUPERVISION-API_BASE-URL: 'https://probation-supervision-appointments-api-dev.hmpps.service.justice.gov.uk'
+    NOTIFY_STATUS-CHECK-SWEEP_CRON: "0 * * * * *"
+    NOTIFY_STATUS-CHECK-SWEEP_LOCK-AT-MOST-FOR: "2m"
+    NOTIFY_STATUS-CHECK-SWEEP_LOCK-AT-LEAST-FOR: "10s"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts

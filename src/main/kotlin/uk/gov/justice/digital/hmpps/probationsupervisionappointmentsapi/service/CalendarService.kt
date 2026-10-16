@@ -37,12 +37,14 @@ import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
 private const val EVENT_TIMEZONE = "Europe/London"
 private const val NEW_SMS_APPOINTMENT_TEMPLATE_FLAG = "new-sms-appointment-template"
+const val CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG = "contact-event-on-confirmed-delivery-toggle"
 
 @Service
 class CalendarService(
@@ -262,10 +264,25 @@ class CalendarService(
           crn = eventRequest.smsEventRequest.crn,
         ),
       )
-      domainEventService.buildAndPublishContactEvent(
-        crn = eventRequest.smsEventRequest.crn,
-        notificationId = smsResponse.notificationId,
-      )
+      // This block will be removed when the feature flag is deleted,
+      // and contact event publishing will be handled by the delivery handler.
+      // The database check prevents duplicate events if the flag changes
+      // between sending the SMS and confirming delivery.
+      if (!featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG) &&
+        notificationMappingRepository.markContactEventPublished(smsResponse.notificationId, Instant.now()) > 0
+      ) {
+        // The SMS has already been sent successfully at this point, so a contact event publish
+        // failure must not fail the whole send - it's tracked separately instead.
+        try {
+          domainEventService.buildAndPublishContactEvent(
+            crn = eventRequest.smsEventRequest.crn,
+            notificationId = smsResponse.notificationId,
+          )
+        } catch (e: Exception) {
+          trackTelemetry(e, "ContactEventPublishFailed", telemetryProperties)
+          Sentry.captureException(e)
+        }
+      }
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
       return smsResponse
     } catch (e: Exception) {

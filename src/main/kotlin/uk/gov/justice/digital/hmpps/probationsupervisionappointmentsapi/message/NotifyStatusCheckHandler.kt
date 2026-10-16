@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.PENDING_NOTIFY_STATUSES
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.NotifyDeliveryStatusService
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.TelemetryService
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
@@ -11,23 +12,24 @@ import java.util.UUID
 
 val FAILURE_STATUSES = setOf("permanent-failure", "temporary-failure", "technical-failure")
 const val NOT_FOUND_STATUS = "not-found"
+const val DELIVERED_STATUS = "delivered"
 
 @Component
 class NotifyStatusCheckHandler(
   private val notificationMappingRepository: NotificationMappingRepository,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
+  private val notifyDeliveryStatusService: NotifyDeliveryStatusService,
 ) {
-  // Not @Transactional: the Notify API call below is a slow, synchronous network request, and
-  // holding a DB connection open for its duration under concurrent SQS deliveries could exhaust
-  // the connection pool. Each DB write (updateStatus) carries its own short transaction instead.
+  // Keep the Notify API call outside a database transaction to avoid holding
+  // database connections open during network requests.
+  // NotifyDeliveryStatusService handles the status update and contact event publishing.
   fun handle(event: HmppsDomainEvent) {
     val notificationId = UUID.fromString(event.additionalInformation["notificationId"] as String)
 
     val mapping = notificationMappingRepository.findByNotificationId(notificationId)
     if (mapping == null) {
-      // Do not treat as a failure requiring redelivery.
-      // Incorrect message in queue
+      // No matching notification found. Record the event without triggering a retry.
       telemetryService.trackEvent(
         "NotifyStatusCheckOrphanMessage",
         mapOf("notificationId" to notificationId.toString()),
@@ -36,7 +38,7 @@ class NotifyStatusCheckHandler(
     }
 
     if (mapping.status != null && mapping.status !in PENDING_NOTIFY_STATUSES) {
-      // Message has already been processed
+      // The notification already has a final status, so no further processing is needed.
       return
     }
 
@@ -44,7 +46,7 @@ class NotifyStatusCheckHandler(
       notificationClient.getNotificationById(notificationId.toString())
     } catch (e: NotificationClientException) {
       if (e.httpResult == 404) {
-        // Notify retains notifications for max 90 days — Notify will return a 404, record not found.
+        // Notify could not find the notification. Record its status as not-found.
         val updated = notificationMappingRepository.updateStatus(
           notificationId = notificationId,
           status = NOT_FOUND_STATUS,
@@ -62,18 +64,20 @@ class NotifyStatusCheckHandler(
       throw e
     }
 
-    // Record the current status regardless of whether it's still in-flight or terminal.
-    // If another concurrent delivery already recorded a terminal status, this update is a no-op
-    // (see the conditional WHERE clause on updateStatus), and `updated` will be 0.
-    val updated = notificationMappingRepository.updateStatus(
+    // Update the notification status and publish a contact event if delivered.
+    // The database check prevents an existing final status from being overwritten.
+    // Historical records without a CRN have it recovered from Notify's reference.
+    // As their contact event was already published when the SMS was sent,
+    // use the mapping row's createdAt to mark it as published and prevent duplicates.
+    val updated = notifyDeliveryStatusService.recordStatus(
       notificationId = notificationId,
+      crn = mapping.crn ?: notification.reference.orElse(null),
       status = notification.status,
-      updatedAt = Instant.now(),
+      alreadyPublishedAt = if (mapping.crn == null) mapping.createdAt else null,
     )
 
     if (notification.status in PENDING_NOTIFY_STATUSES) {
-      // Still in-flight at Notify's end — the row stays "unresolved" and is naturally
-      // re-picked-up by the next status-check sweep.
+      // The notification is still pending and will be checked again on the next scheduled run.
       return
     }
 

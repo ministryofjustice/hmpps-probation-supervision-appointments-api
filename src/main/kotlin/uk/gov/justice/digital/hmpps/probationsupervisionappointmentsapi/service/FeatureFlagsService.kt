@@ -25,4 +25,12 @@ class FeatureFlagsService(
     Sentry.captureException(e)
     false
   }
+
+  fun isEnabled(key: String) = try {
+    client.evaluateBoolean(key, key, emptyMap()).isEnabled
+  } catch (e: Exception) {
+    log.warn("Error retrieving feature flag '$key', defaulting to disabled", e)
+    Sentry.captureException(e)
+    false
+  }
 }

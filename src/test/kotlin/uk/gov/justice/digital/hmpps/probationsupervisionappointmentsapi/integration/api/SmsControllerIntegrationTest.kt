@@ -22,6 +22,7 @@ import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
 import java.time.Instant
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.test.assertEquals
 
@@ -275,12 +276,12 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         )
 
         val deliveredSms = body.single { it.notificationId == newerMapping.notificationId }
-        assertEquals(newerMapping.createdAt, deliveredSms.sentAt)
+        assertEquals(newerMapping.createdAt.truncatedTo(ChronoUnit.MICROS), deliveredSms.sentAt)
         assertEquals("delivered", deliveredSms.status)
         assertEquals(deliveredAt, deliveredSms.statusUpdatedAt)
 
         val failedSms = body.single { it.notificationId == olderMapping.notificationId }
-        assertEquals(olderMapping.createdAt, failedSms.sentAt)
+        assertEquals(olderMapping.createdAt.truncatedTo(ChronoUnit.MICROS), failedSms.sentAt)
         assertEquals("permanent-failure", failedSms.status)
         assertEquals(null, failedSms.statusUpdatedAt)
       }

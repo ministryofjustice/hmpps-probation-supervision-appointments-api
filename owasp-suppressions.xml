@@ -55,9 +55,9 @@
     <suppress>
         <notes><![CDATA[
     CVE-2024-35255 affects msal4j versions before 1.15.1.
-    This project resolves msal4j 1.23.1 and is therefore not affected.
+    This project resolves com.microsoft.azure:msal4j:1.26.0, which is outside the affected range.
     ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@1\.23\.1$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@1\.26\.0$</packageUrl>
         <cve>CVE-2024-35255</cve>
     </suppress>
 
@@ -109,6 +109,8 @@
         <cve>CVE-2026-65914</cve>
         <cve>CVE-2026-66010</cve>
         <cve>CVE-2026-75838</cve>
+        <cve>CVE-2026-109344</cve>
+        <cve>CVE-2026-109345</cve>
     </suppress>
 
 </suppressions>

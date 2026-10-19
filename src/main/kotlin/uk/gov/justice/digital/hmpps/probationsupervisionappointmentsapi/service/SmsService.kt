@@ -164,7 +164,7 @@ class SmsService(
       in FAILURE_STATUSES ->
         "Appointment confirmation text: not delivered - email or text to person on probation"
 
-      NOT_FOUND_STATUS, null ->
+      NOT_FOUND_STATUS ->
         "Appointment confirmation text: delivery unknown - email or text to person on probation"
 
       else ->

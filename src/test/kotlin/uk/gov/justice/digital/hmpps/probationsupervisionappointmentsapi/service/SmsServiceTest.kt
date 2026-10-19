@@ -182,7 +182,7 @@ class SmsServiceTest {
 
   @ParameterizedTest(name = "status={0}, expectedDescription={1}")
   @MethodSource("notificationStatuses")
-  fun `should return sms message when notification mapping exists`() {
+  fun `should return sms message when notification mapping exists`(status: String?, expectedDescription: String?) {
     val notificationId = UUID.randomUUID()
     val templateId = UUID.randomUUID()
     val expectedMessage = "[DEV]Dear Aubrey,\n" +
@@ -195,6 +195,7 @@ class SmsServiceTest {
       notificationId = notificationId,
       message = expectedMessage,
       templateId = templateId,
+      status = status,
     )
 
     whenever(
@@ -205,6 +206,7 @@ class SmsServiceTest {
 
     assertEquals(expectedMessage, result.smsMessage)
     assertEquals(deliusExternalReference, result.deliusExternalReference)
+    assertEquals(expectedDescription, result.description)
     verify(notificationMappingRepository).findByNotificationId(notificationId)
   }
 

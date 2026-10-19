@@ -287,6 +287,72 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
       }
   }
 
+  @Test
+  fun `retrieval of latest SMS status by CRN returns the most recently created SMS`() {
+    val crn = "X123456"
+    val appointmentId = "urn:uk:gov:hmpps:manage-supervision-service:appointment:crn-123"
+
+    val olderMapping = NotificationMapping(
+      notificationId = UUID.randomUUID(),
+      deliusExternalReference = appointmentId,
+      templateId = UUID.randomUUID(),
+      message = "Older SMS",
+      crn = crn,
+      status = "delivered",
+    ).apply {
+      createdAt = Instant.parse("2026-10-16T10:00:00Z")
+    }
+
+    val latestMapping = NotificationMapping(
+      notificationId = UUID.randomUUID(),
+      deliusExternalReference = appointmentId,
+      templateId = UUID.randomUUID(),
+      message = "Latest SMS",
+      crn = crn,
+      status = "sending",
+    ).apply {
+      createdAt = Instant.parse("2026-10-18T10:00:00Z")
+    }
+
+    notificationMappingRepository.saveAll(listOf(olderMapping, latestMapping))
+
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/sms/status/latest")
+          .queryParam("crn", crn)
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(SmsStatusResponse::class.java)
+      .consumeWith { response ->
+        val body = response.responseBody!!
+
+        assertEquals(latestMapping.notificationId, body.notificationId)
+        assertEquals(latestMapping.createdAt, body.sentAt)
+        assertEquals("sending", body.status)
+        assertNull(body.statusUpdatedAt)
+      }
+  }
+
+  @Test
+  fun `retrieval of latest SMS status by CRN returns an empty response when no SMS exists`() {
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/sms/status/latest")
+          .queryParam("crn", "X999999")
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody()
+      .isEmpty
+  }
+
   @ParameterizedTest
   @ValueSource(
     strings = [

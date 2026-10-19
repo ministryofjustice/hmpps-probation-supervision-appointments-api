@@ -168,6 +168,19 @@ class SmsService(
         statusUpdatedAt = notificationMapping.statusUpdatedAt,
       )
     }
+
+  fun getLatestSmsStatusByCrn(crn: String): SmsStatusResponse? {
+    val notificationMapping = notificationMappingRepository
+      .findFirstByCrnOrderByCreatedAtDesc(crn)
+      ?: return null
+
+    return SmsStatusResponse(
+      notificationId = notificationMapping.notificationId,
+      sentAt = notificationMapping.createdAt,
+      status = notificationMapping.status,
+      statusUpdatedAt = notificationMapping.statusUpdatedAt,
+    )
+  }
 }
 
 private val DATE_FORMATTER =

@@ -61,6 +61,8 @@ class NotificationMapping(
 interface NotificationMappingRepository : JpaRepository<NotificationMapping, Long> {
   fun findByDeliusExternalReference(deliusExternalReference: String): List<NotificationMapping>
 
+  fun findFirstByCrnOrderByCreatedAtDesc(crn: String): NotificationMapping?
+
   fun findByNotificationId(notificationId: UUID): NotificationMapping?
 
   // Finds notifications that are still pending or have no recorded status.

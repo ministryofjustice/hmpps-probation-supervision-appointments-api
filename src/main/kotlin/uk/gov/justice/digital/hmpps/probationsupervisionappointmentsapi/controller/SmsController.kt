@@ -38,4 +38,10 @@ class SmsController(val smsService: SmsService) {
   fun getSmsStatusesByAppointmentId(
     @RequestParam appointmentId: String,
   ): List<SmsStatusResponse> = smsService.getSmsStatusesByAppointmentId(appointmentId)
+
+  @GetMapping("/status/latest")
+  @ResponseStatus(HttpStatus.OK)
+  fun getLatestSmsStatusByCrn(
+    @RequestParam crn: String,
+  ): SmsStatusResponse? = smsService.getLatestSmsStatusByCrn(crn)
 }

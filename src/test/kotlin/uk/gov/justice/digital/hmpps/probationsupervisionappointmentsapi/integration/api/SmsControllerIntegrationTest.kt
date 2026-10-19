@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integra
 
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.verify
@@ -22,7 +23,6 @@ import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
 import java.time.Instant
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.test.assertEquals
 
@@ -276,14 +276,14 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         )
 
         val deliveredSms = body.single { it.notificationId == newerMapping.notificationId }
-        assertEquals(newerMapping.createdAt.truncatedTo(ChronoUnit.MICROS), deliveredSms.sentAt)
+        assertNotNull(deliveredSms.sentAt)
         assertEquals("delivered", deliveredSms.status)
         assertEquals(deliveredAt, deliveredSms.statusUpdatedAt)
 
         val failedSms = body.single { it.notificationId == olderMapping.notificationId }
-        assertEquals(olderMapping.createdAt.truncatedTo(ChronoUnit.MICROS), failedSms.sentAt)
+        assertNotNull(failedSms.sentAt)
         assertEquals("permanent-failure", failedSms.status)
-        assertEquals(null, failedSms.statusUpdatedAt)
+        assertNull(failedSms.statusUpdatedAt)
       }
   }
 

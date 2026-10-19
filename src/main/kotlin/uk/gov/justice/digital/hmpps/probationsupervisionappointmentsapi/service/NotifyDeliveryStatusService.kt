@@ -4,7 +4,7 @@ import io.sentry.Sentry
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.DELIVERED_STATUSES
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.FINAL_NOTIFY_STATUSES
 import java.time.Instant
 import java.util.UUID
 
@@ -35,7 +35,7 @@ class NotifyDeliveryStatusService(
       if (alreadyPublishedAt != null) {
         notificationMappingRepository.markContactEventPublished(notificationId, createdAt)
       } else if (
-        status in DELIVERED_STATUSES &&
+        status in FINAL_NOTIFY_STATUSES &&
         // Prevents duplicate contact events if the feature flag changes
         // between sending the SMS and confirming delivery.
         featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG) &&

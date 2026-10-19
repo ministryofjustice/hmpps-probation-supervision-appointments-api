@@ -13,6 +13,7 @@ import java.util.UUID
 val FAILURE_STATUSES = setOf("permanent-failure", "temporary-failure", "technical-failure")
 const val NOT_FOUND_STATUS = "not-found"
 const val DELIVERED_STATUS = "delivered"
+val DELIVERED_STATUSES = setOf(DELIVERED_STATUS) + FAILURE_STATUSES
 
 @Component
 class NotifyStatusCheckHandler(
@@ -74,6 +75,7 @@ class NotifyStatusCheckHandler(
       crn = mapping.crn ?: notification.reference.orElse(null),
       status = notification.status,
       alreadyPublishedAt = if (mapping.crn == null) mapping.createdAt else null,
+      createdAt = mapping.createdAt,
     )
 
     if (notification.status in PENDING_NOTIFY_STATUSES) {

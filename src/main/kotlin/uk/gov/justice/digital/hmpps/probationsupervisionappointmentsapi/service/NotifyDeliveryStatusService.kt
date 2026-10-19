@@ -29,6 +29,7 @@ class NotifyDeliveryStatusService(
       notificationId = notificationId,
       status = status,
       updatedAt = Instant.now(),
+      crn = crn,
     )
 
     if (updated > 0 && crn != null) {

@@ -33,6 +33,7 @@ class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
       notificationId = notificationId,
       status = "delivered",
       updatedAt = Instant.now(),
+      crn = null,
     )
 
     assertEquals(1, rowsUpdated)
@@ -50,6 +51,7 @@ class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
       notificationId = notificationId,
       status = "permanent-failure",
       updatedAt = Instant.now(),
+      crn = null,
     )
     assertEquals(1, winner)
 
@@ -59,6 +61,7 @@ class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
       notificationId = notificationId,
       status = "sending",
       updatedAt = Instant.now(),
+      crn = null,
     )
 
     assertEquals(0, loser)

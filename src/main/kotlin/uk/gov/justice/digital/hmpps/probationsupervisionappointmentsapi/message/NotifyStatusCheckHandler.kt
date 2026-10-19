@@ -52,6 +52,7 @@ class NotifyStatusCheckHandler(
           notificationId = notificationId,
           status = NOT_FOUND_STATUS,
           updatedAt = Instant.now(),
+          crn = mapping.crn,
         )
         if (updated > 0) {
           telemetryService.trackEvent(

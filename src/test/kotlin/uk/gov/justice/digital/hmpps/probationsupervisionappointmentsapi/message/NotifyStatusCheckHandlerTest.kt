@@ -240,11 +240,11 @@ class NotifyStatusCheckHandlerTest {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val notFound = notifyException(404)
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenThrow(notFound)
-      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("not-found"), any(), any())).thenReturn(1)
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("not-found"), any(), any(), any())).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("not-found"), any(), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("not-found"), any(), any(), any())
       verify(telemetryService).trackEvent(
         eq("NotifyStatusCheckNotFound"),
         eq(mapOf("notificationId" to notificationId.toString(), "deliusExternalReference" to deliusExternalReference)),

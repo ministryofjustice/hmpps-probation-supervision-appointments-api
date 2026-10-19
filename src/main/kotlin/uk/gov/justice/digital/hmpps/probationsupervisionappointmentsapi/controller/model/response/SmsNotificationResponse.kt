@@ -3,4 +3,5 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.control
 data class SmsNotificationResponse(
   val smsMessage: String,
   val deliusExternalReference: String,
+  val description: String?,
 )

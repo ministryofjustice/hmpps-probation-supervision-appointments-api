@@ -8,6 +8,9 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getNotificationMappingByNotificationId
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.DELIVERED_STATUS
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.FAILURE_STATUSES
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.NOT_FOUND_STATUS
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_LOCATION
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
@@ -154,7 +157,21 @@ class SmsService(
     val notificationMapping =
       notificationMappingRepository.getNotificationMappingByNotificationId(notificationId)
 
-    return SmsNotificationResponse(notificationMapping.message, notificationMapping.deliusExternalReference)
+    val description = when (notificationMapping.status) {
+      DELIVERED_STATUS ->
+        "Appointment confirmation text: delivered - email or text to person on probation"
+
+      in FAILURE_STATUSES ->
+        "Appointment confirmation text: not delivered - email or text to person on probation"
+
+      NOT_FOUND_STATUS ->
+        "Appointment confirmation text: delivery unknown - email or text to person on probation"
+
+      else ->
+        null
+    }
+
+    return SmsNotificationResponse(notificationMapping.message, notificationMapping.deliusExternalReference, description)
   }
 }
 

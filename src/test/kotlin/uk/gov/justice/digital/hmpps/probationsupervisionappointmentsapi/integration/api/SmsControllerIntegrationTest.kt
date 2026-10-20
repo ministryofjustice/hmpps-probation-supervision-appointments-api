@@ -318,9 +318,8 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
     webTestClient.get()
       .uri { uriBuilder ->
-        uriBuilder.path("/sms/status/latest")
-          .queryParam("crn", crn)
-          .build()
+        uriBuilder.path("/sms/status/latest/crn/{crn}")
+          .build(crn)
       }
       .headers(setAuthorisation())
       .accept(MediaType.APPLICATION_JSON)
@@ -335,22 +334,6 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         assertEquals("sending", body.status)
         assertNull(body.statusUpdatedAt)
       }
-  }
-
-  @Test
-  fun `retrieval of latest SMS status by CRN returns an empty response when no SMS exists`() {
-    webTestClient.get()
-      .uri { uriBuilder ->
-        uriBuilder.path("/sms/status/latest")
-          .queryParam("crn", "X999999")
-          .build()
-      }
-      .headers(setAuthorisation())
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isOk
-      .expectBody()
-      .isEmpty
   }
 
   @ParameterizedTest

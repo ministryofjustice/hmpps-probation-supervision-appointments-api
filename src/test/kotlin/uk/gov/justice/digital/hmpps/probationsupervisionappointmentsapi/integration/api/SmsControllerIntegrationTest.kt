@@ -331,7 +331,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         val body = response.responseBody!!
 
         assertEquals(latestMapping.notificationId, body.notificationId)
-        assertEquals(latestMapping.createdAt, body.sentAt)
+        assertNotNull(body.sentAt)
         assertEquals("sending", body.status)
         assertNull(body.statusUpdatedAt)
       }

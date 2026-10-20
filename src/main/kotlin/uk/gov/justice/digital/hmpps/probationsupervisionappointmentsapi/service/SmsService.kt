@@ -159,13 +159,13 @@ class SmsService(
 
     val description = when (notificationMapping.status) {
       DELIVERED_STATUS ->
-        "Appointment confirmation text: delivered - email or text to person on probation"
+        "Appointment confirmation text: delivered"
 
       in FAILURE_STATUSES ->
-        "Appointment confirmation text: not delivered - email or text to person on probation"
+        "Appointment confirmation text: not delivered"
 
       NOT_FOUND_STATUS ->
-        "Appointment confirmation text: delivery unknown - email or text to person on probation"
+        "Appointment confirmation text: delivery unknown"
 
       else ->
         null

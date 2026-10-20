@@ -228,23 +228,23 @@ class SmsServiceTest {
     fun notificationStatuses() = listOf(
       Arguments.of(
         "delivered",
-        "Appointment confirmation text: delivered - email or text to person on probation",
+        "Appointment confirmation text: delivered",
       ),
       Arguments.of(
         "permanent-failure",
-        "Appointment confirmation text: not delivered - email or text to person on probation",
+        "Appointment confirmation text: not delivered",
       ),
       Arguments.of(
         "temporary-failure",
-        "Appointment confirmation text: not delivered - email or text to person on probation",
+        "Appointment confirmation text: not delivered",
       ),
       Arguments.of(
         "technical-failure",
-        "Appointment confirmation text: not delivered - email or text to person on probation",
+        "Appointment confirmation text: not delivered",
       ),
       Arguments.of(
         "not-found",
-        "Appointment confirmation text: delivery unknown - email or text to person on probation",
+        "Appointment confirmation text: delivery unknown",
       ),
       Arguments.of(null, null),
       Arguments.of("created", null),

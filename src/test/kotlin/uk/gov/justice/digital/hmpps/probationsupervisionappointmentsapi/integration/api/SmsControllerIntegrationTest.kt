@@ -289,7 +289,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `retrieval of latest SMS status by CRN returns the most recently created SMS`() {
-    val crn = "X123456"
+    val crn = "X123458"
     val appointmentId = "urn:uk:gov:hmpps:manage-supervision-service:appointment:crn-123"
 
     val olderMapping = NotificationMapping(
@@ -299,9 +299,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
       message = "Older SMS",
       crn = crn,
       status = "delivered",
-    ).apply {
-      createdAt = Instant.parse("2026-10-16T10:00:00Z")
-    }
+    )
 
     val latestMapping = NotificationMapping(
       notificationId = UUID.randomUUID(),
@@ -310,17 +308,26 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
       message = "Latest SMS",
       crn = crn,
       status = "sending",
-    ).apply {
-      createdAt = Instant.parse("2026-10-18T10:00:00Z")
-    }
+    )
 
-    notificationMappingRepository.saveAll(listOf(olderMapping, latestMapping))
+    // Save newest first. This means insertion/ID order differs from created_at
+    // order, ensuring the repository query genuinely uses created_at DESC.
+    val persistedLatestMapping = notificationMappingRepository.saveAndFlush(latestMapping)
+    val persistedOlderMapping = notificationMappingRepository.saveAndFlush(olderMapping)
+
+    val latestSentAt = Instant.parse("2026-10-18T10:00:00Z")
+    val olderSentAt = Instant.parse("2026-10-16T10:00:00Z")
+
+    // @CreatedDate assigns timestamps on insert, so override them only after
+    // these mappings have been persisted.
+    persistedLatestMapping.createdAt = latestSentAt
+    persistedOlderMapping.createdAt = olderSentAt
+    notificationMappingRepository.saveAllAndFlush(
+      listOf(persistedLatestMapping, persistedOlderMapping),
+    )
 
     webTestClient.get()
-      .uri { uriBuilder ->
-        uriBuilder.path("/sms/status/latest/crn/{crn}")
-          .build(crn)
-      }
+      .uri("/sms/status/latest/crn/$crn")
       .headers(setAuthorisation())
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
@@ -330,7 +337,7 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         val body = response.responseBody!!
 
         assertEquals(latestMapping.notificationId, body.notificationId)
-        assertNotNull(body.sentAt)
+        assertEquals(latestSentAt, body.sentAt)
         assertEquals("sending", body.status)
         assertNull(body.statusUpdatedAt)
       }

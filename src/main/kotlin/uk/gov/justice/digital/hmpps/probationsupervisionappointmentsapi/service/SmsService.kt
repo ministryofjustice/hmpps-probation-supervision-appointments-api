@@ -6,6 +6,8 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsStatusResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getNotificationMappingByNotificationId
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.DELIVERED_STATUS
@@ -172,6 +174,30 @@ class SmsService(
     }
 
     return SmsNotificationResponse(notificationMapping.message, notificationMapping.deliusExternalReference, description)
+  }
+
+  fun getSmsStatusesByAppointmentId(appointmentId: String): List<SmsStatusResponse> = notificationMappingRepository.findByDeliusExternalReference(appointmentId)
+    .sortedByDescending { it.createdAt }
+    .map { notificationMapping ->
+      SmsStatusResponse(
+        notificationId = notificationMapping.notificationId,
+        sentAt = notificationMapping.createdAt,
+        status = notificationMapping.status,
+        statusUpdatedAt = notificationMapping.statusUpdatedAt,
+      )
+    }
+
+  fun getLatestSmsStatusByCrn(crn: String): SmsStatusResponse {
+    val notificationMapping = notificationMappingRepository
+      .findFirstByCrnOrderByCreatedAtDesc(crn)
+      ?: throw NotFoundException("NotificationMapping", "crn", crn)
+
+    return SmsStatusResponse(
+      notificationId = notificationMapping.notificationId,
+      sentAt = notificationMapping.createdAt,
+      status = notificationMapping.status,
+      statusUpdatedAt = notificationMapping.statusUpdatedAt,
+    )
   }
 }
 

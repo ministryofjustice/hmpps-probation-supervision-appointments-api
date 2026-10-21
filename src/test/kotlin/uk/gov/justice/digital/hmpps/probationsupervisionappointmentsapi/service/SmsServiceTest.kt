@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exceptio
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.service.notify.Template
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -208,6 +209,52 @@ class SmsServiceTest {
     assertEquals(deliusExternalReference, result.deliusExternalReference)
     assertEquals(expectedDescription, result.description)
     verify(notificationMappingRepository).findByNotificationId(notificationId)
+  }
+
+  @Test
+  fun `should return SMS statuses for an appointment newest first`() {
+    val appointmentId = "urn:uk:gov:hmpps:manage-supervision-service:appointment:test-123"
+
+    val olderSentAt = Instant.parse("2026-06-27T09:00:00Z")
+    val newerSentAt = Instant.parse("2026-06-30T09:00:00Z")
+    val deliveredAt = Instant.parse("2026-06-30T11:00:00Z")
+
+    val olderMapping = NotificationMapping(
+      deliusExternalReference = appointmentId,
+      notificationId = UUID.randomUUID(),
+      templateId = UUID.randomUUID(),
+      message = "Older message",
+      status = "permanent-failure",
+    ).apply {
+      createdAt = olderSentAt
+    }
+
+    val newerMapping = NotificationMapping(
+      deliusExternalReference = appointmentId,
+      notificationId = UUID.randomUUID(),
+      templateId = UUID.randomUUID(),
+      message = "Newer message",
+      status = "delivered",
+      statusUpdatedAt = deliveredAt,
+    ).apply {
+      createdAt = newerSentAt
+    }
+
+    whenever(notificationMappingRepository.findByDeliusExternalReference(appointmentId))
+      .thenReturn(listOf(olderMapping, newerMapping))
+
+    val result = service.getSmsStatusesByAppointmentId(appointmentId)
+
+    assertEquals(2, result.size)
+    assertEquals(newerMapping.notificationId, result[0].notificationId)
+    assertEquals(newerSentAt, result[0].sentAt)
+    assertEquals("delivered", result[0].status)
+    assertEquals(deliveredAt, result[0].statusUpdatedAt)
+    assertEquals(olderMapping.notificationId, result[1].notificationId)
+    assertEquals(olderSentAt, result[1].sentAt)
+    assertEquals("permanent-failure", result[1].status)
+
+    verify(notificationMappingRepository).findByDeliusExternalReference(appointmentId)
   }
 
   @Test

@@ -117,13 +117,14 @@ class NotifyStatusCheckHandlerTest {
 
     @Test
     fun `mapping has a pending status - still calls Notify to check for progress`() {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(status = "sending"))
+      val existingMapping = mapping(status = "sending")
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(existingMapping)
       val delivered = notification("delivered")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered", createdAt = existingMapping.createdAt)
     }
   }
 
@@ -132,13 +133,14 @@ class NotifyStatusCheckHandlerTest {
     @ParameterizedTest
     @ValueSource(strings = ["created", "sending", "pending"])
     fun `Notify reports a non-final status - records it but is not treated as a failure`(status: String) {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
+      val existingMapping = mapping()
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(existingMapping)
       val nonfinal = notification(status)
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(nonfinal)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, status)
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, status, createdAt = existingMapping.createdAt)
       verifyNoInteractions(telemetryService)
     }
   }
@@ -147,14 +149,15 @@ class NotifyStatusCheckHandlerTest {
   inner class FinalNotifyStatus {
     @Test
     fun `Notify reports delivered - delegates to NotifyDeliveryStatusService, no failure telemetry`() {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping(crn = CRN))
+      val existingMapping = mapping(crn = CRN)
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(existingMapping)
       val delivered = notification("delivered")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "delivered")).thenReturn(1)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "delivered", createdAt = existingMapping.createdAt)).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered", createdAt = existingMapping.createdAt)
       verifyNoInteractions(telemetryService)
     }
 
@@ -165,26 +168,41 @@ class NotifyStatusCheckHandlerTest {
       val delivered = notification("delivered")
       whenever(delivered.reference).thenReturn(java.util.Optional.of(CRN))
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(delivered)
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "delivered", historicalMapping.createdAt)).thenReturn(1)
+      whenever(
+        notifyDeliveryStatusService.recordStatus(
+          notificationId,
+          CRN,
+          "delivered",
+          alreadyPublishedAt = historicalMapping.createdAt,
+          createdAt = historicalMapping.createdAt,
+        ),
+      ).thenReturn(1)
 
       handler.handle(event())
 
       // Historical records without a CRN use Notify's reference.
       // As the contact event was already published when the SMS was sent,
       // pass the mapping's createdAt to prevent duplicate publication.
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "delivered", historicalMapping.createdAt)
+      verify(notifyDeliveryStatusService).recordStatus(
+        notificationId,
+        CRN,
+        "delivered",
+        alreadyPublishedAt = historicalMapping.createdAt,
+        createdAt = historicalMapping.createdAt,
+      )
     }
 
     @Test
     fun `Notify reports permanent-failure - records status and raises telemetry`() {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
+      val existingMapping = mapping()
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(existingMapping)
       val permanentFailure = notification("permanent-failure")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "permanent-failure")).thenReturn(1)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "permanent-failure", createdAt = existingMapping.createdAt)).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "permanent-failure")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "permanent-failure", createdAt = existingMapping.createdAt)
       verify(telemetryService).trackEvent(
         eq("SmsDeliveryFailed"),
         eq(
@@ -200,16 +218,17 @@ class NotifyStatusCheckHandlerTest {
 
     @Test
     fun `a concurrent delivery already recorded a final status - update is a no-op, no duplicate telemetry`() {
-      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
+      val existingMapping = mapping()
+      whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(existingMapping)
       val permanentFailure = notification("permanent-failure")
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenReturn(permanentFailure)
       // Another handler already transitioned the row to a final status first, so the
       // conditional update affects zero rows.
-      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "permanent-failure")).thenReturn(0)
+      whenever(notifyDeliveryStatusService.recordStatus(notificationId, CRN, "permanent-failure", createdAt = existingMapping.createdAt)).thenReturn(0)
 
       handler.handle(event())
 
-      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "permanent-failure")
+      verify(notifyDeliveryStatusService).recordStatus(notificationId, CRN, "permanent-failure", createdAt = existingMapping.createdAt)
       verifyNoInteractions(telemetryService)
     }
   }
@@ -221,11 +240,11 @@ class NotifyStatusCheckHandlerTest {
       whenever(notificationMappingRepository.findByNotificationId(notificationId)).thenReturn(mapping())
       val notFound = notifyException(404)
       whenever(notificationClient.getNotificationById(notificationId.toString())).thenThrow(notFound)
-      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("not-found"), any(), any())).thenReturn(1)
+      whenever(notificationMappingRepository.updateStatus(eq(notificationId), eq("not-found"), any(), any(), any())).thenReturn(1)
 
       handler.handle(event())
 
-      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("not-found"), any(), any())
+      verify(notificationMappingRepository).updateStatus(eq(notificationId), eq("not-found"), any(), any(), any())
       verify(telemetryService).trackEvent(
         eq("NotifyStatusCheckNotFound"),
         eq(mapOf("notificationId" to notificationId.toString(), "deliusExternalReference" to deliusExternalReference)),

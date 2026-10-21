@@ -10,6 +10,9 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.getNotificationMappingByNotificationId
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.DELIVERED_STATUS
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.FAILURE_STATUSES
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.message.NOT_FOUND_STATUS
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_DATE
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_LOCATION
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.APPOINTMENT_TIME
@@ -156,7 +159,21 @@ class SmsService(
     val notificationMapping =
       notificationMappingRepository.getNotificationMappingByNotificationId(notificationId)
 
-    return SmsNotificationResponse(notificationMapping.message, notificationMapping.deliusExternalReference)
+    val description = when (notificationMapping.status) {
+      DELIVERED_STATUS ->
+        "Appointment confirmation text: delivered"
+
+      in FAILURE_STATUSES ->
+        "Appointment confirmation text: not delivered"
+
+      NOT_FOUND_STATUS ->
+        "Appointment confirmation text: delivery unknown"
+
+      else ->
+        null
+    }
+
+    return SmsNotificationResponse(notificationMapping.message, notificationMapping.deliusExternalReference, description)
   }
 
   fun getSmsStatusesByAppointmentId(appointmentId: String): List<SmsStatusResponse> = notificationMappingRepository.findByDeliusExternalReference(appointmentId)

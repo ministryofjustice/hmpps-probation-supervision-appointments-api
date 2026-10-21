@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.verify
@@ -178,8 +181,9 @@ class SmsServiceTest {
     assertEquals("2:30pm", dt.toNotifyTime())
   }
 
-  @Test
-  fun `should return sms message when notification mapping exists`() {
+  @ParameterizedTest(name = "status={0}, expectedDescription={1}")
+  @MethodSource("notificationStatuses")
+  fun `should return sms message when notification mapping exists`(status: String?, expectedDescription: String?) {
     val notificationId = UUID.randomUUID()
     val templateId = UUID.randomUUID()
     val expectedMessage = "[DEV]Dear Aubrey,\n" +
@@ -192,6 +196,7 @@ class SmsServiceTest {
       notificationId = notificationId,
       message = expectedMessage,
       templateId = templateId,
+      status = status,
     )
 
     whenever(
@@ -202,6 +207,7 @@ class SmsServiceTest {
 
     assertEquals(expectedMessage, result.smsMessage)
     assertEquals(deliusExternalReference, result.deliusExternalReference)
+    assertEquals(expectedDescription, result.description)
     verify(notificationMappingRepository).findByNotificationId(notificationId)
   }
 
@@ -259,9 +265,40 @@ class SmsServiceTest {
       notificationMappingRepository.findByNotificationId(notificationId),
     ).thenReturn(null)
 
-    val exception = assertThrows<NotFoundException> {
+    assertThrows<NotFoundException> {
       service.getSmsByNotificationId(notificationId)
     }
+  }
+
+  companion object {
+    @JvmStatic
+    fun notificationStatuses() = listOf(
+      Arguments.of(
+        "delivered",
+        "Appointment confirmation text: delivered",
+      ),
+      Arguments.of(
+        "permanent-failure",
+        "Appointment confirmation text: not delivered",
+      ),
+      Arguments.of(
+        "temporary-failure",
+        "Appointment confirmation text: not delivered",
+      ),
+      Arguments.of(
+        "technical-failure",
+        "Appointment confirmation text: not delivered",
+      ),
+      Arguments.of(
+        "not-found",
+        "Appointment confirmation text: delivery unknown",
+      ),
+      Arguments.of(null, null),
+      Arguments.of("created", null),
+      Arguments.of("sending", null),
+      Arguments.of("pending", null),
+      Arguments.of("unexpected-status", null),
+    )
   }
 }
 

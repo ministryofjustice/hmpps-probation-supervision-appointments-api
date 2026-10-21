@@ -78,11 +78,13 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
   // Updates the status only if the notification is still unresolved.
   // Prevents duplicate or delayed messages from overwriting a final status.
   // Returns the number of rows updated so the caller can identify whether the update succeeded.
+  // crn is only backfilled when the row doesn't already have one (COALESCE), so historical
+  // rows self-heal with the crn recovered from Notify's reference without clobbering real data.
   @Modifying
   @Transactional
   @Query(
     """
-    UPDATE NotificationMapping n SET n.status = :status, n.statusUpdatedAt = :updatedAt
+    UPDATE NotificationMapping n SET n.status = :status, n.statusUpdatedAt = :updatedAt, n.crn = COALESCE(n.crn, :crn)
     WHERE n.notificationId = :notificationId AND (n.status IS NULL OR n.status IN :pendingStatuses)
     """,
   )
@@ -90,6 +92,7 @@ interface NotificationMappingRepository : JpaRepository<NotificationMapping, Lon
     @Param("notificationId") notificationId: UUID,
     @Param("status") status: String,
     @Param("updatedAt") updatedAt: Instant,
+    @Param("crn") crn: String?,
     @Param("pendingStatuses") pendingStatuses: Collection<String> = PENDING_NOTIFY_STATUSES,
   ): Int
 

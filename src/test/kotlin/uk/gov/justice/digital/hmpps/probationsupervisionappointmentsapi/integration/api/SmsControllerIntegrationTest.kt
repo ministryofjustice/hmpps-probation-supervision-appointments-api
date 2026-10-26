@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integra
 
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.verify
@@ -14,11 +15,13 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controll
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsPreviewResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsStatusResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.FeatureFlagsService
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.Template
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -221,6 +224,122 @@ class SmsControllerIntegrationTest : IntegrationTestBase() {
         val body = jacksonObjectMapper().readValue<SmsNotificationResponse>(response.responseBody!!)
         assertEquals(body.smsMessage, message)
         assertEquals(body.deliusExternalReference, deliusExternalReference)
+      }
+  }
+
+  @Test
+  fun `retrieval of SMS statuses by appointment ID is successful`() {
+    val appointmentId = "urn:uk:gov:hmpps:manage-supervision-service:appointment:test-123"
+    val deliveredAt = Instant.parse("2026-06-30T11:00:00Z")
+
+    val olderMapping = notificationMappingRepository.save(
+      NotificationMapping(
+        notificationId = UUID.randomUUID(),
+        deliusExternalReference = appointmentId,
+        templateId = UUID.randomUUID(),
+        message = "Older SMS",
+        status = "permanent-failure",
+      ),
+    )
+
+    val newerMapping = notificationMappingRepository.save(
+      NotificationMapping(
+        notificationId = UUID.randomUUID(),
+        deliusExternalReference = appointmentId,
+        templateId = UUID.randomUUID(),
+        message = "Newer SMS",
+        status = "delivered",
+        statusUpdatedAt = deliveredAt,
+      ),
+    )
+
+    webTestClient.get()
+      .uri { uriBuilder ->
+        uriBuilder.path("/sms/status")
+          .queryParam("appointmentId", appointmentId)
+          .build()
+      }
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(String::class.java)
+      .consumeWith { response ->
+        val body = jacksonObjectMapper().readValue<List<SmsStatusResponse>>(
+          response.responseBody!!,
+        )
+
+        assertEquals(2, body.size)
+        assertEquals(
+          setOf(olderMapping.notificationId, newerMapping.notificationId),
+          body.map { it.notificationId }.toSet(),
+        )
+
+        val deliveredSms = body.single { it.notificationId == newerMapping.notificationId }
+        assertNotNull(deliveredSms.sentAt)
+        assertEquals("delivered", deliveredSms.status)
+        assertEquals(deliveredAt, deliveredSms.statusUpdatedAt)
+
+        val failedSms = body.single { it.notificationId == olderMapping.notificationId }
+        assertNotNull(failedSms.sentAt)
+        assertEquals("permanent-failure", failedSms.status)
+        assertNull(failedSms.statusUpdatedAt)
+      }
+  }
+
+  @Test
+  fun `retrieval of latest SMS status by CRN returns the most recently created SMS`() {
+    val crn = "X123458"
+    val appointmentId = "urn:uk:gov:hmpps:manage-supervision-service:appointment:crn-123"
+
+    val olderMapping = NotificationMapping(
+      notificationId = UUID.randomUUID(),
+      deliusExternalReference = appointmentId,
+      templateId = UUID.randomUUID(),
+      message = "Older SMS",
+      crn = crn,
+      status = "delivered",
+    )
+
+    val latestMapping = NotificationMapping(
+      notificationId = UUID.randomUUID(),
+      deliusExternalReference = appointmentId,
+      templateId = UUID.randomUUID(),
+      message = "Latest SMS",
+      crn = crn,
+      status = "sending",
+    )
+
+    // Save newest first. This means insertion/ID order differs from created_at
+    // order, ensuring the repository query genuinely uses created_at DESC.
+    val persistedLatestMapping = notificationMappingRepository.saveAndFlush(latestMapping)
+    val persistedOlderMapping = notificationMappingRepository.saveAndFlush(olderMapping)
+
+    val latestSentAt = Instant.parse("2026-10-18T10:00:00Z")
+    val olderSentAt = Instant.parse("2026-10-16T10:00:00Z")
+
+    // @CreatedDate assigns timestamps on insert, so override them only after
+    // these mappings have been persisted.
+    persistedLatestMapping.createdAt = latestSentAt
+    persistedOlderMapping.createdAt = olderSentAt
+    notificationMappingRepository.saveAllAndFlush(
+      listOf(persistedLatestMapping, persistedOlderMapping),
+    )
+
+    webTestClient.get()
+      .uri("/sms/status/latest/crn/$crn")
+      .headers(setAuthorisation())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(SmsStatusResponse::class.java)
+      .consumeWith { response ->
+        val body = response.responseBody!!
+
+        assertEquals(latestMapping.notificationId, body.notificationId)
+        assertEquals(latestSentAt, body.sentAt)
+        assertEquals("sending", body.status)
+        assertNull(body.statusUpdatedAt)
       }
   }
 

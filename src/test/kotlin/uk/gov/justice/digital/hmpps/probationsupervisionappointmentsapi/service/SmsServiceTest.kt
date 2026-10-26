@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.verify
@@ -18,6 +21,7 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exceptio
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.service.notify.Template
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -177,8 +181,9 @@ class SmsServiceTest {
     assertEquals("2:30pm", dt.toNotifyTime())
   }
 
-  @Test
-  fun `should return sms message when notification mapping exists`() {
+  @ParameterizedTest(name = "status={0}, expectedDescription={1}")
+  @MethodSource("notificationStatuses")
+  fun `should return sms message when notification mapping exists`(status: String?, expectedDescription: String?) {
     val notificationId = UUID.randomUUID()
     val templateId = UUID.randomUUID()
     val expectedMessage = "[DEV]Dear Aubrey,\n" +
@@ -191,6 +196,7 @@ class SmsServiceTest {
       notificationId = notificationId,
       message = expectedMessage,
       templateId = templateId,
+      status = status,
     )
 
     whenever(
@@ -201,7 +207,54 @@ class SmsServiceTest {
 
     assertEquals(expectedMessage, result.smsMessage)
     assertEquals(deliusExternalReference, result.deliusExternalReference)
+    assertEquals(expectedDescription, result.description)
     verify(notificationMappingRepository).findByNotificationId(notificationId)
+  }
+
+  @Test
+  fun `should return SMS statuses for an appointment newest first`() {
+    val appointmentId = "urn:uk:gov:hmpps:manage-supervision-service:appointment:test-123"
+
+    val olderSentAt = Instant.parse("2026-06-27T09:00:00Z")
+    val newerSentAt = Instant.parse("2026-06-30T09:00:00Z")
+    val deliveredAt = Instant.parse("2026-06-30T11:00:00Z")
+
+    val olderMapping = NotificationMapping(
+      deliusExternalReference = appointmentId,
+      notificationId = UUID.randomUUID(),
+      templateId = UUID.randomUUID(),
+      message = "Older message",
+      status = "permanent-failure",
+    ).apply {
+      createdAt = olderSentAt
+    }
+
+    val newerMapping = NotificationMapping(
+      deliusExternalReference = appointmentId,
+      notificationId = UUID.randomUUID(),
+      templateId = UUID.randomUUID(),
+      message = "Newer message",
+      status = "delivered",
+      statusUpdatedAt = deliveredAt,
+    ).apply {
+      createdAt = newerSentAt
+    }
+
+    whenever(notificationMappingRepository.findByDeliusExternalReference(appointmentId))
+      .thenReturn(listOf(olderMapping, newerMapping))
+
+    val result = service.getSmsStatusesByAppointmentId(appointmentId)
+
+    assertEquals(2, result.size)
+    assertEquals(newerMapping.notificationId, result[0].notificationId)
+    assertEquals(newerSentAt, result[0].sentAt)
+    assertEquals("delivered", result[0].status)
+    assertEquals(deliveredAt, result[0].statusUpdatedAt)
+    assertEquals(olderMapping.notificationId, result[1].notificationId)
+    assertEquals(olderSentAt, result[1].sentAt)
+    assertEquals("permanent-failure", result[1].status)
+
+    verify(notificationMappingRepository).findByDeliusExternalReference(appointmentId)
   }
 
   @Test
@@ -212,9 +265,40 @@ class SmsServiceTest {
       notificationMappingRepository.findByNotificationId(notificationId),
     ).thenReturn(null)
 
-    val exception = assertThrows<NotFoundException> {
+    assertThrows<NotFoundException> {
       service.getSmsByNotificationId(notificationId)
     }
+  }
+
+  companion object {
+    @JvmStatic
+    fun notificationStatuses() = listOf(
+      Arguments.of(
+        "delivered",
+        "Appointment confirmation text: delivered",
+      ),
+      Arguments.of(
+        "permanent-failure",
+        "Appointment confirmation text: not delivered",
+      ),
+      Arguments.of(
+        "temporary-failure",
+        "Appointment confirmation text: not delivered",
+      ),
+      Arguments.of(
+        "technical-failure",
+        "Appointment confirmation text: not delivered",
+      ),
+      Arguments.of(
+        "not-found",
+        "Appointment confirmation text: delivery unknown",
+      ),
+      Arguments.of(null, null),
+      Arguments.of("created", null),
+      Arguments.of("sending", null),
+      Arguments.of("pending", null),
+      Arguments.of("unexpected-status", null),
+    )
   }
 }
 

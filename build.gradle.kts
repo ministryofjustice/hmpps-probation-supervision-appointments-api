@@ -1,20 +1,20 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.12"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.14"
   kotlin("plugin.jpa") version "2.4.21"
   kotlin("plugin.spring") version "2.4.21"
   id("idea")
-  id("io.sentry.jvm.gradle") version "6.23.0"
+  id("io.sentry.jvm.gradle") version "6.24.0"
 }
 
 val hmppsSpringBootStarterVersion = "3.0.3"
 val azureIdentityVersion = "1.18.7"
-val fliptVersion = "1.3.4"
-val sentryVersion = "8.61.0"
+val fliptVersion = "1.3.5"
+val sentryVersion = "8.61.1"
 val notifyVersion = "6.2.1-RELEASE"
-val microsoftGraphVersion = "6.71.0"
+val microsoftGraphVersion = "6.72.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.48"
-val springdocVersion = "3.1.1"
+val springdocVersion = "3.2.0"
 val httpclient5Version = "5.6.4"
 val sqsVersion = "7.4.1"
 val postgresqlVersion = "42.7.14"
@@ -42,8 +42,8 @@ dependencyCheck {
   suppressionFiles.add("owasp-suppressions.xml")
 }
 
-// CVE-2026-76183 - the hmpps gradle plugin pins 11.0.25; remove once it pins 11.0.26 or later
-extra["tomcat.version"] = "11.0.26"
+// CVE-2026-101356 - the hmpps gradle plugin pins an older version; remove once it pins 11.0.27 or later
+extra["tomcat.version"] = "11.0.27"
 
 dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:$hmppsSpringBootStarterVersion")

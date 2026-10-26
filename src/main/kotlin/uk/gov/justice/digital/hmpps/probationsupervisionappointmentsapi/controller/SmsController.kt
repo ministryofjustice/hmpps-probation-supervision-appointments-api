@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsPreviewRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsNotificationResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsStatusResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsService
 import java.util.UUID
 
@@ -31,4 +33,16 @@ class SmsController(val smsService: SmsService) {
   fun getSmsMessageByNotificationId(
     @RequestParam notificationId: UUID,
   ): SmsNotificationResponse = smsService.getSmsByNotificationId(notificationId)
+
+  @GetMapping("/status")
+  @ResponseStatus(HttpStatus.OK)
+  fun getSmsStatusesByAppointmentId(
+    @RequestParam appointmentId: String,
+  ): List<SmsStatusResponse> = smsService.getSmsStatusesByAppointmentId(appointmentId)
+
+  @GetMapping("/status/latest/crn/{crn}")
+  @ResponseStatus(HttpStatus.OK)
+  fun getLatestSmsStatusByCrn(
+    @PathVariable crn: String,
+  ): SmsStatusResponse = smsService.getLatestSmsStatusByCrn(crn)
 }

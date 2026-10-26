@@ -14,13 +14,14 @@ import kotlin.test.assertEquals
  */
 class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
 
-  private fun saveMapping(notificationId: UUID) = notificationMappingRepository.save(
+  private fun saveMapping(notificationId: UUID, crn: String? = null) = notificationMappingRepository.save(
     NotificationMapping(
       deliusExternalReference = "delius-ref-1",
       notificationId = notificationId,
       templateId = UUID.randomUUID(),
       message = "body",
       status = null,
+      crn = crn,
     ),
   )
 
@@ -33,6 +34,7 @@ class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
       notificationId = notificationId,
       status = "delivered",
       updatedAt = Instant.now(),
+      crn = null,
     )
 
     assertEquals(1, rowsUpdated)
@@ -50,6 +52,7 @@ class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
       notificationId = notificationId,
       status = "permanent-failure",
       updatedAt = Instant.now(),
+      crn = null,
     )
     assertEquals(1, winner)
 
@@ -59,10 +62,28 @@ class NotificationMappingRepositoryIntegrationTest : IntegrationTestBase() {
       notificationId = notificationId,
       status = "sending",
       updatedAt = Instant.now(),
+      crn = null,
     )
 
     assertEquals(0, loser)
     assertEquals("permanent-failure", notificationMappingRepository.findByNotificationId(notificationId)?.status)
+  }
+
+  // Proves: updateStatus backfills a null stored crn with the crn recovered from Notify's reference,
+  // self-healing historical rows that predate the crn column (see NotifyStatusCheckHandler).
+  @Test
+  fun `updateStatus backfills a null stored crn with the recovered crn`() {
+    val notificationId = UUID.randomUUID()
+    saveMapping(notificationId, crn = null)
+
+    notificationMappingRepository.updateStatus(
+      notificationId = notificationId,
+      status = "delivered",
+      updatedAt = Instant.now(),
+      crn = "X123456",
+    )
+
+    assertEquals("X123456", notificationMappingRepository.findByNotificationId(notificationId)?.crn)
   }
 
   // Proves: markContactEventPublished is an atomic "claim" - only the first caller for a given

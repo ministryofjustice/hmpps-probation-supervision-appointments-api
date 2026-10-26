@@ -1,0 +1,8 @@
+-- Supports GET /sms/status?appointmentId={appointmentId}.
+CREATE INDEX idx_notification_mappings_delius_external_reference
+    ON notification_mappings (delius_external_reference);
+
+-- Supports GET /sms/status/latest/crn/{crn}.
+-- Finds the newest SMS notification mapping for a CRN efficiently.
+CREATE INDEX idx_notification_mappings_crn_created_at
+    ON notification_mappings (crn, created_at DESC);

@@ -50,7 +50,7 @@ class NotifyDeliveryStatusServiceIntegrationTest : IntegrationTestBase() {
       .thenAnswer { throw JsonParseException(null, "boom") }
 
     assertThrows<JsonParseException> {
-      notifyDeliveryStatusService.recordStatus(notificationId, crn, "delivered")
+      notifyDeliveryStatusService.recordStatus(notificationId, crn, "delivered", createdAt = java.time.Instant.now())
     }
 
     val mapping = notificationMappingRepository.findByNotificationId(notificationId)

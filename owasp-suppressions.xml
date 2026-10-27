@@ -65,14 +65,11 @@
         <notes><![CDATA[
     These DOMPurify versions are bundled inside Swagger UI assets.
 
-    DOMPurify 3.2.6 is bundled with WireMock, which is test-only and is not
-    included in the production runtime.
-
-    DOMPurify 3.4.13 is bundled with the production Swagger UI. Upgrading the
-    WebJar independently breaks springdoc 3.1.1 resource resolution, so this
-    is accepted pending an upstream springdoc upgrade with a patched version.
+    These DOMPurify vulnerabilities affect the legacy version bundled inside WireMock's standalone asset pack.
+    This is isolated entirely to wiremock-standalone inside test-only dependencies (version 3.2.6).
+    It is not bundled into or shipped with the production artifact or runtime.
     ]]></notes>
-        <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6|3\.4\.13)$</packageUrl>
+        <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6)$</packageUrl>
 
         <vulnerabilityName>GHSA-h8r8-wccr-v5f2</vulnerabilityName>
         <vulnerabilityName>GHSA-cjmm-f4jc-qw8r</vulnerabilityName>
@@ -109,6 +106,8 @@
         <cve>CVE-2026-65914</cve>
         <cve>CVE-2026-66010</cve>
         <cve>CVE-2026-75838</cve>
+        <cve>CVE-2026-109344</cve>
+        <cve>CVE-2026-109345</cve>
     </suppress>
     <suppress>
         <notes><![CDATA[

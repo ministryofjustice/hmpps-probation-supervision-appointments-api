@@ -14,7 +14,10 @@ val notifyVersion = "6.2.1-RELEASE"
 val microsoftGraphVersion = "6.72.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.48"
-val springdocVersion = "3.2.0"
+// TODO remove once springdoc ships swagger-ui >= 5.33.2 (bundles DOMPurify 3.4.16, CVE-2026-109344, CVE-2026-109345).
+val springdocVersion = "3.1.1"
+// TODO remove once springdoc ships swagger-ui with DOMPurify >= 3.4.16 (CVE-2026-109344, CVE-2026-109345)
+val swaggerVersion = "5.33.2"
 val httpclient5Version = "5.6.4"
 val sqsVersion = "7.4.1"
 val postgresqlVersion = "42.7.14"
@@ -50,6 +53,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
+  implementation("org.webjars:swagger-ui:$swaggerVersion")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.springframework.boot:spring-boot-starter-flyway")
   implementation("com.microsoft.graph:microsoft-graph:$microsoftGraphVersion")

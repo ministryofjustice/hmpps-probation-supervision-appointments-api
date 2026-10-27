@@ -115,7 +115,7 @@
     Suppressed as we don't use JAXB, have no endpoints that accept XML and all SQS/SNS usage is JSON based.
     file name: jaxb-core-4.0.9.jar
     ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.glassfish\.jaxb/jaxb-core@4\.0\.9$/<packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.glassfish\.jaxb/jaxb-core@4\.0\.9$/</packageUrl>
         <cve>CVE-2026-92877</cve>
     </suppress>
 

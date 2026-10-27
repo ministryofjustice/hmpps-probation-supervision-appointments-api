@@ -54,10 +54,10 @@
 
     <suppress>
         <notes><![CDATA[
-    CVE-2024-35255 affects msal4j versions before 1.15.1.
-    This project resolves msal4j 1.23.1 and is therefore not affected.
-    ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@1\.23\.1$</packageUrl>
+            CVE-2024-35255 affects msal4j versions before 1.15.1.
+            This project resolves msal4j 1.26.0 and is therefore not affected.]]>
+        </notes>
+        <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@1\.26\.0$</packageUrl>
         <cve>CVE-2024-35255</cve>
     </suppress>
 
@@ -115,7 +115,7 @@
     Suppressed as we don't use JAXB, have no endpoints that accept XML and all SQS/SNS usage is JSON based.
     file name: jaxb-core-4.0.9.jar
     ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.glassfish\.jaxb/jaxb-core@4\.0\.9$/packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.glassfish\.jaxb/jaxb-core@4\.0\.9$/<packageUrl>
         <cve>CVE-2026-92877</cve>
     </suppress>
 

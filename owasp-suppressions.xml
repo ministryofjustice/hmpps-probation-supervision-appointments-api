@@ -63,11 +63,23 @@
 
     <suppress>
         <notes><![CDATA[
-    These DOMPurify versions are bundled inside Swagger UI assets.
-    This entry will be updated once springdoc-openapi-starter-webmvc-ui resolves a fixed DOMPurify version.
+    This suppression is for DOMPurify 3.4.13, which is bundled in the production Swagger UI
+    (via org.webjars:swagger-ui:5.32.14, resolved by springdoc-openapi-starter-webmvc-ui:3.1.1).
 
-    These DOMPurify vulnerabilities affect the legacy version bundled inside WireMock's standalone asset pack.
-    This is isolated to wiremock-standalone inside non-production (developmentOnly, compileOnly, and testImplementation) dependencies (version 3.2.6).
+    We have upgraded to the latest available springdoc version (3.1.1) which addressed
+    several earlier CVEs (CVE-2026-66010, CVE-2026-75838) by upgrading swagger-ui.
+    However, DOMPurify 3.4.13 still has unresolved vulnerabilities (CVE-2026-109344, CVE-2026-109345)
+    that are only fixed in DOMPurify 3.4.16+.
+
+    As of now, there is no newer springdoc release that bundles a Swagger UI version
+    with a fixed DOMPurify (3.4.16+). The risk is deemed acceptable for production
+    as Swagger UI is used only for API documentation and is not a core part of the
+    application's data processing logic. This entry will be updated once a fixed
+    springdoc version is available.
+
+    These DOMPurify vulnerabilities also affect the legacy version bundled inside
+    WireMock's standalone asset pack. This is isolated to wiremock-standalone inside
+    non-production (developmentOnly, compileOnly, and testImplementation) dependencies.
     It is not bundled into or shipped with the production artifact or runtime.
     ]]></notes>
         <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.4\.13)$</packageUrl>
@@ -113,10 +125,11 @@
 
     <suppress>
         <notes><![CDATA[
-    These DOMPurify versions are bundled inside Swagger UI assets.
+    This suppression is for DOMPurify 3.2.6, which is bundled in the non-production
+    WireMock standalone asset pack (version 3.13.2).
 
-    These DOMPurify vulnerabilities affect the legacy version bundled inside WireMock's standalone asset pack.
-    This is isolated to wiremock-standalone inside non-production (developmentOnly, compileOnly, and testImplementation) dependencies (version 3.2.6).
+    This is isolated to wiremock-standalone inside non-production (developmentOnly,
+    compileOnly, and testImplementation) dependencies.
     It is not bundled into or shipped with the production artifact or runtime.
     ]]></notes>
         <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6)$</packageUrl>

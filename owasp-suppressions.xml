@@ -63,16 +63,26 @@
 
     <suppress>
         <notes><![CDATA[
-    These DOMPurify versions are bundled inside Swagger UI assets.
+    This suppression is for DOMPurify 3.4.13, which is bundled in the production Swagger UI
+    (via org.webjars:swagger-ui:5.32.14, resolved by springdoc-openapi-starter-webmvc-ui:3.1.1).
 
-    DOMPurify 3.2.6 is bundled with WireMock, which is test-only and is not
-    included in the production runtime.
+    We have upgraded to the latest available springdoc version (3.1.1) which addressed
+    several earlier CVEs (CVE-2026-66010, CVE-2026-75838) by upgrading swagger-ui.
+    However, DOMPurify 3.4.13 still has unresolved vulnerabilities (CVE-2026-109344, CVE-2026-109345)
+    that are only fixed in DOMPurify 3.4.16+.
 
-    DOMPurify 3.4.13 is bundled with the production Swagger UI. Upgrading the
-    WebJar independently breaks springdoc 3.1.1 resource resolution, so this
-    is accepted pending an upstream springdoc upgrade with a patched version.
+    As of now, there is no newer springdoc release that bundles a Swagger UI version
+    with a fixed DOMPurify (3.4.16+). The risk is deemed acceptable for production
+    as Swagger UI is used only for API documentation and is not a core part of the
+    application's data processing logic. This entry will be updated once a fixed
+    springdoc version is available.
+
+    These DOMPurify vulnerabilities also affect the legacy version bundled inside
+    WireMock's standalone asset pack. This is isolated to wiremock-standalone inside
+    non-production (developmentOnly, compileOnly, and testImplementation) dependencies.
+    It is not bundled into or shipped with the production artifact or runtime.
     ]]></notes>
-        <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6|3\.4\.13)$</packageUrl>
+        <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.4\.13)$</packageUrl>
 
         <vulnerabilityName>GHSA-h8r8-wccr-v5f2</vulnerabilityName>
         <vulnerabilityName>GHSA-cjmm-f4jc-qw8r</vulnerabilityName>
@@ -109,13 +119,65 @@
         <cve>CVE-2026-65914</cve>
         <cve>CVE-2026-66010</cve>
         <cve>CVE-2026-75838</cve>
+        <cve>CVE-2026-109344</cve>
+        <cve>CVE-2026-109345</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+    This suppression is for DOMPurify 3.2.6, which is bundled in the non-production
+    WireMock standalone asset pack (version 3.13.2).
+
+    This is isolated to wiremock-standalone inside non-production (developmentOnly,
+    compileOnly, and testImplementation) dependencies.
+    It is not bundled into or shipped with the production artifact or runtime.
+    ]]></notes>
+        <packageUrl regex="true">^pkg:javascript/DOMPurify@(3\.2\.6)$</packageUrl>
+
+        <vulnerabilityName>GHSA-h8r8-wccr-v5f2</vulnerabilityName>
+        <vulnerabilityName>GHSA-cjmm-f4jc-qw8r</vulnerabilityName>
+        <vulnerabilityName>GHSA-cj63-jhhr-wcxv</vulnerabilityName>
+        <vulnerabilityName>GHSA-v8jm-5vwx-cfxm</vulnerabilityName>
+        <vulnerabilityName>GHSA-jxrp-r7gx-q4j8</vulnerabilityName>
+        <vulnerabilityName>GHSA-x4vx-rjvf-j5p4</vulnerabilityName>
+        <vulnerabilityName>GHSA-gvmj-g25r-r7wr</vulnerabilityName>
+        <vulnerabilityName>GHSA-vxr8-fq34-vvx9</vulnerabilityName>
+        <vulnerabilityName>GHSA-39q2-94rc-95cp</vulnerabilityName>
+        <vulnerabilityName>GHSA-76mc-f452-cxcm</vulnerabilityName>
+        <vulnerabilityName>GHSA-cmwh-pvxp-8882</vulnerabilityName>
+        <vulnerabilityName>GHSA-v2wj-7wpq-c8vv</vulnerabilityName>
+        <vulnerabilityName>GHSA-55q2-fjhq-7xh7</vulnerabilityName>
+        <vulnerabilityName>GHSA-p98j-92pf-mc4p</vulnerabilityName>
+        <vulnerabilityName>GHSA-6688-9rhm-gjv2</vulnerabilityName>
+
+        <cve>CVE-2025-15599</cve>
+        <cve>CVE-2026-0540</cve>
+        <cve>CVE-2026-41238</cve>
+        <cve>CVE-2026-41239</cve>
+        <cve>CVE-2026-41240</cve>
+        <cve>CVE-2026-49458</cve>
+        <cve>CVE-2026-49459</cve>
+        <cve>CVE-2026-49978</cve>
+        <cve>CVE-2026-65898</cve>
+        <cve>CVE-2026-65899</cve>
+        <cve>CVE-2026-65900</cve>
+        <cve>CVE-2026-65901</cve>
+        <cve>CVE-2026-65902</cve>
+        <cve>CVE-2026-65903</cve>
+        <cve>CVE-2026-65912</cve>
+        <cve>CVE-2026-65913</cve>
+        <cve>CVE-2026-65914</cve>
+        <cve>CVE-2026-66010</cve>
+        <cve>CVE-2026-75838</cve>
+        <cve>CVE-2026-109344</cve>
+        <cve>CVE-2026-109345</cve>
     </suppress>
     <suppress>
         <notes><![CDATA[
     Suppressed as we don't use JAXB, have no endpoints that accept XML and all SQS/SNS usage is JSON based.
     file name: jaxb-core-4.0.9.jar
     ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.glassfish\.jaxb/jaxb-core@4\.0\.9$/</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.glassfish\.jaxb/jaxb-core@4\.0\.9$</packageUrl>
         <cve>CVE-2026-92877</cve>
     </suppress>
 

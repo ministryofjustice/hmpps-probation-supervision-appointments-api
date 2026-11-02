@@ -14,7 +14,9 @@ val notifyVersion = "6.2.1-RELEASE"
 val microsoftGraphVersion = "6.72.0"
 val wiremockVersion = "3.13.2"
 val swaggerParserVersion = "2.1.48"
-val springdocVersion = "3.2.0"
+// CVE-2026-66010, CVE-2026-75838 - downgraded from 3.2.0 to 3.1.1 as it is the latest stable
+// release containing the required security fixes for the bundled Swagger UI.
+val springdocVersion = "3.1.1"
 val httpclient5Version = "5.6.4"
 val sqsVersion = "7.4.1"
 val postgresqlVersion = "42.7.14"

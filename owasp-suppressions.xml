@@ -93,27 +93,52 @@
         <cve>CVE-2024-35255</cve>
     </suppress>
 
+
     <!-- WireMock: development and testing -->
 
     <suppress>
         <notes><![CDATA[
-        DOMPurify 3.2.6 is embedded inside the Swagger UI
-        JavaScript assets bundled with WireMock 3.13.2.
+    DOMPurify 3.2.6 is embedded in the Swagger UI JavaScript
+    assets bundled with WireMock 3.13.2.
 
-        WireMock is used for development and testing and is
-        not included in the production runtime.
+    WireMock is used for development and testing and is not
+    included in the production runtime.
 
-        Affected assets:
-        assets/swagger-ui/swagger-ui-dist/swagger-ui-bundle.js
-        assets/swagger-ui/swagger-ui-dist/swagger-ui-es-bundle.js
-        ]]></notes>
+    Affected assets:
+    assets/swagger-ui/swagger-ui-dist/swagger-ui-bundle.js
+    assets/swagger-ui/swagger-ui-dist/swagger-ui-es-bundle.js
+
+    These vulnerabilities are accepted for the test/development
+    dependency pending an upstream WireMock release containing
+    updated Swagger UI assets.
+    ]]></notes>
 
         <packageUrl>pkg:javascript/DOMPurify@3.2.6</packageUrl>
 
+        <cve>CVE-2025-15599</cve>
+        <cve>CVE-2026-0540</cve>
+        <cve>CVE-2026-41238</cve>
+        <cve>CVE-2026-41239</cve>
+        <cve>CVE-2026-41240</cve>
+        <cve>CVE-2026-49458</cve>
+        <cve>CVE-2026-49459</cve>
+        <cve>CVE-2026-49978</cve>
+        <cve>CVE-2026-65898</cve>
+        <cve>CVE-2026-65899</cve>
+        <cve>CVE-2026-65900</cve>
+        <cve>CVE-2026-65901</cve>
+        <cve>CVE-2026-65902</cve>
+        <cve>CVE-2026-65903</cve>
+        <cve>CVE-2026-65912</cve>
+        <cve>CVE-2026-65913</cve>
+        <cve>CVE-2026-65914</cve>
+        <cve>CVE-2026-66010</cve>
+        <cve>CVE-2026-75838</cve>
         <cve>CVE-2026-109345</cve>
         <cve>CVE-2026-116802</cve>
         <cve>CVE-2026-116803</cve>
     </suppress>
+
 
     <!-- Swagger UI: production -->
 

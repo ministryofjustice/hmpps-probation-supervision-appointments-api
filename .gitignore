@@ -9,6 +9,8 @@
 build/
 volume/
 
+docs
+
 application-local.yml
 
 azure-queries/*json

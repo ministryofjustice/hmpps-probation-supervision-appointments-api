@@ -1,0 +1,3 @@
+Annwyl ((FIRST_NAME)),
+Mae gennych apwyntiad ar ((APPOINTMENT_DATE)) am ((APPOINTMENT_TIME)).
+Cysylltwch â ((PRACTITIONER_FIRST_NAME)) os oes gennych unrhyw gwestiynau.

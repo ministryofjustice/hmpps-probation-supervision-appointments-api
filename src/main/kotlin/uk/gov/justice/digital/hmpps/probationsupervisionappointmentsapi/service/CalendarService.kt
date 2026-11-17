@@ -60,6 +60,27 @@ class CalendarService(
   @Value("\${outlook-environment}") private val outLookEnv: String,
 ) {
 
+  fun sendEventV2(eventRequest: EventRequest): EventResponse {
+    val response = EventResponse(
+      id = null,
+      subject = eventRequest.subject,
+      startDate = eventRequest.start.toString(),
+      endDate = eventRequest.start.plusMinutes(eventRequest.durationInMinutes).toString(),
+      attendees = eventRequest.recipients.map { it.emailAddress },
+    )
+
+    if (eventRequest.start.isBefore(ZonedDateTime.now())) {
+      telemetryService.trackEvent(
+        "AppointmentInThePast",
+        mapOf("supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn),
+      )
+      return response
+    }
+
+    val smsResponse = sendSMSNotification(eventRequest)
+    return response.copy(smsResponse = smsResponse)
+  }
+
   fun sendEvent(eventRequest: EventRequest): EventResponse? {
     val now = ZonedDateTime.now()
 

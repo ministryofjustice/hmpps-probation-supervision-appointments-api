@@ -57,16 +57,33 @@ class CalendarV2Service(
     val smsRequest = eventRequest.smsEventRequest ?: return null
     if (!smsRequest.smsOptIn) return null
     val recipientEmail = eventRequest.recipients.first().emailAddress
-    if (!featureFlagsService.isEnabledForUser("sms-notification-toggle", recipientEmail)) return null
+    val isSmsNotificationEnabled =
+      featureFlagsService.isEnabledForUser(
+        "sms-notification-toggle",
+        recipientEmail,
+      )
 
-    val englishResponse = sendSms(eventRequest, smsRequest, SmsLanguage.ENGLISH)
-    val welshResponse = if (smsRequest.includeWelshTranslation) {
-      sendSms(eventRequest, smsRequest, SmsLanguage.WELSH)
+    if (!isSmsNotificationEnabled) return null
+
+    val sendSmsEnglishResponse = sendSms(
+      eventRequest = eventRequest,
+      templateValues = buildTemplateValues(eventRequest, smsRequest, SmsLanguage.ENGLISH),
+      smsLanguage = SmsLanguage.ENGLISH,
+    )
+    val sendSmsWelshResponse = if (smsRequest.includeWelshTranslation) {
+      sendSms(
+        eventRequest = eventRequest,
+        templateValues = buildTemplateValues(eventRequest, smsRequest, SmsLanguage.WELSH),
+        smsLanguage = SmsLanguage.WELSH,
+      )
     } else {
       null
     }
 
-    return SmsResponse(englishResponse?.notificationId, welshResponse?.notificationId)
+    return SmsResponse(
+      sendSmsEnglishResponse?.notificationId,
+      sendSmsWelshResponse?.notificationId,
+    )
   }
 
   private fun buildTemplateValues(
@@ -93,9 +110,10 @@ class CalendarV2Service(
 
   private fun sendSms(
     eventRequest: EventRequest,
-    smsRequest: SmsEventRequest,
+    templateValues: Map<String, String>,
     smsLanguage: SmsLanguage,
   ): SendSmsResponse? {
+    val smsRequest = requireNotNull(eventRequest.smsEventRequest)
     val telemetryProperties = mapOf(
       "crn" to smsRequest.crn,
       "supervisionAppointmentUrn" to eventRequest.supervisionAppointmentUrn,
@@ -107,7 +125,7 @@ class CalendarV2Service(
       val smsResponse = notificationClient.sendSms(
         template.id.toString(),
         smsRequest.mobileNumber,
-        buildTemplateValues(eventRequest, smsRequest, smsLanguage),
+        templateValues,
         smsRequest.crn,
       )
       notificationMappingRepository.save(

@@ -24,4 +24,5 @@ COPY --from=builder --chown=appuser:appgroup /app/applicationinsights.dev.json /
 
 USER 2000
 
-ENTRYPOINT ["java", "-XX:+AlwaysActAsServerClassMachine", "-javaagent:/app/agent.jar", "-jar", "/app/app.jar"]
+# temp fix for CVE-2026-114938, remove once the base image has been updated to a version that includes the fix
+ENTRYPOINT ["java", "-XX:+AlwaysActAsServerClassMachine", "-XX:-UseBASE64Intrinsics", "-javaagent:/app/agent.jar", "-jar", "/app/app.jar"]

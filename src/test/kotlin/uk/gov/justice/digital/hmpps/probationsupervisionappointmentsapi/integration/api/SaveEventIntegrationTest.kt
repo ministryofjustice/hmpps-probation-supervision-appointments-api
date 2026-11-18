@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -128,6 +129,15 @@ class SaveEventIntegrationTest(@Autowired private val webListenerRegistry: WebLi
 
   @Test
   fun `test successful creation of SMS without outlook id via v2`() {
+    val newTemplateId = "7a4c49af-70f2-4050-b856-7016193c9ec1"
+    val newTemplate = mock<Template>()
+    whenever(newTemplate.id).thenReturn(UUID.fromString(newTemplateId))
+    whenever(notificationTestClient.getTemplateById(newTemplateId)).thenReturn(newTemplate)
+    val notifyResponse = mock<SendSmsResponse>()
+    whenever(notifyResponse.notificationId).thenReturn(UUID.fromString(notificationId))
+    whenever(notifyResponse.templateId).thenReturn(UUID.fromString(newTemplateId))
+    whenever(notifyResponse.body).thenReturn("Reminder: Dear John Doe. Appointment with Sam on Friday 16 September at 10am.")
+    whenever(notificationTestClient.sendSms(eq(newTemplateId), any(), any(), any())).thenReturn(notifyResponse)
     val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:${UUID.randomUUID()}"
     webTestClient.post().uri("/v2/calendar/event")
       .headers(setAuthorisation())
@@ -150,10 +160,14 @@ class SaveEventIntegrationTest(@Autowired private val webListenerRegistry: WebLi
         ),
       )
 
-    verify(notificationTestClient).sendSms(eq(templateId), eq("07700900000"), any(), eq("X123456"))
+    verify(notificationTestClient).sendSms(eq(newTemplateId), eq("07700900000"), any(), eq("X123456"))
     assertEquals(
       supervisionAppointmentUrn,
       notificationMappingRepository.findByNotificationId(UUID.fromString(notificationId))?.deliusExternalReference,
+    )
+    assertEquals(
+      UUID.fromString(newTemplateId),
+      notificationMappingRepository.findByNotificationId(UUID.fromString(notificationId))?.templateId,
     )
     assertNull(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn))
     msGraph.verify(0, anyRequestedFor(urlMatching(".*")))
@@ -215,6 +229,7 @@ class SaveEventIntegrationTest(@Autowired private val webListenerRegistry: WebLi
       "firstName" to "John Doe",
       "mobileNumber" to "07700900000",
       "crn" to "X123456",
+      "practitionerFirstName" to "Sam",
     ),
   )
 }

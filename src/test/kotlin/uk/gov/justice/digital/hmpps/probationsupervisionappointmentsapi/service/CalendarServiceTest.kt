@@ -39,7 +39,6 @@ import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.dao.DataAccessException
@@ -135,82 +134,6 @@ class CalendarServiceTest {
   @BeforeEach
   fun setup() {
     calendarService = CalendarService(graphClient, deliusOutlookMappingRepository, notificationMappingRepository, featureFlags, notificationClient, telemetryService, smsTemplateResolverService, domainEventService, fromEmail, "dev")
-  }
-
-  @Nested
-  inner class SendEventV2Tests {
-    private val smsEventRequest = SmsEventRequest(
-      firstName = "Alex",
-      mobileNumber = "07700900000",
-      crn = "X123456",
-      smsOptIn = true,
-      includeWelshTranslation = false,
-      practitionerFirstName = "Sam",
-    )
-
-    @Test
-    fun `should send SMS for a future appointment without creating an Outlook event`() {
-      val eventRequest = mockEventRequest.copy(smsEventRequest = smsEventRequest)
-      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockRecipient.emailAddress)).thenReturn(true)
-      val templateId = UUID.randomUUID()
-      val notificationId = UUID.randomUUID()
-      val notifyResponse = mock<SendSmsResponse>()
-      whenever(notifyResponse.notificationId).thenReturn(notificationId)
-      whenever(notifyResponse.templateId).thenReturn(templateId)
-      whenever(notifyResponse.body).thenReturn("Reminder: Dear Alex. Appointment on Saturday 1 January at 10am.")
-      whenever(smsTemplateResolverService.getLegacyTemplate(SmsLanguage.ENGLISH, null)).thenReturn(
-        Template(notifyTemplateJson(templateId.toString(), "Reminder: Dear ((FIRST_NAME)).")),
-      )
-      whenever(notificationClient.sendSms(anyString(), anyString(), any(), anyString())).thenReturn(notifyResponse)
-
-      val result = calendarService.sendEventV2(eventRequest)
-
-      assertNull(result.id)
-      assertEquals(SmsResponse(englishNotificationId = notificationId, welshNotificationId = null), result.smsResponse)
-      verify(notificationClient).sendSms(eq(templateId.toString()), eq("07700900000"), any(), eq("X123456"))
-      verify(notificationMappingRepository).save(notificationMappingCaptor.capture())
-      val notificationMapping = notificationMappingCaptor.value
-      assertEquals(notificationId, notificationMapping.notificationId)
-      assertEquals(mockEventRequest.supervisionAppointmentUrn, notificationMapping.deliusExternalReference)
-      assertEquals("X123456", notificationMapping.crn)
-      verifyNoInteractions(graphClient, deliusOutlookMappingRepository)
-    }
-
-    @Test
-    fun `should track past appointment without sending SMS or creating an Outlook event`() {
-      val pastRequest = mockEventRequest.copy(
-        start = ZonedDateTime.now().minusDays(1),
-        smsEventRequest = smsEventRequest,
-      )
-
-      val result = calendarService.sendEventV2(pastRequest)
-
-      assertNull(result.id)
-      assertNull(result.smsResponse)
-      assertEquals(pastRequest.subject, result.subject)
-      assertEquals(pastRequest.start.toString(), result.startDate)
-      verify(telemetryService).trackEvent(
-        "AppointmentInThePast",
-        mapOf("supervisionAppointmentUrn" to pastRequest.supervisionAppointmentUrn),
-      )
-      verifyNoInteractions(notificationClient, notificationMappingRepository, featureFlags, domainEventService)
-      verifyNoInteractions(graphClient, deliusOutlookMappingRepository)
-    }
-
-    @Test
-    fun `should return null SMS response when feature flag is disabled without creating an Outlook event`() {
-      whenever(featureFlags.isEnabledForUser("sms-notification-toggle", mockRecipient.emailAddress)).thenReturn(false)
-
-      val result = calendarService.sendEventV2(
-        mockEventRequest.copy(smsEventRequest = smsEventRequest),
-      )
-
-      assertNull(result.id)
-      assertNull(result.smsResponse)
-      assertEquals(mockEventRequest.subject, result.subject)
-      verifyNoInteractions(notificationClient, notificationMappingRepository)
-      verifyNoInteractions(graphClient, deliusOutlookMappingRepository)
-    }
   }
 
   @Nested

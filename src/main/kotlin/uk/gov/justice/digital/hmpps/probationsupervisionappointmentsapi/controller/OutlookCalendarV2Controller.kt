@@ -10,19 +10,19 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
-import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CalendarService
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.CalendarV2Service
 
 @RestController
 @Tag(name = "Outlook Calendar", description = "Outlook Calendar API")
 @RequestMapping("/v2/calendar")
 @PreAuthorize("hasRole('ROLE_PROBATION_API__PROBATION_SUPERVISION_APPOINTMENTS__EVENTS')")
-class OutlookCalendarV2Controller(private val calendarService: CalendarService) {
+class OutlookCalendarV2Controller(private val calendarV2Service: CalendarV2Service) {
 
   @PostMapping("/event")
   @ResponseStatus(HttpStatus.CREATED)
   @Operation(
     summary = "Record appointment SMS notifications",
-    description = "Sends and records eligible appointment SMS notifications without creating an Outlook calendar event.",
+    description = "Sends and records eligible appointment SMS notifications using the new templates regardless of the template-selection flag, without creating an Outlook calendar event.",
   )
-  fun saveEvent(@RequestBody event: EventRequest) = calendarService.sendEventV2(event)
+  fun saveEvent(@RequestBody event: EventRequest) = calendarV2Service.sendEvent(event)
 }

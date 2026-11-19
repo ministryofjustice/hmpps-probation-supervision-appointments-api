@@ -20,17 +20,14 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.Eng
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
-import java.time.Instant
 import java.time.ZonedDateTime
 
 @Service
 class CalendarV2Service(
   private val notificationMappingRepository: NotificationMappingRepository,
-  private val featureFlagsService: FeatureFlagsService,
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   private val templateResolverService: SmsTemplateResolverService,
-  private val domainEventService: DomainEventService,
 ) {
   fun sendEvent(eventRequest: EventRequest): EventResponse {
     val response = EventResponse(
@@ -56,14 +53,6 @@ class CalendarV2Service(
   fun sendSMSNotification(eventRequest: EventRequest): SmsResponse? {
     val smsRequest = eventRequest.smsEventRequest ?: return null
     if (!smsRequest.smsOptIn) return null
-    val recipientEmail = eventRequest.recipients.first().emailAddress
-    val isSmsNotificationEnabled =
-      featureFlagsService.isEnabledForUser(
-        "sms-notification-toggle",
-        recipientEmail,
-      )
-
-    if (!isSmsNotificationEnabled) return null
 
     val sendSmsEnglishResponse = sendSms(
       eventRequest = eventRequest,
@@ -137,16 +126,6 @@ class CalendarV2Service(
           crn = smsRequest.crn,
         ),
       )
-      if (!featureFlagsService.isEnabled(CONTACT_EVENT_ON_CONFIRMED_DELIVERY_FLAG) &&
-        notificationMappingRepository.markContactEventPublished(smsResponse.notificationId, Instant.now()) > 0
-      ) {
-        try {
-          domainEventService.buildAndPublishContactEvent(smsRequest.crn, smsResponse.notificationId)
-        } catch (e: Exception) {
-          trackTelemetry(e, "ContactEventPublishFailed", telemetryProperties)
-          Sentry.captureException(e)
-        }
-      }
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
       return smsResponse
     } catch (e: Exception) {

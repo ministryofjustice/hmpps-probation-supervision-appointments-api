@@ -22,7 +22,7 @@ class OutlookCalendarV2Controller(private val calendarV2Service: CalendarV2Servi
   @ResponseStatus(HttpStatus.CREATED)
   @Operation(
     summary = "Record appointment SMS notifications",
-    description = "Sends and records eligible appointment SMS notifications using the new templates regardless of the template-selection flag, without creating an Outlook calendar event.",
+    description = "Sends and records appointment SMS notifications for opted-in users.",
   )
   fun saveEvent(@RequestBody event: EventRequest) = calendarV2Service.sendEvent(event)
 }

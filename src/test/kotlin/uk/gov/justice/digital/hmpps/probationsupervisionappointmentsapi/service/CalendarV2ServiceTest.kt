@@ -35,9 +35,6 @@ class CalendarV2ServiceTest {
   private lateinit var notificationMappingRepository: NotificationMappingRepository
 
   @Mock
-  private lateinit var featureFlags: FeatureFlagsService
-
-  @Mock
   private lateinit var notificationClient: NotificationClient
 
   @Mock
@@ -45,9 +42,6 @@ class CalendarV2ServiceTest {
 
   @Mock
   private lateinit var smsTemplateResolverService: SmsTemplateResolverService
-
-  @Mock
-  private lateinit var domainEventService: DomainEventService
 
   private lateinit var calendarV2Service: CalendarV2Service
 
@@ -73,24 +67,19 @@ class CalendarV2ServiceTest {
   fun setup() {
     calendarV2Service = CalendarV2Service(
       notificationMappingRepository,
-      featureFlags,
       notificationClient,
       telemetryService,
       smsTemplateResolverService,
-      domainEventService,
     )
   }
 
   @Test
-  fun `should send English and Welsh SMS using new templates without checking the template flag`() {
-    whenever(featureFlags.isEnabledForUser("sms-notification-toggle", recipient.emailAddress)).thenReturn(true)
+  fun `should send English and Welsh SMS using new templates and leave contact publication to delivery processing`() {
     val englishNotificationId = stubSms(SmsLanguage.ENGLISH)
     val welshNotificationId = stubSms(SmsLanguage.WELSH)
-    whenever(notificationMappingRepository.markContactEventPublished(eq(englishNotificationId), any())).thenReturn(1)
-    whenever(notificationMappingRepository.markContactEventPublished(eq(welshNotificationId), any())).thenReturn(1)
 
     val result = calendarV2Service.sendEvent(
-      eventRequest.copy(smsEventRequest = smsEventRequest.copy(includeWelshTranslation = true)),
+      eventRequest.copy(recipients = emptyList(), smsEventRequest = smsEventRequest.copy(includeWelshTranslation = true)),
     )
 
     assertNull(result.id)
@@ -104,9 +93,9 @@ class CalendarV2ServiceTest {
     mappings.allValues.forEach {
       assertEquals(eventRequest.supervisionAppointmentUrn, it.deliusExternalReference)
       assertEquals("X123456", it.crn)
-      verify(domainEventService).buildAndPublishContactEvent("X123456", it.notificationId)
+      assertNull(it.contactEventPublishedAt)
     }
-    verify(featureFlags, never()).isEnabledForUser(eq("new-sms-appointment-template"), any())
+    verify(notificationMappingRepository, never()).markContactEventPublished(any(), any())
     verify(smsTemplateResolverService, never()).getLegacyTemplate(any(), org.mockito.kotlin.anyOrNull())
   }
 
@@ -124,20 +113,17 @@ class CalendarV2ServiceTest {
       "AppointmentInThePast",
       mapOf("supervisionAppointmentUrn" to pastRequest.supervisionAppointmentUrn),
     )
-    verifyNoInteractions(notificationClient, notificationMappingRepository, featureFlags, domainEventService)
+    verifyNoInteractions(notificationClient, notificationMappingRepository)
   }
 
   @Test
-  fun `should return null SMS response when SMS feature flag is disabled without creating an Outlook event`() {
-    whenever(featureFlags.isEnabledForUser("sms-notification-toggle", recipient.emailAddress)).thenReturn(false)
-
-    val result = calendarV2Service.sendEvent(eventRequest)
+  fun `should return null SMS response when opted out without creating an Outlook event`() {
+    val result = calendarV2Service.sendEvent(eventRequest.copy(smsEventRequest = smsEventRequest.copy(smsOptIn = false)))
 
     assertNull(result.id)
     assertNull(result.smsResponse)
     assertEquals(eventRequest.subject, result.subject)
     verifyNoInteractions(notificationClient, notificationMappingRepository, smsTemplateResolverService)
-    verify(featureFlags, never()).isEnabledForUser(eq("new-sms-appointment-template"), any())
   }
 
   private fun stubSms(language: SmsLanguage): UUID {

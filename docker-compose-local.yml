@@ -5,7 +5,7 @@ version: "3"
 # DevSecurityConfig (HTTP Basic), so unlike docker-compose.yml this does not run hmpps-auth or the app.
 services:
   probation-supervision-db:
-    image: postgres:18
+    image: postgres:19
     networks:
       - hmpps
     container_name: probation-supervision-db

@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
 import io.sentry.Sentry
-import org.springframework.dao.DataAccessException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.AppointmentType
@@ -18,7 +17,6 @@ import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service.SmsUtil.Companion.PRACTITIONER_FIRST_NAME
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.util.EnglishToWelshTranslator
 import uk.gov.service.notify.NotificationClient
-import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
 import java.time.ZonedDateTime
 
@@ -129,23 +127,8 @@ class CalendarV2Service(
       telemetryService.trackEvent("AppointmentReminderSent", telemetryProperties)
       return smsResponse
     } catch (e: Exception) {
-      when (e) {
-        is NotificationClientException ->
-          trackTelemetry(e, "AppointmentReminderFailureNotificationClientException", telemetryProperties)
-        is IllegalArgumentException ->
-          trackTelemetry(e, "AppointmentReminderFailureInvalidArgument", telemetryProperties)
-        is DataAccessException ->
-          trackTelemetry(e, "AppointmentReminderFailureNotificationMappingDatabaseFailure", telemetryProperties)
-        else ->
-          trackTelemetry(e, "AppointmentReminderFailure", telemetryProperties)
-      }
       Sentry.captureException(e)
       return null
     }
-  }
-
-  private fun trackTelemetry(exception: Exception, eventName: String, telemetryProperties: Map<String, String>) {
-    telemetryService.trackEvent(eventName, telemetryProperties)
-    telemetryService.trackException(exception, telemetryProperties)
   }
 }

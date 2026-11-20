@@ -1,8 +1,16 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.api
 
+import com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.web.server.servlet.WebListenerRegistry
@@ -11,6 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.EventResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsResponse
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integration.wiremock.MsGraphApiExtension.Companion.msGraph
 import uk.gov.service.notify.NotificationClient
 import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
@@ -118,6 +127,62 @@ class SaveEventIntegrationTest(@Autowired private val webListenerRegistry: WebLi
     )
   }
 
+  @Test
+  fun `test successful creation of SMS without outlook id via v2`() {
+    val newTemplateId = "7a4c49af-70f2-4050-b856-7016193c9ec1"
+    val newTemplate = mock<Template>()
+    whenever(newTemplate.id).thenReturn(UUID.fromString(newTemplateId))
+    whenever(notificationTestClient.getTemplateById(newTemplateId)).thenReturn(newTemplate)
+    val notifyResponse = mock<SendSmsResponse>()
+    whenever(notifyResponse.notificationId).thenReturn(UUID.fromString(notificationId))
+    whenever(notifyResponse.templateId).thenReturn(UUID.fromString(newTemplateId))
+    whenever(notifyResponse.body).thenReturn("Reminder: Dear John Doe. Appointment with Sam on Friday 16 September at 10am.")
+    whenever(notificationTestClient.sendSms(eq(newTemplateId), any(), any(), any())).thenReturn(notifyResponse)
+    val supervisionAppointmentUrn = "urn:uk:gov:hmpps:manage-supervision-service:appointment:${UUID.randomUUID()}"
+    webTestClient.post().uri("/v2/calendar/event")
+      .headers(setAuthorisation())
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(v2EventRequest("2044-09-16T10:00Z", supervisionAppointmentUrn))
+      .exchange()
+      .expectStatus().isCreated
+      .expectBody(EventResponse::class.java)
+      .isEqualTo(
+        EventResponse(
+          null,
+          "3 Way Meeting (Non NS) with Jon Smith",
+          "2044-09-16T10:00Z",
+          "2044-09-16T10:30Z",
+          listOf("test@test.com"),
+          smsResponse = SmsResponse(
+            englishNotificationId = UUID.fromString(notificationId),
+            welshNotificationId = null,
+          ),
+        ),
+      )
+
+    verify(notificationTestClient).sendSms(eq(newTemplateId), eq("07700900000"), any(), eq("X123456"))
+    assertEquals(
+      supervisionAppointmentUrn,
+      notificationMappingRepository.findByNotificationId(UUID.fromString(notificationId))?.deliusExternalReference,
+    )
+    assertEquals(
+      UUID.fromString(newTemplateId),
+      notificationMappingRepository.findByNotificationId(UUID.fromString(notificationId))?.templateId,
+    )
+    assertNull(deliusOutlookMappingRepository.findBySupervisionAppointmentUrn(supervisionAppointmentUrn))
+    msGraph.verify(0, anyRequestedFor(urlMatching(".*")))
+  }
+
+  @Test
+  fun `unauthorized status returned for v2`() {
+    webTestClient.post().uri("/v2/calendar/event")
+      .exchange()
+      .expectStatus().isUnauthorized
+
+    verify(notificationTestClient, never()).sendSms(any(), any(), any(), any())
+    msGraph.verify(0, anyRequestedFor(urlMatching(".*")))
+  }
+
   private fun runTest(start: String, end: String, outlookId: String?, supervisionAppointmentUrn: String?, expected: EventResponse?) {
     val email = "test@test.com"
     stubGraphCreateEvent(email)
@@ -150,4 +215,21 @@ class SaveEventIntegrationTest(@Autowired private val webListenerRegistry: WebLi
       .expectBody(EventResponse::class.java)
       .isEqualTo(expected)
   }
+
+  private fun v2EventRequest(start: String, supervisionAppointmentUrn: String?) = mapOf(
+    "fromEmail" to "test@test.com",
+    "recipients" to listOf(mapOf("emailAddress" to "test@test.com", "name" to "Attendee")),
+    "message" to "Meeting with Jon",
+    "subject" to "3 Way Meeting (Non NS) with Jon Smith",
+    "start" to start,
+    "durationInMinutes" to 30,
+    "supervisionAppointmentUrn" to supervisionAppointmentUrn,
+    "smsEventRequest" to mapOf(
+      "smsOptIn" to true,
+      "firstName" to "John Doe",
+      "mobileNumber" to "07700900000",
+      "crn" to "X123456",
+      "practitionerFirstName" to "Sam",
+    ),
+  )
 }

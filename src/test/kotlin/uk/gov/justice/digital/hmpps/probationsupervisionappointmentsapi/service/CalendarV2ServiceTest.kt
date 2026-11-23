@@ -1,14 +1,22 @@
 package uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.service
 
+import io.sentry.Sentry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import org.mockito.Mock
+import org.mockito.Mockito.mockStatic
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -16,14 +24,17 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.dao.DataAccessResourceFailureException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.config.SmsLanguage
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.EventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.Recipient
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.request.SmsEventRequest
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.controller.model.response.SmsResponse
+import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMapping
 import uk.gov.justice.digital.hmpps.probationsupervisionappointmentsapi.integrations.NotificationMappingRepository
 import uk.gov.service.notify.NotificationClient
+import uk.gov.service.notify.NotificationClientException
 import uk.gov.service.notify.SendSmsResponse
 import uk.gov.service.notify.Template
 import java.time.ZonedDateTime
@@ -148,6 +159,89 @@ class CalendarV2ServiceTest {
     assertNull(result.smsResponse)
     assertEquals(eventRequest.subject, result.subject)
     verifyNoInteractions(notificationClient, notificationMappingRepository, smsTemplateResolverService)
+  }
+
+  @ParameterizedTest
+  @EnumSource(SmsLanguage::class)
+  fun `should isolate template resolution failure to the affected language`(failedLanguage: SmsLanguage) {
+    val successfulLanguage = if (failedLanguage == SmsLanguage.ENGLISH) SmsLanguage.WELSH else SmsLanguage.ENGLISH
+    val successfulNotificationId = stubSms(successfulLanguage, "COAP")
+    val exception = NotFoundException("Template not found")
+    whenever(smsTemplateResolverService.getNewAppointmentTemplate(failedLanguage, "COAP")).thenThrow(exception)
+
+    assertPartialSmsSuccess(failedLanguage, successfulNotificationId, exception)
+
+    verify(notificationClient).sendSms(any(), eq("07700900000"), any(), eq("X123456"))
+    verify(notificationMappingRepository).save(any())
+  }
+
+  @ParameterizedTest
+  @EnumSource(SmsLanguage::class)
+  fun `should isolate Notify failure to the affected language`(failedLanguage: SmsLanguage) {
+    val successfulLanguage = if (failedLanguage == SmsLanguage.ENGLISH) SmsLanguage.WELSH else SmsLanguage.ENGLISH
+    val successfulNotificationId = stubSms(successfulLanguage, "COAP")
+    val failedTemplateId = UUID.randomUUID()
+    val template = mock<Template>()
+    whenever(template.id).thenReturn(failedTemplateId)
+    whenever(smsTemplateResolverService.getNewAppointmentTemplate(failedLanguage, "COAP")).thenReturn(template)
+    val exception = NotificationClientException("SMS failure")
+    doThrow(exception).whenever(notificationClient).sendSms(eq(failedTemplateId.toString()), any(), any(), any())
+
+    assertPartialSmsSuccess(failedLanguage, successfulNotificationId, exception)
+
+    verify(notificationClient, times(2)).sendSms(any(), eq("07700900000"), any(), eq("X123456"))
+    verify(notificationMappingRepository).save(any())
+  }
+
+  @ParameterizedTest
+  @EnumSource(SmsLanguage::class)
+  fun `should isolate mapping save failure to the affected language`(failedLanguage: SmsLanguage) {
+    val successfulLanguage = if (failedLanguage == SmsLanguage.ENGLISH) SmsLanguage.WELSH else SmsLanguage.ENGLISH
+    val successfulNotificationId = stubSms(successfulLanguage, "COAP")
+    val failedNotificationId = stubSms(failedLanguage, "COAP")
+    val exception = DataAccessResourceFailureException("Mapping save failed")
+    doAnswer { it.getArgument<NotificationMapping>(0) }.whenever(notificationMappingRepository).save(any())
+    doThrow(exception).whenever(notificationMappingRepository).save(
+      argThat<NotificationMapping> { notificationId == failedNotificationId },
+    )
+
+    assertPartialSmsSuccess(failedLanguage, successfulNotificationId, exception)
+
+    verify(notificationClient, times(2)).sendSms(any(), eq("07700900000"), any(), eq("X123456"))
+    verify(notificationMappingRepository, times(2)).save(any())
+  }
+
+  private fun assertPartialSmsSuccess(failedLanguage: SmsLanguage, successfulNotificationId: UUID, exception: Exception) {
+    val request = eventRequest.copy(
+      smsEventRequest = smsEventRequest.copy(includeWelshTranslation = true, appointmentTypeCode = "COAP"),
+    )
+
+    mockStatic(Sentry::class.java).use { sentryMock ->
+      val result = assertDoesNotThrow { calendarV2Service.sendEvent(request) }
+
+      assertNull(result.id)
+      val expectedSmsResponse = if (failedLanguage == SmsLanguage.ENGLISH) {
+        SmsResponse(null, successfulNotificationId)
+      } else {
+        SmsResponse(successfulNotificationId, null)
+      }
+      assertEquals(expectedSmsResponse, result.smsResponse)
+      sentryMock.verify { Sentry.captureException(exception) }
+      sentryMock.verifyNoMoreInteractions()
+    }
+
+    verify(smsTemplateResolverService).getNewAppointmentTemplate(SmsLanguage.ENGLISH, "COAP")
+    verify(smsTemplateResolverService).getNewAppointmentTemplate(SmsLanguage.WELSH, "COAP")
+    val successfulMapping = argumentCaptor<NotificationMapping>()
+    verify(notificationMappingRepository).save(
+      argThat<NotificationMapping> { notificationId == successfulNotificationId },
+    )
+    verify(notificationMappingRepository, org.mockito.kotlin.atLeastOnce()).save(successfulMapping.capture())
+    val mapping = successfulMapping.allValues.single { it.notificationId == successfulNotificationId }
+    assertEquals(eventRequest.supervisionAppointmentUrn, mapping.deliusExternalReference)
+    assertEquals(smsEventRequest.crn, mapping.crn)
+    assertNull(mapping.contactEventPublishedAt)
+    verify(notificationMappingRepository, never()).markContactEventPublished(any(), any())
   }
 
   private fun stubSms(language: SmsLanguage, appointmentTypeCode: String): UUID {

@@ -75,18 +75,42 @@ class CalendarV2ServiceTest {
 
   @Test
   fun `should send English and Welsh SMS using new templates and leave contact publication to delivery processing`() {
-    val englishNotificationId = stubSms(SmsLanguage.ENGLISH)
-    val welshNotificationId = stubSms(SmsLanguage.WELSH)
+    val appointmentTypeCode = "COAP"
+    val englishNotificationId = stubSms(SmsLanguage.ENGLISH, appointmentTypeCode)
+    val welshNotificationId = stubSms(SmsLanguage.WELSH, appointmentTypeCode)
 
     val result = calendarV2Service.sendEvent(
-      eventRequest.copy(recipients = emptyList(), smsEventRequest = smsEventRequest.copy(includeWelshTranslation = true)),
+      eventRequest.copy(
+        recipients = emptyList(),
+        smsEventRequest = smsEventRequest.copy(includeWelshTranslation = true, appointmentTypeCode = appointmentTypeCode),
+      ),
     )
 
     assertNull(result.id)
     assertEquals(SmsResponse(englishNotificationId, welshNotificationId), result.smsResponse)
+    verify(smsTemplateResolverService).getNewAppointmentTemplate(SmsLanguage.ENGLISH, appointmentTypeCode)
+    verify(smsTemplateResolverService).getNewAppointmentTemplate(SmsLanguage.WELSH, appointmentTypeCode)
     val personalisation = argumentCaptor<Map<String, String>>()
     verify(notificationClient, times(2)).sendSms(any(), eq("07700900000"), personalisation.capture(), eq("X123456"))
-    personalisation.allValues.forEach { assertEquals("Sam", it["PRACTITIONER_FIRST_NAME"]) }
+    assertEquals(
+      listOf(
+        mapOf(
+          "FIRST_NAME" to "Alex",
+          "PRACTITIONER_FIRST_NAME" to "Sam",
+          "APPOINTMENT_DATE" to "Saturday 1 January",
+          "APPOINTMENT_TIME" to "10am",
+          "APPOINTMENT_TYPE" to "an office appointment",
+        ),
+        mapOf(
+          "FIRST_NAME" to "Alex",
+          "PRACTITIONER_FIRST_NAME" to "Sam",
+          "APPOINTMENT_DATE" to "Dydd Sadwrn 1 Ionawr",
+          "APPOINTMENT_TIME" to "10am",
+          "APPOINTMENT_TYPE" to "apwyntiad yn y swyddfa",
+        ),
+      ),
+      personalisation.allValues,
+    )
     val mappings = argumentCaptor<NotificationMapping>()
     verify(notificationMappingRepository, times(2)).save(mappings.capture())
     assertEquals(listOf(englishNotificationId, welshNotificationId), mappings.allValues.map { it.notificationId })
@@ -126,12 +150,12 @@ class CalendarV2ServiceTest {
     verifyNoInteractions(notificationClient, notificationMappingRepository, smsTemplateResolverService)
   }
 
-  private fun stubSms(language: SmsLanguage): UUID {
+  private fun stubSms(language: SmsLanguage, appointmentTypeCode: String): UUID {
     val templateId = UUID.randomUUID()
     val notificationId = UUID.randomUUID()
     val template = mock<Template>()
     whenever(template.id).thenReturn(templateId)
-    whenever(smsTemplateResolverService.getNewAppointmentTemplate(language, null)).thenReturn(template)
+    whenever(smsTemplateResolverService.getNewAppointmentTemplate(language, appointmentTypeCode)).thenReturn(template)
     val notifyResponse = mock<SendSmsResponse>()
     whenever(notifyResponse.notificationId).thenReturn(notificationId)
     whenever(notifyResponse.templateId).thenReturn(templateId)

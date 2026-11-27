@@ -26,6 +26,7 @@ class CalendarV2Service(
   private val notificationClient: NotificationClient,
   private val telemetryService: TelemetryService,
   private val templateResolverService: SmsTemplateResolverService,
+  private val domainEventService: DomainEventService,
 ) {
   fun sendEvent(eventRequest: EventRequest): EventResponse {
     val response = EventResponse(
@@ -44,6 +45,7 @@ class CalendarV2Service(
       return response
     }
 
+    domainEventService.buildAndPublishOutlookCalendarRequest(eventRequest)
     val smsResponse = sendSMSNotification(eventRequest)
     return response.copy(smsResponse = smsResponse)
   }

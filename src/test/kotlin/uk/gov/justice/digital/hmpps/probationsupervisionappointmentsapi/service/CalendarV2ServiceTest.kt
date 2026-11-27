@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
@@ -54,6 +55,9 @@ class CalendarV2ServiceTest {
   @Mock
   private lateinit var smsTemplateResolverService: SmsTemplateResolverService
 
+  @Mock
+  private lateinit var domainEventService: DomainEventService
+
   private lateinit var calendarV2Service: CalendarV2Service
 
   private val recipient = Recipient("attendee@example.com", "Attendee Name")
@@ -81,6 +85,7 @@ class CalendarV2ServiceTest {
       notificationClient,
       telemetryService,
       smsTemplateResolverService,
+      domainEventService,
     )
   }
 
@@ -90,19 +95,22 @@ class CalendarV2ServiceTest {
     val englishNotificationId = stubSms(SmsLanguage.ENGLISH, appointmentTypeCode)
     val welshNotificationId = stubSms(SmsLanguage.WELSH, appointmentTypeCode)
 
-    val result = calendarV2Service.sendEvent(
-      eventRequest.copy(
-        recipients = emptyList(),
-        smsEventRequest = smsEventRequest.copy(includeWelshTranslation = true, appointmentTypeCode = appointmentTypeCode),
-      ),
+    val request = eventRequest.copy(
+      recipients = emptyList(),
+      smsEventRequest = smsEventRequest.copy(includeWelshTranslation = true, appointmentTypeCode = appointmentTypeCode),
     )
+
+    val result = calendarV2Service.sendEvent(request)
 
     assertNull(result.id)
     assertEquals(SmsResponse(englishNotificationId, welshNotificationId), result.smsResponse)
     verify(smsTemplateResolverService).getNewAppointmentTemplate(SmsLanguage.ENGLISH, appointmentTypeCode)
     verify(smsTemplateResolverService).getNewAppointmentTemplate(SmsLanguage.WELSH, appointmentTypeCode)
     val personalisation = argumentCaptor<Map<String, String>>()
+
     verify(notificationClient, times(2)).sendSms(any(), eq("07700900000"), personalisation.capture(), eq("X123456"))
+    verify(domainEventService).buildAndPublishOutlookCalendarRequest(request)
+
     assertEquals(
       listOf(
         mapOf(
@@ -135,7 +143,7 @@ class CalendarV2ServiceTest {
   }
 
   @Test
-  fun `should track past appointment without sending SMS or creating an Outlook event`() {
+  fun `should track past appointment without sending SMS or publishing an Outlook event`() {
     val pastRequest = eventRequest.copy(start = ZonedDateTime.now().minusDays(1))
 
     val result = calendarV2Service.sendEvent(pastRequest)
@@ -148,17 +156,46 @@ class CalendarV2ServiceTest {
       "AppointmentInThePast",
       mapOf("supervisionAppointmentUrn" to pastRequest.supervisionAppointmentUrn),
     )
-    verifyNoInteractions(notificationClient, notificationMappingRepository)
+    verifyNoInteractions(notificationClient, notificationMappingRepository, domainEventService)
   }
 
   @Test
-  fun `should return null SMS response when opted out without creating an Outlook event`() {
-    val result = calendarV2Service.sendEvent(eventRequest.copy(smsEventRequest = smsEventRequest.copy(smsOptIn = false)))
+  fun `should return null SMS response when opted out and still publish Outlook calendar request`() {
+    val optedOutRequest = eventRequest.copy(smsEventRequest = smsEventRequest.copy(smsOptIn = false))
+
+    val result = calendarV2Service.sendEvent(optedOutRequest)
 
     assertNull(result.id)
     assertNull(result.smsResponse)
-    assertEquals(eventRequest.subject, result.subject)
+    assertEquals(optedOutRequest.subject, result.subject)
     verifyNoInteractions(notificationClient, notificationMappingRepository, smsTemplateResolverService)
+    verify(domainEventService).buildAndPublishOutlookCalendarRequest(optedOutRequest)
+  }
+
+  @Test
+  fun `should return null SMS response when SMS details are absent and still publish Outlook calendar request`() {
+    val requestWithoutSms = eventRequest.copy(smsEventRequest = null)
+
+    val result = calendarV2Service.sendEvent(requestWithoutSms)
+
+    assertNull(result.id)
+    assertNull(result.smsResponse)
+    assertEquals(requestWithoutSms.subject, result.subject)
+    verifyNoInteractions(notificationClient, notificationMappingRepository, smsTemplateResolverService)
+    verify(domainEventService).buildAndPublishOutlookCalendarRequest(requestWithoutSms)
+  }
+
+  @Test
+  fun `should propagate exception when Outlook calendar request publication fails`() {
+    val requestWithoutSms = eventRequest.copy(smsEventRequest = null)
+    val exception = RuntimeException("SNS publication failed")
+    doThrow(exception).whenever(domainEventService).buildAndPublishOutlookCalendarRequest(requestWithoutSms)
+
+    val thrown = assertThrows<RuntimeException> {
+      calendarV2Service.sendEvent(requestWithoutSms)
+    }
+
+    assertEquals("SNS publication failed", thrown.message)
   }
 
   @ParameterizedTest
@@ -242,6 +279,7 @@ class CalendarV2ServiceTest {
     assertEquals(smsEventRequest.crn, mapping.crn)
     assertNull(mapping.contactEventPublishedAt)
     verify(notificationMappingRepository, never()).markContactEventPublished(any(), any())
+    verify(domainEventService).buildAndPublishOutlookCalendarRequest(request)
   }
 
   private fun stubSms(language: SmsLanguage, appointmentTypeCode: String): UUID {

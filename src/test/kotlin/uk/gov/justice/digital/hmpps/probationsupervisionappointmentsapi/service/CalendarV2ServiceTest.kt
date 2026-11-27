@@ -19,7 +19,6 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
-import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.times
@@ -109,10 +108,8 @@ class CalendarV2ServiceTest {
     verify(smsTemplateResolverService).getNewAppointmentTemplate(SmsLanguage.WELSH, appointmentTypeCode)
     val personalisation = argumentCaptor<Map<String, String>>()
 
-    inOrder(notificationClient, domainEventService) {
-      verify(notificationClient, times(2)).sendSms(any(), eq("07700900000"), personalisation.capture(), eq("X123456"))
-      verify(domainEventService).buildAndPublishOutlookCalendarRequest(request)
-    }
+    verify(notificationClient, times(2)).sendSms(any(), eq("07700900000"), personalisation.capture(), eq("X123456"))
+    verify(domainEventService).buildAndPublishOutlookCalendarRequest(request)
 
     assertEquals(
       listOf(

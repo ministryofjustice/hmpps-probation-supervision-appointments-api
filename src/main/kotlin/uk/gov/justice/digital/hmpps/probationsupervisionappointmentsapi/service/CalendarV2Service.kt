@@ -45,8 +45,8 @@ class CalendarV2Service(
       return response
     }
 
-    val smsResponse = sendSMSNotification(eventRequest)
     domainEventService.buildAndPublishOutlookCalendarRequest(eventRequest)
+    val smsResponse = sendSMSNotification(eventRequest)
     return response.copy(smsResponse = smsResponse)
   }
 

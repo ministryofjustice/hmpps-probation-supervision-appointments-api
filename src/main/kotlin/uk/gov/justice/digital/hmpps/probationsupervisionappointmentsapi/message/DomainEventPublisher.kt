@@ -15,7 +15,7 @@ class DomainEventPublisher(
   private val domainEventsTopic by lazy {
     hmppsQueueService.findByTopicId("hmppseventtopic") ?: throw IllegalStateException("hmppseventtopic not found")
   }
-  fun publish(domainEvent: HmppsDomainEvent) {
+  fun publish(domainEvent: HmppsDomainEvent, telemetryEventName: String = "smsContactEventSent") {
     val telemetryProperties = mapOf(
       "eventType" to domainEvent.eventType,
       "crn" to domainEvent.personReference?.get("CRN"),
@@ -26,7 +26,7 @@ class DomainEventPublisher(
         domainEvent.eventType,
         objectMapper.writeValueAsString(domainEvent),
       )
-      telemetryService.trackEvent("smsContactEventSent", telemetryProperties)
+      telemetryService.trackEvent(telemetryEventName, telemetryProperties)
     } catch (ex: Exception) {
       // catch all block will record telemetry and sentry
       throw ex

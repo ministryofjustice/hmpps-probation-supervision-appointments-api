@@ -104,7 +104,7 @@ class NotifyStatusPollingJobTest {
 
       verify(telemetryService).trackEvent(eq("NotifyStatusPollingStarted"), eq(mapOf("unresolvedCount" to "2")), any())
       val eventCaptor = argumentCaptor<HmppsDomainEvent>()
-      verify(domainEventPublisher, times(2)).publish(eventCaptor.capture())
+      verify(domainEventPublisher, times(2)).publish(eventCaptor.capture(), eq("smsContactEventSent"))
 
       val publishedNotificationIds = eventCaptor.allValues.map { it.additionalInformation["notificationId"] }
       assertEquals(
@@ -123,13 +123,13 @@ class NotifyStatusPollingJobTest {
       val second = mapping()
       whenever(notificationMappingRepository.findUnresolved(limit = batchSize)).thenReturn(listOf(first, second))
       val failure = RuntimeException("SNS unavailable")
-      doThrow(failure).doNothing().whenever(domainEventPublisher).publish(any())
+      doThrow(failure).doNothing().whenever(domainEventPublisher).publish(any(), eq("smsContactEventSent"))
 
       job.poll()
 
       // The failing row does not fail the polling job - the second row is still attempted,
       // and the failure is tracked for alerting rather than swallowed.
-      verify(domainEventPublisher, times(2)).publish(any())
+      verify(domainEventPublisher, times(2)).publish(any(), eq("smsContactEventSent"))
       verify(telemetryService).trackException(eq(failure), eq(mapOf("notificationId" to first.notificationId.toString())), any())
     }
   }
